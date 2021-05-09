@@ -1,0 +1,13 @@
+test:
+    image: behodler/morta
+    tty: true
+    command: test
+    volumes:
+        - ./:/app
+
+build:
+    image: behodler/morta
+    tty: true
+    command: compile
+    volumes:
+        - ./:/app
