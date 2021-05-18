@@ -1,4 +1,4 @@
-# Morta
+# Limbo
 Token Preseeding Smart Contracts for Behodler.
 
 ## Setup

@@ -1,12 +1,12 @@
 test:
-    image: behodler/morta
+    image: behodler/limbo
     tty: true
     command: test
     volumes:
         - ./:/app
 
 build:
-    image: behodler/morta
+    image: behodler/limbo
     tty: true
     command: compile
     volumes:
