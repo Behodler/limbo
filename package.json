@@ -6,7 +6,7 @@
   "scripts": {
     "test": "docker-compose up test",
     "build": "docker-compose up build",
-    "docker:rebuild": "docker build -t behodler/limbo ."
+    "docker:install": "rm -rf node_modules/* && touch yarn.lock && rm yarn.lock && docker-compose up install"
   },
   "repository": {
     "type": "git",
@@ -22,12 +22,11 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^4.1.0",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.4",
-    "hardhat": "^2.2.1"
+    "hardhat": "^2.3.0"
   },
-  "dependencies": {
-    "@openzeppelin/contracts": "^4.1.0"
-  }
+  "dependencies": {}
 }

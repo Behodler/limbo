@@ -29,7 +29,7 @@ library TransferHelper {
             );
         } else {
             require(
-                IERC20(token).transfer(to, uint256(amount * (-1))),
+                IERC20(token).transfer(from, uint256(amount * (-1))),
                 "LimboDAO: ERC20 transfer failed."
             );
         }
@@ -123,11 +123,16 @@ contract LimboDAO is Ownable {
     }
 
     modifier incrementFate {
-        FateState storage state = fateState[_msgSender()];
-        state.fateBalance +=
-            state.fatePerDay *
-            ((block.timestamp - state.lastDamnAdjustment) / (1 days));
+        incrementFateFor(_msgSender());
         _;
+    }
+
+    function incrementFateFor(address user) public {
+        FateState storage state = fateState[user];
+        state.fateBalance +=
+            (state.fatePerDay * (block.timestamp - state.lastDamnAdjustment)) /
+            (1 days);
+        state.lastDamnAdjustment = block.timestamp;
     }
 
     constructor(
@@ -242,15 +247,16 @@ contract LimboDAO is Ownable {
     ) public isLive incrementFate {
         require(assetApproved[asset], "LimboDAO: illegal asset");
         address sender = _msgSender();
-        FateGrowthStrategy strategy = fateGrowthStrategy[domainConfig.eye];
-        uint256 rootEYESquared = rootEYE**2;
-        uint256 rootEYEPlusOneSquared = (rootEYE + 1)**2;
+        FateGrowthStrategy strategy = fateGrowthStrategy[asset];
+        uint256 rootEYESquared = rootEYE * rootEYE;
+        uint256 rootEYEPlusOneSquared = (rootEYE + 1) * (rootEYE + 1);
         require(
             rootEYESquared <= finalEYEBalance &&
                 rootEYEPlusOneSquared > finalEYEBalance,
             "LimboDAO: Stake EYE invariant."
         );
         AssetClout storage clout = stakedUserAssetWeight[sender][asset];
+        fateState[sender].fatePerDay -= clout.fateWeight;
         uint256 initialBalance = clout.balance;
         //EYE
         if (strategy == FateGrowthStrategy.directRoot) {
@@ -260,13 +266,11 @@ contract LimboDAO is Ownable {
             );
             require(asset == domainConfig.eye);
 
-            fateState[sender].fatePerDay -= clout.fateWeight;
             clout.fateWeight = rootEYE;
             clout.balance = finalAssetBalance;
             fateState[sender].fatePerDay += rootEYE;
         } else if (strategy == FateGrowthStrategy.indirectTwoRootEye) {
             //LP
-            fateState[sender].fatePerDay -= clout.fateWeight;
             clout.fateWeight = 2 * rootEYE;
             fateState[sender].fatePerDay += clout.fateWeight;
 
@@ -281,12 +285,11 @@ contract LimboDAO is Ownable {
                 "LimboDAO: stake invariant check 2."
             );
             clout.balance = finalAssetBalance;
-            fateState[sender].fatePerDay += 2 * rootEYE;
         } else {
             revert("LimboDAO: asset growth strategy not accounted for");
         }
         int256 netBalance = int256(finalAssetBalance) - int256(initialBalance);
-        domainConfig.eye.ERC20NetTransfer(sender, address(this), netBalance);
+        asset.ERC20NetTransfer(sender, address(this), netBalance);
     }
 
     //TODO: test that this isn't lost when updateState is called.

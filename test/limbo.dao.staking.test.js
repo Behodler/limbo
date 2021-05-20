@@ -1,5 +1,5 @@
 const { expect, assert } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 
 const requireCondition = (condition, message) => {
   if (!condition)
@@ -70,6 +70,13 @@ describe("DAO", function () {
     }
   })
 
+  const advanceTime = async (seconds) => {
+    await network.provider.send("evm_increaseTime", [seconds]) //6 hours
+    await network.provider.send("evm_mine")
+  }
+  const ONE = BigInt('1000000000000000000')
+  const NAUGHT_POINT_ONE = ONE / 10n
+
   it("only eye or approved assets can be staked", async function () {
     await dao.makeLive()
     await expect(dao.stakeEYEBasedAsset(100, 400, 20, daiSushiSLP.address)).to.be.revertedWith("LimboDAO: illegal asset")
@@ -102,47 +109,76 @@ describe("DAO", function () {
   })
 
   it("Staking Eye and wait increases fate correctly", async function () {
+    await dao.makeLive()
+
+    await dao.stakeEYEBasedAsset(10000, 10000, 100, eye.address)
+
+    await advanceTime(21600) // 6 hours
+
+    await dao.incrementFateFor(owner.address)
+    let fateState = await dao.fateState(owner.address)
+    expect(fateState[1].toString()).to.equal('25')
+
+    await dao.stakeEYEBasedAsset(400, 400, 20, eye.address)
+
+    await advanceTime(172800) //2 days
+    await dao.incrementFateFor(owner.address)
+    fateState = await dao.fateState(owner.address)
+    expect(fateState[0].toString()).to.equal('20')
+    expect(fateState[1].toString()).to.equal('65')
+
+    await dao.stakeEYEBasedAsset(62500, 62500, 250, eye.address)
+
+    await advanceTime(28800) //8 hours
+    await dao.incrementFateFor(owner.address)
+    fateState = await dao.fateState(owner.address)
+    expect(fateState[1].toString()).to.equal('148')
+  })
+
+  it("Staking LP set growth to 2 root eye balance", async function () {
+    await dao.makeLive()
+    const finalEyeBalance = NAUGHT_POINT_ONE * BigInt(56)
+    const finalAssetBalance = 5n * ONE
+    const lpBalanceBefore = await daiEYESLP.balanceOf(owner.address)
+    await dao.stakeEYEBasedAsset(finalAssetBalance, finalEyeBalance.toString(), '2366431913', daiEYESLP.address)
+
+    const lpBalanceAfter = await daiEYESLP.balanceOf(owner.address)
+    expect(lpBalanceBefore.sub(lpBalanceAfter).toString()).to.equal(finalAssetBalance.toString())
+
+    let fateState = await dao.fateState(owner.address)
+    expect(fateState[0].toString()).to.equal((2366431913n * 2n).toString())
+
+    const reducedAssetBalance = 25n * NAUGHT_POINT_ONE // 2.5
+    const reducedFinalEyeBalance = NAUGHT_POINT_ONE * BigInt(28)
+    await dao.stakeEYEBasedAsset(reducedAssetBalance, reducedFinalEyeBalance.toString(), '1673320053', daiEYESLP.address)
+    const lpBalanceAfterReduction = await daiEYESLP.balanceOf(owner.address)
+
+    expect(lpBalanceAfterReduction.sub(lpBalanceAfter).toString()).to.equal(reducedAssetBalance.toString())
+
+    fateState = await dao.fateState(owner.address)
+    expect(fateState[0].toString()).to.equal((1673320053n * 2n).toString())
+
+    const increasedAssetBalance = 6n * ONE
+    const increasedFinalEyeBalance = (NAUGHT_POINT_ONE * BigInt(672)) / 10n
+    const increasedRootEYE = 2592296279n
+    await dao.stakeEYEBasedAsset(increasedAssetBalance, increasedFinalEyeBalance.toString(), increasedRootEYE, daiEYESLP.address)
+
+    fateState = await dao.fateState(owner.address)
+    expect(fateState[0].toString()).to.equal((increasedRootEYE * 2n).toString())
 
   })
 
-  // it("Staking LP set eye to 2 root eye balance", async function () {
 
-  // })
+  it("Staking multiple asset types sets fate rate correctly", async function () {
+    await dao.makeLive()
+    const finalEyeBalance = NAUGHT_POINT_ONE * BigInt(56)
+    const finalAssetBalance = 5n * ONE
+    const rootEYEOfLP = 2366431913n
+    await dao.stakeEYEBasedAsset(finalAssetBalance, finalEyeBalance.toString(), rootEYEOfLP.toString(), daiEYESLP.address)
+    await dao.stakeEYEBasedAsset(100, 100, 10, eye.address)
 
-  // it("Adjusting eye stake down releases eye and sets fate per day correctly", async function () {
-
-  // })
-
-  // it("Adjusting eye stake up takes more eye and sets fate per day correctly", async function () {
-
-  // })
-
-  // it("Only approved assets can be staked", async function () {
-
-  // })
-
-  // it("Adjusting LP stake down releases eye and sets fate per day correctly", async function () {
-
-  // })
-
-  // it("Adjusting LP stake up takes more eye and sets fate per day correctly", async function () {
-
-  // })
-
-  // it("Adjusting LP stake up takes more eye and sets fate per day correctly", async function () {
-
-  // })
-
-  // it("Staking, getting fate and then changing stake and waiting ends up with correct fate", async function () {
-
-  // })
-
-  // it("Staking multiple asset types sets fate rate correctly", async function () {
-
-  // })
-
-  // it("Staking multiple asset types, waiting, and then removing some asset types set fate correctly.", async function () {
-
-  // })
-
+    let fateState = await dao.fateState(owner.address)
+    const expectedFateWeight = 10n + rootEYEOfLP*2n
+    expect(fateState[0].toString()).to.equal(expectedFateWeight.toString())
+  })
 })

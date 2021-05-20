@@ -11,3 +11,10 @@ build:
     command: compile
     volumes:
         - ./:/app
+
+install:
+    image: node:14
+    command: sh -c "yarn install"
+    working_dir: /app
+    volumes:
+        - ./:/app
