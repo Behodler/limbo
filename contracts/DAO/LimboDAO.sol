@@ -38,7 +38,7 @@ library TransferHelper {
 
 enum LPType {none, uni, sushi}
 
-enum FateGrowthStrategy {straight, directRoot, IndirectTwoRootEye}
+enum FateGrowthStrategy {straight, directRoot, indirectTwoRootEye}
 
 contract LimboDAO is Ownable {
     using TransferHelper for address;
@@ -68,7 +68,7 @@ contract LimboDAO is Ownable {
 
     //rateCrate
     struct FateState {
-        uint256 fatePerMinute;
+        uint256 fatePerDay;
         uint256 fateBalance;
         uint256 lastDamnAdjustment;
     }
@@ -81,10 +81,10 @@ contract LimboDAO is Ownable {
     DomainConfig public domainConfig;
     ProposalConfig public proposalConfig;
     mapping(address => FateGrowthStrategy) public fateGrowthStrategy;
-    mapping(address => bool) assetApproved;
-    mapping(address => FateState) fateState; //lateDate
-    mapping(address => mapping(address => AssetClout)) stakedUserAssetWeight; //user->asset->weight
-    mapping(address => LPType) knownLP;
+    mapping(address => bool) public assetApproved;
+    mapping(address => FateState) public fateState; //lateDate
+    mapping(address => mapping(address => AssetClout))
+        public stakedUserAssetWeight; //user->asset->weight
     Proposal public currentProposal;
     ProposalState public currentProposalState;
 
@@ -125,8 +125,8 @@ contract LimboDAO is Ownable {
     modifier incrementFate {
         FateState storage state = fateState[_msgSender()];
         state.fateBalance +=
-            state.fatePerMinute *
-            ((block.timestamp - state.lastDamnAdjustment) / 60);
+            state.fatePerDay *
+            ((block.timestamp - state.lastDamnAdjustment) / (1 days));
         _;
     }
 
@@ -142,7 +142,7 @@ contract LimboDAO is Ownable {
     ) {
         _seed(limbo, flan, eye, sushiFactory, uniFactory);
         proposalConfig.votingDuration = 2 days;
-        proposalConfig.requiredFateStake = 3219938; //50000 EYE for 24 hours
+        proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
         proposalConfig.proposalFactory = proposalFactory;
         for (uint256 i = 0; i < sushiLPs.length; i++) {
             require(
@@ -151,14 +151,18 @@ contract LimboDAO is Ownable {
             );
             if (IERC20(eye).balanceOf(sushiLPs[i]) > 1000)
                 assetApproved[sushiLPs[i]] = true;
+            fateGrowthStrategy[sushiLPs[i]] = FateGrowthStrategy
+                .indirectTwoRootEye;
         }
-           for (uint256 i = 0; i < uniLPs.length; i++) {
+        for (uint256 i = 0; i < uniLPs.length; i++) {
             require(
                 UniPairLike(uniLPs[i]).factory() == uniFactory,
                 "LimboDAO: invalid Sushi LP"
             );
             if (IERC20(eye).balanceOf(uniLPs[i]) > 1000)
                 assetApproved[uniLPs[i]] = true;
+            fateGrowthStrategy[uniLPs[i]] = FateGrowthStrategy
+                .indirectTwoRootEye;
         }
     }
 
@@ -222,12 +226,21 @@ contract LimboDAO is Ownable {
         proposalConfig.proposalFactory = proposalFactory;
     }
 
+    function setApprovedAsset(address asset, bool approved)
+        public
+        onlySuccessfulProposal
+    {
+        assetApproved[asset] = approved;
+        fateGrowthStrategy[asset] = FateGrowthStrategy.indirectTwoRootEye;
+    }
+
     function stakeEYEBasedAsset(
         uint256 finalAssetBalance,
         uint256 finalEYEBalance,
         uint256 rootEYE,
         address asset
     ) public isLive incrementFate {
+        require(assetApproved[asset], "LimboDAO: illegal asset");
         address sender = _msgSender();
         FateGrowthStrategy strategy = fateGrowthStrategy[domainConfig.eye];
         uint256 rootEYESquared = rootEYE**2;
@@ -237,7 +250,8 @@ contract LimboDAO is Ownable {
                 rootEYEPlusOneSquared > finalEYEBalance,
             "LimboDAO: Stake EYE invariant."
         );
-        require(assetApproved[asset], "LimboDAO: illegal asset");
+        AssetClout storage clout = stakedUserAssetWeight[sender][asset];
+        uint256 initialBalance = clout.balance;
         //EYE
         if (strategy == FateGrowthStrategy.directRoot) {
             require(
@@ -245,36 +259,34 @@ contract LimboDAO is Ownable {
                 "LimboDAO: staking eye invariant."
             );
             require(asset == domainConfig.eye);
-            AssetClout storage clout = stakedUserAssetWeight[sender][asset];
-            fateState[sender].fatePerMinute -= clout.fateWeight;
+
+            fateState[sender].fatePerDay -= clout.fateWeight;
             clout.fateWeight = rootEYE;
             clout.balance = finalAssetBalance;
-            fateState[sender].fatePerMinute += rootEYE;
-
-            int256 netBalance =
-                int256(finalAssetBalance) - int256(clout.balance);
-
-            domainConfig.eye.ERC20NetTransfer(
-                sender,
-                address(this),
-                netBalance
-            );
-        } else if (strategy == FateGrowthStrategy.IndirectTwoRootEye) {
+            fateState[sender].fatePerDay += rootEYE;
+        } else if (strategy == FateGrowthStrategy.indirectTwoRootEye) {
             //LP
-            AssetClout storage clout = stakedUserAssetWeight[sender][asset];
-            fateState[sender].fatePerMinute -= clout.fateWeight;
+            fateState[sender].fatePerDay -= clout.fateWeight;
             clout.fateWeight = 2 * rootEYE;
-            fateState[sender].fatePerMinute+=clout.fateWeight;
+            fateState[sender].fatePerDay += clout.fateWeight;
 
             uint256 actualEyeBalance =
-                IERC20(domainConfig.eye).balanceOf(asset) * ONE;
-            uint totalSupply = IERC20(asset).totalSupply();
-            uint eyePerUnit = actualEyeBalance/totalSupply;
-            uint impliedEye = (eyePerUnit * finalAssetBalance)/ONE;
-            require(finalEYEBalance == impliedEye, "LimboDAO: stake invariant check 2.");
+                IERC20(domainConfig.eye).balanceOf(asset);
+            require(actualEyeBalance > 0, "LimboDAO: No EYE");
+            uint256 totalSupply = IERC20(asset).totalSupply();
+            uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
+            uint256 impliedEye = (eyePerUnit * finalAssetBalance) / ONE;
+            require(
+                finalEYEBalance == impliedEye,
+                "LimboDAO: stake invariant check 2."
+            );
             clout.balance = finalAssetBalance;
-            fateState[sender].fatePerMinute += 2 * rootEYE;
+            fateState[sender].fatePerDay += 2 * rootEYE;
+        } else {
+            revert("LimboDAO: asset growth strategy not accounted for");
         }
+        int256 netBalance = int256(finalAssetBalance) - int256(initialBalance);
+        domainConfig.eye.ERC20NetTransfer(sender, address(this), netBalance);
     }
 
     //TODO: test that this isn't lost when updateState is called.
@@ -294,6 +306,15 @@ contract LimboDAO is Ownable {
         );
     }
 
+    function makeLive() public onlyOwner {
+        require(
+            Ownable(domainConfig.limbo).owner() == address(this) &&
+                Ownable(domainConfig.flan).owner() == address(this),
+            "LimboDAO: transfer ownership of limbo and flan."
+        );
+        domainConfig.live = true;
+    }
+
     function _seed(
         address limbo,
         address flan,
@@ -303,14 +324,10 @@ contract LimboDAO is Ownable {
     ) internal {
         domainConfig.limbo = limbo;
         domainConfig.flan = flan;
-        require(
-            Ownable(limbo).owner() == address(this) &&
-                Ownable(flan).owner() == address(this),
-            "LimboDAO: transfer ownership of limbo and flan."
-        );
         domainConfig.eye = eye;
-        domainConfig.live = true;
         domainConfig.uniFactory = uniFactory;
         domainConfig.sushiFactory = sushiFactory;
+        assetApproved[eye] = true;
+        fateGrowthStrategy[eye] = FateGrowthStrategy.directRoot;
     }
 }

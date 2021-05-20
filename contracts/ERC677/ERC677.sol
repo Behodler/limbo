@@ -10,6 +10,7 @@ and can whitelist addresses with finite or infinite minting power
 */
 
 contract ERC677 is ERC20Burnable, Ownable {
+   
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
 
     }
