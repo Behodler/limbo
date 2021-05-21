@@ -22,3 +22,11 @@
 
 ## Proposals
 - [ ] asset approval proposal can add and remove approved assets
+- [ ] Insufficient fate to lodge rejected
+- [ ] Lodging proposal while existing proposal valid rejected
+- [ ] lodging proposal when none exist accepted
+- [ ] Lodging proposal while existing proposal expired accepted
+- [ ] Proposal requires bytes32 name
+- [ ] Voting yes on current proposal accepts it after duration, can then be executed
+- [ ] voting no on current proposal makes it unexecutable.
+- [ ] proposal to change fateweight, voting duration works 
