@@ -5,7 +5,7 @@ const requireCondition = (condition, message) => {
   if (!condition)
     throw message;
 }
-describe("DAO", function () {
+describe("DAO staking", function () {
   let owner, secondPerson, feeSetter, dai, eye, link, sushi
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP
@@ -178,7 +178,32 @@ describe("DAO", function () {
     await dao.stakeEYEBasedAsset(100, 100, 10, eye.address)
 
     let fateState = await dao.fateState(owner.address)
-    const expectedFateWeight = 10n + rootEYEOfLP*2n
+    const expectedFateWeight = 10n + rootEYEOfLP * 2n
     expect(fateState[0].toString()).to.equal(expectedFateWeight.toString())
   })
+
+  const bigIntIfy = (b) => {
+    return BigInt(b.toString())
+  }
+
+  it("burn eye gives 10x fate", async function () {
+    await dao.makeLive();
+    const fateBefore = await dao.fateState(owner.address)
+    await expect(fateBefore[1].toString()).to.equal("0")
+
+    const eyeSupplyBefore = await eye.totalSupply()
+    const lpBalanceOfDAOBefore = await linkEYEULP.balanceOf(dao.address)
+    await dao.burnAsset(eye.address, 1000) //1000* 10 => 10000 Fate
+    await dao.burnAsset(linkEYEULP.address, 64) //14 EYE => 280 FATE
+    const lpBalanceOfDAOAfter = await linkEYEULP.balanceOf(dao.address)
+    const eyeSupplyAfter = await eye.totalSupply()
+
+    expect(eyeSupplyBefore.sub(eyeSupplyAfter).toString()).to.equal("1000")
+    expect(lpBalanceOfDAOAfter.sub(lpBalanceOfDAOBefore).toString()).to.equal("64")
+
+    const fateAfter = await dao.fateState(owner.address)
+
+    await expect(fateAfter[1].toString()).to.equal("10280")
+  })
 })
+

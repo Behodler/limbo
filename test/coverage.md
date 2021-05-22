@@ -12,16 +12,10 @@
 
 - [x] Staking, getting fate and then changing stake and waiting ends up with correct fate
 - [x] Staking multiple asset types sets fate rate correctly
-
-
-
-
-
-
+- [x] Test burning EYE and burning LP to get much higher votes
 
 
 ## Proposals
-- [ ] asset approval proposal can add and remove approved assets
 - [ ] Insufficient fate to lodge rejected
 - [ ] Lodging proposal while existing proposal valid rejected
 - [ ] lodging proposal when none exist accepted
@@ -30,3 +24,5 @@
 - [ ] Voting yes on current proposal accepts it after duration, can then be executed
 - [ ] voting no on current proposal makes it unexecutable.
 - [ ] proposal to change fateweight, voting duration works 
+- [ ] asset approval proposal can add and remove approved assets
+- [ ] whitelist new type of proposal

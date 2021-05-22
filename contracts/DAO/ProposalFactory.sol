@@ -5,7 +5,7 @@ import "../facades/LimboDAOLike.sol";
 
 abstract contract Proposal {
     uint256 public timeProposed;
-    bytes32 internal description;
+    bytes32 public description;
     LimboDAOLike DAO;
 
     constructor(address dao, bytes32 _description) {
@@ -62,7 +62,7 @@ contract ProposalFactory is Ownable {
         whitelistedProposalContracts[proposal] = !whitelistedProposalContracts[proposal] ;
     }
 
-    function lodgeProposal (address proposal) public onlyOwner {
+    function lodgeProposal (address proposal) public {
         require(whitelistedProposalContracts[proposal], "LimboDAO: invalid proposal");
         dao.makeProposal(proposal, msg.sender);
     }

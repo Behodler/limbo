@@ -292,10 +292,29 @@ contract LimboDAO is Ownable {
         asset.ERC20NetTransfer(sender, address(this), netBalance);
     }
 
-    //TODO: test that this isn't lost when updateState is called.
-    function burnEYE(uint256 amount) public isLive incrementFate {
-        fateState[_msgSender()].fateBalance += amount * 10;
-        ERC677(domainConfig.eye).burn(amount);
+    function burnAsset(address asset, uint256 amount)
+        public
+        isLive
+        incrementFate
+    {
+        require(assetApproved[asset], "LimboDAO: illegal asset");
+        address sender = _msgSender();
+        require(
+            ERC677(asset).transferFrom(sender, address(this), amount),
+            "LimboDAO: transferFailed"
+        );
+        if (asset == domainConfig.eye) {
+            fateState[_msgSender()].fateBalance += amount * 10;
+            ERC677(domainConfig.eye).burn(amount);
+        } else {
+            uint256 actualEyeBalance =
+                IERC20(domainConfig.eye).balanceOf(asset);
+            require(actualEyeBalance > 0, "LimboDAO: No EYE");
+            uint256 totalSupply = IERC20(asset).totalSupply();
+            uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
+            uint256 impliedEye = (eyePerUnit * amount) / ONE;
+            fateState[_msgSender()].fateBalance += impliedEye * 20;
+        }
     }
 
     function approveFlanMintingPower(address minter, bool enabled)
@@ -316,6 +335,14 @@ contract LimboDAO is Ownable {
             "LimboDAO: transfer ownership of limbo and flan."
         );
         domainConfig.live = true;
+    }
+
+    //if the DAO is being dismantled.
+    function transferOwnershipOfThing(address thing, address destination)
+        public
+        onlySuccessfulProposal
+    {
+        Ownable(thing).transferOwnership(destination);
     }
 
     function _seed(
