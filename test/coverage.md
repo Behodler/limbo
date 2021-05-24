@@ -23,4 +23,4 @@
 - [x] Voting yes on current proposal accepts it after duration, can then be executed
 - [x] voting no on current proposal makes it unexecutable.
 - [x] asset approval proposal can add and remove approved assets
-- [ ] Voting that flips extends cut off
+- [x] Voting that flips extends cut off

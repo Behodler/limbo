@@ -214,7 +214,6 @@ contract LimboDAO is Ownable {
         fateState[proposer].fateBalance = fateState[proposer].fateBalance.sub(
             proposalConfig.requiredFateStake * 2
         );
-        //  require(1==2,"GOOOP");
         currentProposal = Proposal(proposal);
         currentProposalState.decision = ProposalDecision.voting;
         currentProposalState.fate = 0;
@@ -388,6 +387,16 @@ contract LimboDAO is Ownable {
         onlySuccessfulProposal
     {
         Ownable(thing).transferOwnership(destination);
+    }
+
+    function timeRemainingOnProposal() public view returns (uint256) {
+        require(
+            currentProposalState.decision == ProposalDecision.voting,
+            "LimboDAO: proposal finished."
+        );
+        uint256 elapsed = block.timestamp.sub(currentProposalState.start);
+        if (elapsed > proposalConfig.votingDuration) return 0;
+        return proposalConfig.votingDuration - elapsed;
     }
 
     function _seed(
