@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 import "../ERC677/ERC677.sol";
 
 contract MockToken is ERC677 {
@@ -9,7 +9,7 @@ contract MockToken is ERC677 {
         address[] memory LPs,
         uint256[] memory mintVal
     ) ERC677(name, symbol) {
-        _mint(msg.sender, 10 ether);
+        _mint(msg.sender, 100 ether);
         uint256 deceth = (1 ether) / 10;
         require(LPs.length == mintVal.length, "CONSTRUCTION MISMATCH");
         for (uint256 i = 0; i < LPs.length; i++) {

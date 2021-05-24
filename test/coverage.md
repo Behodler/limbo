@@ -16,13 +16,11 @@
 
 
 ## Proposals
-- [ ] Insufficient fate to lodge rejected
-- [ ] Lodging proposal while existing proposal valid rejected
-- [ ] lodging proposal when none exist accepted
-- [ ] Lodging proposal while existing proposal expired accepted
-- [ ] Proposal requires bytes32 name
-- [ ] Voting yes on current proposal accepts it after duration, can then be executed
-- [ ] voting no on current proposal makes it unexecutable.
-- [ ] proposal to change fateweight, voting duration works 
-- [ ] asset approval proposal can add and remove approved assets
-- [ ] whitelist new type of proposal
+- [x] Insufficient fate to lodge rejected
+- [x] Lodging proposal while existing proposal valid rejected
+- [x] lodging proposal when none exist accepted
+- [x] Lodging proposal while existing proposal expired accepted
+- [x] Voting yes on current proposal accepts it after duration, can then be executed
+- [x] voting no on current proposal makes it unexecutable.
+- [x] asset approval proposal can add and remove approved assets
+- [ ] Voting that flips extends cut off

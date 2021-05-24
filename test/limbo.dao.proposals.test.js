@@ -1,15 +1,19 @@
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
-
+const web3 = require('web3')
 
 describe("DAO Proposals", function () {
     let owner, secondPerson, feeSetter, dai, eye, link, sushi
     let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP
     let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP
-    let dao
+    let dao, proposalFactory, updateProposalConfigProposal
     const zero = '0x0000000000000000000000000000000000000000'
+
     beforeEach(async function () {
-        [owner, secondPerson, proposalFactory] = await ethers.getSigners();
+        [owner, secondPerson] = await ethers.getSigners();
+        const ProposalFactoryFactory = await ethers.getContractFactory("ProposalFactory")
+        proposalFactory = await ProposalFactoryFactory.deploy()
+
         const UniswapFactoryFactory = await ethers.getContractFactory('UniswapFactory')
         const UniswapPairFactory = await ethers.getContractFactory('UniswapPair')
 
@@ -65,6 +69,12 @@ describe("DAO Proposals", function () {
             await allAssets[i].approve(dao.address, '115792089237316195423570985008687907853269984665640564039457584007913129639935')
         }
         await dao.makeLive()
+        await proposalFactory.seed(dao.address)
+
+        const UpdateProposalConfigProposalFactory = await ethers.getContractFactory('UpdateProposalConfigProposal')
+        updateProposalConfigProposal = await UpdateProposalConfigProposalFactory.deploy(dao.address, "UPDATE_CONFIG");
+        await proposalFactory.toggleWhitelistProposal(updateProposalConfigProposal.address)
+        //stringToBytes
     })
 
     const advanceTime = async (seconds) => {
@@ -75,37 +85,175 @@ describe("DAO Proposals", function () {
     const NAUGHT_POINT_ONE = ONE / 10n
 
     it('Insufficient fate to lodge rejected', async function () {
-
+        await expect(proposalFactory.lodgeProposal(updateProposalConfigProposal.address))
+            .to.be.revertedWith("afeMath: subtraction overflow")
     })
 
     it('lodging proposal when none exist accepted', async function () {
+        const requiredFate = (await dao.proposalConfig())[1];
+        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+        await dao.burnAsset(eye.address, eyeToBurn)
+        const currentProposalBefore = await dao.currentProposal()
+        expect(currentProposalBefore.toString()).to.equal(zero)
+        await proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
+        const currentProposalAfter = await dao.currentProposal()
+        expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address)
 
+    })
+
+    it('paramerterize once proposal is lodged fails', async function () {
+
+        //lodge, parameterize and assert
+        const requiredFate = (await dao.proposalConfig())[1];
+        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+        await dao.burnAsset(eye.address, eyeToBurn)
+        const currentProposalBefore = await dao.currentProposal()
+        expect(currentProposalBefore.toString()).to.equal(zero)
+        await updateProposalConfigProposal.parameterize(100, 200, proposalFactory.address)
+        await proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
+        const params = await updateProposalConfigProposal.params()
+        expect(params[0].toString()).to.equal("100")
+        expect(params[1].toString()).to.equal("200")
+        expect(params[2]).to.equal(proposalFactory.address)
+        const currentProposalAfter = await dao.currentProposal()
+        expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address)
+
+        await expect(updateProposalConfigProposal.parameterize(110, 220, proposalFactory.address)).to.be.revertedWith("LimboDAO: proposal locked")
     })
 
     it('Lodging proposal while existing proposal valid rejected', async function () {
+        //lodge, parameterize and assert
+        const requiredFate = (await dao.proposalConfig())[1];
+        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+        await dao.burnAsset(eye.address, eyeToBurn)
+        const currentProposalBefore = await dao.currentProposal()
+        expect(currentProposalBefore.toString()).to.equal(zero)
+        await updateProposalConfigProposal.parameterize(100, 200, proposalFactory.address)
+        await proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
+        //end lodge
+
+        let SetAssetApprovalProposalFactory = await ethers.getContractFactory('SetAssetApprovalProposal')
+        let setAssetApprovalProposal = await SetAssetApprovalProposalFactory.deploy(dao.address, "ASSET")
+
+        const currentState = await dao.currentProposalState()
+        const currentProposal = await dao.currentProposal()
+        await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false)
+        await proposalFactory.toggleWhitelistProposal(setAssetApprovalProposal.address)
+        await expect(proposalFactory.lodgeProposal(setAssetApprovalProposal.address)).to.be.revertedWith('LimboDAO: active proposal.')
 
     })
 
-    it('Proposal requires bytes32 name', async function () {
+    it("success returns half of required fate", async function () {
 
-    })
-    it('Voting yes on current proposal accepts it after duration, can then be executed', async function () {
+        //lodge, parameterize and assert
+        const requiredFate = (await dao.proposalConfig())[1];
+        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+        await dao.burnAsset(eye.address, eyeToBurn)
 
+        //fate before
+        const fateBeforeLodge = (await dao.fateState(owner.address))[1]
+        const currentProposalBefore = await dao.currentProposal()
+        expect(currentProposalBefore.toString()).to.equal(zero)
+        await updateProposalConfigProposal.parameterize(100, '223000000000000000000', proposalFactory.address)
+        await proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
+        //fate after lodge
+        const fateAfterLodge = (await dao.fateState(owner.address))[1]
+        //end lodge
+
+        expect(fateBeforeLodge.sub(fateAfterLodge).toString()).to.equal("446000000000000000000")
+
+        //second person acquires fate and votes on current proposal
+        await eye.transfer(secondPerson.address, "1000000000")
+        await eye.connect(secondPerson).approve(dao.address, "1000000000")
+        await dao.connect(secondPerson).burnAsset(eye.address, '1000000000')
+        await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, '10000000000')
+
+
+        //fast forward to after proposal finished
+        //3*24*60*60 =259200
+        await advanceTime(259200)
+        const fateBeforeExecute = (await dao.fateState(owner.address))[1]
+        await dao.executeCurrentProposal()
+        const fateAfterExecute = (await dao.fateState(owner.address))[1]
+        expect(fateAfterExecute.sub(fateBeforeExecute).toString()).to.equal('223000000000000000000')
     })
+
     it('voting no on current proposal makes it unexecutable.', async function () {
+        //lodge, parameterize and assert
+        const requiredFate = (await dao.proposalConfig())[1];
+        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+        await dao.burnAsset(eye.address, eyeToBurn)
+
+        //fate before
+        const fateBeforeLodge = (await dao.fateState(owner.address))[1]
+        const currentProposalBefore = await dao.currentProposal()
+        expect(currentProposalBefore.toString()).to.equal(zero)
+        await updateProposalConfigProposal.parameterize(100, '123', proposalFactory.address)
+        await proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
+        //fate after lodge
+        const fateAfterLodge = (await dao.fateState(owner.address))[1]
+        //end lodge
+
+        expect(fateBeforeLodge.sub(fateAfterLodge).toString()).to.equal("446000000000000000000")
+
+        //second person acquires fate and votes NO on current proposal
+        await eye.transfer(secondPerson.address, "1000000000")
+        await eye.connect(secondPerson).approve(dao.address, "1000000000")
+        await dao.connect(secondPerson).burnAsset(eye.address, '1000000000')
+        await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, '-10000000000')
+
+        //fast forward to after proposal finished
+        //3*24*60*60 =259200
+        await advanceTime(259200)
+        const fateBeforeExecute = (await dao.fateState(owner.address))[1]
+        const configBefore = await dao.proposalConfig()
+        await dao.executeCurrentProposal()
+        const fateAfterExecute = (await dao.fateState(owner.address))[1]
+        await expect(fateBeforeExecute).to.equal(fateBeforeExecute)
+
+        const decisionState = (await dao.currentProposalState())[1]
+        expect(decisionState).to.equal(2)
+        const configAfter = await dao.proposalConfig()
+
+        expect(configAfter[0].toString()).to.equal(configBefore[0].toString())
 
     })
-    it('Lodging proposal while existing proposal valid rejected', async function () {
 
-    })
-    it('Lodging proposal while existing proposal valid rejected', async function () {
-
-    })
-    it('proposal to change fateweight, voting duration works', async function () {
-
-    })
     it('asset approval proposal can add and remove approved assets', async function () {
+        //get enough fate to lodge proposal
+        const requiredFate = (await dao.proposalConfig())[1];
+        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+        await dao.burnAsset(eye.address, eyeToBurn)
 
+        let SetAssetApprovalProposalFactory = await ethers.getContractFactory('SetAssetApprovalProposal')
+        let setAssetApprovalProposal = await SetAssetApprovalProposalFactory.deploy(dao.address, "ASSET")
+
+        await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false)
+        await proposalFactory.toggleWhitelistProposal(setAssetApprovalProposal.address)
+        await proposalFactory.lodgeProposal(setAssetApprovalProposal.address)
+
+        const currentProposal = await dao.currentProposal()
+        expect(currentProposal).to.equal(setAssetApprovalProposal.address)
+
+        const assetApprovedBefore = await dao.assetApproved(sushiEYEULP.address)
+        expect(assetApprovedBefore).to.be.true
+
+        //second person acquires fate and votes on current proposal
+        await eye.transfer(secondPerson.address, "1000000000")
+        await eye.connect(secondPerson).approve(dao.address, "1000000000")
+        await dao.connect(secondPerson).burnAsset(eye.address, '1000000000')
+        await dao.connect(secondPerson).vote(setAssetApprovalProposal.address, '10000000000')
+
+        //fast forward to after proposal finished
+        //3*24*60*60 =259200
+        await advanceTime(259200)
+
+        await dao.executeCurrentProposal()
+
+        const assetApprovedAfter = await dao.assetApproved(sushiEYEULP.address)
+        expect(assetApprovedAfter).to.be.false
     })
+
+
 
 })

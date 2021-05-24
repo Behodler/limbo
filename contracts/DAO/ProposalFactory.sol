@@ -1,22 +1,29 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../facades/LimboDAOLike.sol";
 
 abstract contract Proposal {
-    uint256 public timeProposed;
-    bytes32 public description;
+    string public description;
     LimboDAOLike DAO;
 
-    constructor(address dao, bytes32 _description) {
+    constructor(address dao, string memory _description) {
         DAO = LimboDAOLike(dao);
         description = _description;
     }
 
     modifier onlyDAO {
         address dao = address(DAO);
-        require(dao != address(0), "PROPOSAL: MDAO not set");
-        require(msg.sender == dao, "PROPOSAL: only MDAO can invoke");
+        require(dao != address(0), "PROPOSAL: DAO not set");
+        require(msg.sender == dao, "PROPOSAL: only DAO can invoke");
+        _;
+    }
+
+    modifier notCurrent {
+        require(
+            DAO.currentProposal() != address(this),
+            "LimboDAO: proposal locked"
+        );
         _;
     }
 
@@ -27,43 +34,25 @@ abstract contract Proposal {
     function execute() internal virtual returns (bool);
 }
 
-contract GrantLimboMintingPower is Proposal {
-    address minter;
-    bool enabled;
-
-    constructor(
-        address _minter,
-        bool _enabled,
-        address dao,
-        bytes32 _description
-    ) Proposal(dao, _description) {}
-
-    function parameterize(address _minter, bool _enabled) public {
-        minter = _minter;
-        enabled = _enabled;
-    }
-
-    function execute() internal override returns (bool) {
-        DAO.approveFlanMintingPower(minter, enabled);
-        return true;
-    }
-}
-
 contract ProposalFactory is Ownable {
     LimboDAOLike dao;
-    mapping (address => bool) public whitelistedProposalContracts;
-
+    mapping(address => bool) public whitelistedProposalContracts;
 
     function seed(address _dao) public onlyOwner {
         dao = LimboDAOLike(_dao);
     }
 
-    function toggleWhitelistProposal (address proposal) public onlyOwner {
-        whitelistedProposalContracts[proposal] = !whitelistedProposalContracts[proposal] ;
+    function toggleWhitelistProposal(address proposal) public onlyOwner {
+        whitelistedProposalContracts[proposal] = !whitelistedProposalContracts[
+            proposal
+        ];
     }
 
-    function lodgeProposal (address proposal) public {
-        require(whitelistedProposalContracts[proposal], "LimboDAO: invalid proposal");
-        dao.makeProposal(proposal, msg.sender);
+    function lodgeProposal(address proposal) public {
+        require(
+            whitelistedProposalContracts[proposal],
+            "LimboDAO: invalid proposal"
+        );
+         dao.makeProposal(proposal, msg.sender);
     }
 }

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../ERC677/ERC677.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
@@ -36,12 +37,13 @@ library TransferHelper {
     }
 }
 
-enum LPType {none, uni, sushi}
-
 enum FateGrowthStrategy {straight, directRoot, indirectTwoRootEye}
+
+enum ProposalDecision {voting, approved, rejected}
 
 contract LimboDAO is Ownable {
     using TransferHelper for address;
+    using SafeMath for uint256;
     uint256 constant ONE = 1 ether;
 
     struct DomainConfig {
@@ -62,8 +64,9 @@ contract LimboDAO is Ownable {
 
     struct ProposalState {
         int256 fate;
-        bool approved;
+        ProposalDecision decision;
         address proposer;
+        uint256 start;
     }
 
     //rateCrate
@@ -94,21 +97,26 @@ contract LimboDAO is Ownable {
     }
 
     modifier onlySuccessfulProposal {
-        require(currentProposalState.approved, "LimboDAO: approve proposal");
+        require(
+            currentProposalState.decision == ProposalDecision.approved,
+            "LimboDAO: approve proposal"
+        );
         _;
-        delete currentProposalState;
+        currentProposalState.decision = ProposalDecision.voting;
+        currentProposal = Proposal(address(0));
     }
 
     modifier updateCurrentProposal {
+        incrementFateFor(_msgSender());
         if (address(currentProposal) != address(0)) {
             uint256 durationSinceStart =
-                currentProposal.timeProposed() - block.timestamp;
-            if (durationSinceStart >= proposalConfig.votingDuration) {
-                if (
-                    currentProposalState.fate > 0 &&
-                    !currentProposalState.approved
-                ) {
-                    currentProposalState.approved = true;
+                block.timestamp.sub(currentProposalState.start);
+            if (
+                durationSinceStart >= proposalConfig.votingDuration &&
+                currentProposalState.decision == ProposalDecision.voting
+            ) {
+                if (currentProposalState.fate > 0) {
+                    currentProposalState.decision = ProposalDecision.approved;
                     (bool success, ) =
                         address(currentProposal).call(
                             abi.encodeWithSignature("orchestrateExecute()")
@@ -116,6 +124,8 @@ contract LimboDAO is Ownable {
                     if (success)
                         fateState[currentProposalState.proposer]
                             .fateBalance += proposalConfig.requiredFateStake;
+                } else {
+                    currentProposalState.decision = ProposalDecision.rejected;
                 }
             }
         }
@@ -196,30 +206,65 @@ contract LimboDAO is Ownable {
             sender == proposalConfig.proposalFactory,
             "LimboDAO: only Proposal Factory"
         );
-        fateState[proposer].fateBalance -= proposalConfig.requiredFateStake * 2; //TODO: test that overflow check is actuall implemented
+        require(
+            address(currentProposal) == address(0) ||
+                currentProposalState.decision != ProposalDecision.voting,
+            "LimboDAO: active proposal."
+        );
+        fateState[proposer].fateBalance = fateState[proposer].fateBalance.sub(
+            proposalConfig.requiredFateStake * 2
+        );
+        //  require(1==2,"GOOOP");
         currentProposal = Proposal(proposal);
-        currentProposalState.approved = false;
+        currentProposalState.decision = ProposalDecision.voting;
         currentProposalState.fate = 0;
         currentProposalState.proposer = proposer;
+        currentProposalState.start = block.timestamp;
     }
 
     function vote(address proposal, int256 fate)
         public
-        updateCurrentProposal
+        // updateCurrentProposal
+        incrementFate
         isLive
     {
         require(
-            proposal == address(currentProposal),
+            proposal == address(currentProposal), //this is just to protect users with out of sync UIs
             "LimboDAO: stated proposal does not match current proposal"
         );
         require(
-            !currentProposalState.approved,
-            " LimboDAO: voting on proposal closed"
+            currentProposalState.decision == ProposalDecision.voting,
+            "LimboDAO: voting on proposal closed"
         );
+        if (
+            block.timestamp - currentProposalState.start >
+            proposalConfig.votingDuration - 1 hours
+        ) {
+            int256 currentFate = currentProposalState.fate;
+            //The following if statement checks if the vote is flipped by fate
+            if (
+                fate * currentFate < 0 && //sign different
+                (fate + currentFate) * fate > 0 //fate flipped current fate onto the same side of zero as fate
+            ) {
+                currentProposalState.start =
+                    currentProposalState.start +
+                    2 hours;
+            } else if (
+                block.timestamp - currentProposalState.start >
+                proposalConfig.votingDuration
+            ) {
+                revert("LimboDAO: voting for current proposal has ended.");
+            }
+        }
+        uint256 cost = fate > 0 ? uint256(fate) : uint256(-fate);
+        fateState[_msgSender()].fateBalance = fateState[_msgSender()]
+            .fateBalance
+            .sub(cost);
 
-        fateState[_msgSender()].fateBalance -= proposalConfig.requiredFateStake;
         currentProposalState.fate += fate;
     }
+
+    function executeCurrentProposal() public updateCurrentProposal {}
 
     function setProposalConfig(
         uint256 votingDuration,

@@ -1,33 +1,36 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 import "../ProposalFactory.sol";
 
 contract UpdateProposalConfigProposal is Proposal {
-
-    constructor(address dao, bytes32 _description) Proposal(dao,description) {
+    struct Parameters {
+        uint256 votingDuration;
+        uint256 requiredFateStake;
+        address proposalFactory;
     }
 
-    function parameterize (uint256 votingDuration,
-        uint256 requiredFateStake,
-        address proposalFactory) public {
-        }
+    Parameters public params;
 
-//TODO: worry about user invoking parameterize after proposal approved.
-//Some way of sealing it
+    constructor(address dao, string memory _description)
+        Proposal(dao, description)
+    {}
 
-    function execute() internal override returns (bool) {
-
-    }
-}
-/*
-  function setProposalConfig(
-      ci
+    function parameterize(
         uint256 votingDuration,
         uint256 requiredFateStake,
         address proposalFactory
-    ) public onlySuccessfulProposal {
-        proposalConfig.votingDuration = votingDuration;
-        proposalConfig.requiredFateStake = requiredFateStake;
-        proposalConfig.proposalFactory = proposalFactory;
+    ) public notCurrent {
+        params.proposalFactory = proposalFactory;
+        params.requiredFateStake = requiredFateStake;
+        params.votingDuration = votingDuration;
     }
-*/
+
+    function execute() internal override returns (bool) {
+        DAO.setProposalConfig(
+            params.votingDuration,
+            params.requiredFateStake,
+            params.proposalFactory
+        );
+        return true;
+    }
+}

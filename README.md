@@ -14,3 +14,6 @@ npm test
 npm run build
 ```
 respectively.
+
+## Testing
+The tests include a coverage.md that will detail with a checkbox whether a particular test case has been adequately covered.
