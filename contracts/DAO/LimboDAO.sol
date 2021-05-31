@@ -13,7 +13,6 @@ import "../facades/UniPairLike.sol";
 This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having 
 control over existential functionality. This is not to say that some of the decisions taken are not critical but that the domain
 of influence is confined to the local Dapp - Limbo in this case.
- 
 */
 
 library TransferHelper {
@@ -42,6 +41,13 @@ enum FateGrowthStrategy {straight, directRoot, indirectTwoRootEye}
 enum ProposalDecision {voting, approved, rejected}
 
 contract LimboDAO is Ownable {
+    event daoKilled(address newOwner);
+    event proposalLodged(address proposal, address proposer);
+    event voteCast(address voter, address proposal, int256 fateCast);
+    event assetApproval(address asset, bool appoved);
+    event proposalExecuted(address proposal);
+    event assetBurnt(address burner, address asset, uint256 fateCreated);
+
     using TransferHelper for address;
     using SafeMath for uint256;
     uint256 constant ONE = 1 ether;
@@ -195,6 +201,7 @@ contract LimboDAO is Ownable {
         domainConfig.live = false;
         Ownable(domainConfig.flan).transferOwnership(newOwner);
         Ownable(domainConfig.limbo).transferOwnership(newOwner);
+        emit daoKilled(newOwner);
     }
 
     function makeProposal(address proposal, address proposer)
@@ -219,6 +226,7 @@ contract LimboDAO is Ownable {
         currentProposalState.fate = 0;
         currentProposalState.proposer = proposer;
         currentProposalState.start = block.timestamp;
+        emit proposalLodged(proposal, proposer);
     }
 
     function vote(address proposal, int256 fate)
@@ -261,9 +269,12 @@ contract LimboDAO is Ownable {
             .sub(cost);
 
         currentProposalState.fate += fate;
+        emit voteCast(_msgSender(), proposal, fate);
     }
 
-    function executeCurrentProposal() public updateCurrentProposal {}
+    function executeCurrentProposal() public updateCurrentProposal {
+        emit proposalExecuted(address(currentProposal));
+    }
 
     function setProposalConfig(
         uint256 votingDuration,
@@ -281,6 +292,7 @@ contract LimboDAO is Ownable {
     {
         assetApproved[asset] = approved;
         fateGrowthStrategy[asset] = FateGrowthStrategy.indirectTwoRootEye;
+        emit assetApproval(asset, approved);
     }
 
     function stakeEYEBasedAsset(
@@ -347,7 +359,9 @@ contract LimboDAO is Ownable {
             ERC677(asset).transferFrom(sender, address(this), amount),
             "LimboDAO: transferFailed"
         );
+        uint256 fateCreated = fateState[_msgSender()].fateBalance;
         if (asset == domainConfig.eye) {
+            fateCreated = amount * 10;
             fateState[_msgSender()].fateBalance += amount * 10;
             ERC677(domainConfig.eye).burn(amount);
         } else {
@@ -357,8 +371,10 @@ contract LimboDAO is Ownable {
             uint256 totalSupply = IERC20(asset).totalSupply();
             uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
             uint256 impliedEye = (eyePerUnit * amount) / ONE;
-            fateState[_msgSender()].fateBalance += impliedEye * 20;
+            fateCreated = impliedEye * 20;
         }
+        fateState[_msgSender()].fateBalance += fateCreated;
+        emit assetBurnt(_msgSender(), asset, fateCreated);
     }
 
     function approveFlanMintingPower(address minter, bool enabled)
