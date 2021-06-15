@@ -115,3 +115,5 @@ reference
 *.pdf
 
 TODO.txt
+
+build/

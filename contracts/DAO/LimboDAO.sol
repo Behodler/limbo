@@ -103,13 +103,16 @@ contract LimboDAO is Ownable {
     }
 
     modifier onlySuccessfulProposal {
-        require(
-            currentProposalState.decision == ProposalDecision.approved,
-            "LimboDAO: approve proposal"
-        );
+        require(successfulProposal(msg.sender), "LimboDAO: approve proposal");
         _;
         currentProposalState.decision = ProposalDecision.voting;
         currentProposal = Proposal(address(0));
+    }
+
+    function successfulProposal(address proposal) public view returns (bool) {
+        return
+            currentProposalState.decision == ProposalDecision.approved &&
+            proposal == address(currentProposal);
     }
 
     modifier updateCurrentProposal {
@@ -362,7 +365,6 @@ contract LimboDAO is Ownable {
         uint256 fateCreated = fateState[_msgSender()].fateBalance;
         if (asset == domainConfig.eye) {
             fateCreated = amount * 10;
-            fateState[_msgSender()].fateBalance += amount * 10;
             ERC677(domainConfig.eye).burn(amount);
         } else {
             uint256 actualEyeBalance =

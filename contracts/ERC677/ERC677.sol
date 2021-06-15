@@ -15,26 +15,6 @@ contract ERC677 is ERC20Burnable, Ownable {
 
     }
 
-    mapping(address => uint256) public mintAllowance; //uint(-1) == whitelist
-    function increaseMintAllowance(address minter, uint256 _allowance)
-        public
-        onlyOwner
-    {
-        mintAllowance[minter] += _allowance;
-    }
-
-    function mint(uint256 amount) public {
-        uint256 allowance = mintAllowance[msg.sender];
-        require(
-            _msgSender() == owner() || allowance >= amount,
-            "Mint allowance exceeded"
-        );
-        _mint(msg.sender, amount);
-        if (amount < type(uint256).max) {
-            mintAllowance[msg.sender] -= amount;
-        }
-    }
-
     /**
      * @dev transfer token to a contract address with additional data if the recipient is a contact.
      * @param _to The address to transfer to.

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "docker-compose up test",
     "build": "docker-compose up build",
+    "install": "docker-compose up install",
     "docker:install": "rm -rf node_modules/* && touch yarn.lock && rm yarn.lock && docker-compose up install"
   },
   "repository": {
@@ -29,5 +30,6 @@
     "hardhat": "^2.3.0"
   },
   "dependencies": {
+    "truffle-contract-size": "^2.0.1"
   }
 }
