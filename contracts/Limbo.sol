@@ -12,7 +12,6 @@ import "./facades/AngbandLike.sol";
 import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./facades/UniPairLike.sol";
-import "./facades/UniswapRouterLike.sol";
 import "./DAO/Governable.sol";
 import "./facades/UniswapHelperLike.sol";
 /*
@@ -75,10 +74,6 @@ enum SoulType {
     uninitialized,
     threshold, //the default soul type is staked and when reaching a threshold, migrates to Behodler
     perpetual //the type of staking pool most people are familiar with.
-}
-
-abstract contract TokenMigrator {
-    function migrate(address token) public virtual;
 }
 
 /*
@@ -145,11 +140,9 @@ contract Limbo is Governable {
         uint16 SCXburnPercentage; //% between 1 and 10000: When SCX is generated from a crossing, most of the SCX is burnt. The rest is used to prop up flan.
         uint256 SCX_fee;
         uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
-        UniswapRouterLike router;
         UniswapHelperLike uniHelper;
         AngbandLike angband;
         LimboAddTokenToBehodlerPowerLike power;
-        UniPairLike Flan_SCX_tokenPair;
         uint256 flanQuoteDivergenceTolerance;
         uint256 minQuoteWaitDuration;
     }
@@ -216,7 +209,6 @@ contract Limbo is Governable {
 
     function configureCrossingConfig(
         uint16 SCXburnPercentage,
-        address Flan_SCX_tokenPair,
         address angband,
         address addToBehodlerPower,
         address behodler,
@@ -225,7 +217,6 @@ contract Limbo is Governable {
         uint256 migrationInvocationReward
     ) public onlySuccessfulProposal {
         crossingConfig.SCXburnPercentage = SCXburnPercentage;
-        crossingConfig.Flan_SCX_tokenPair = UniPairLike(Flan_SCX_tokenPair);
         crossingConfig.angband = AngbandLike(angband);
         crossingConfig.power = LimboAddTokenToBehodlerPowerLike(
             addToBehodlerPower
@@ -242,13 +233,19 @@ contract Limbo is Governable {
     function adjustSoul(
         address token,
         uint256 allocPoint,
-        uint16 exitPenalty
+        uint16 exitPenalty,
+        uint initialCrossingBonus,
+        int crossingBonusDelta
     ) public governanceApproved {
         Soul storage soul = currentSoul(token);
         totalAllocationPoints = totalAllocationPoints.sub(soul.allocPoint);
         totalAllocationPoints = totalAllocationPoints.add(allocPoint);
         soul.allocPoint = allocPoint;
         soul.exitPenalty = exitPenalty;
+        
+        CrossingParameters storage params =  tokenCrossingParameters[token][latestIndex[token]];
+        params.initialCrossingBonus = initialCrossingBonus;
+        params.crossingBonusDelta = crossingBonusDelta;
     }
 
     /*
@@ -519,7 +516,6 @@ contract Limbo is Governable {
 
         uint256 lpMinted =
             crossingConfig.uniHelper.buyAndPoolFlan(
-                crossingConfig.behodler,
                 crossingConfig.flanQuoteDivergenceTolerance,
                 crossingConfig.minQuoteWaitDuration,
                 triangleOfFairness

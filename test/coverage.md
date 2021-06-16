@@ -51,7 +51,8 @@
 **claims**
 - [ ] claims disabled on exitPenalty>0
 - [ ] claiming staked reward resets unclaimed to zero
-- [ ] claim bonus 
+- [ ] claim rising bonus 
+- [ ] claim falling bonus 
 - [ ] claim bonus disabled during staking
 - [ ] claiming bonus twice fails.
 - [ ] claiming negative bonus fails

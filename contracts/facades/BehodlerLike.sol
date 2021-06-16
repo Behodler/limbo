@@ -9,8 +9,20 @@ abstract contract BehodlerLike {
         uint256 passes
     ) external view virtual returns (uint256);
 
-      function burn(uint256 value) external virtual returns (bool);
-          function config() public virtual returns (uint, uint, address);
+    function burn(uint256 value) public virtual returns (bool);
 
-    function transfer(address dest, uint amount) external virtual returns (bool);
+    function config()
+        public
+        virtual
+        view
+        returns (
+            uint256,
+            uint256,
+            address
+        );
+
+    function transfer(address dest, uint256 amount)
+        external
+        virtual
+        returns (bool);
 }

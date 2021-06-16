@@ -51,12 +51,14 @@ contract UniswapHelper is Governable {
         address _limbo,
         address FlanSCXPair,
         address behodler,
-        address flan
+        address flan,
+        address router
     ) public onlySuccessfulProposal {
         limbo = _limbo;
         VARS.Flan_SCX_tokenPair = UniPairLike(FlanSCXPair);
         VARS.behodler = behodler;
         VARS.flan = flan;
+        VARS.router = UniswapRouterLike(router);
     }
 
     //First punch this and then wait a c
@@ -108,8 +110,6 @@ contract UniswapHelper is Governable {
                 ? reserve2
                 : reserve1;
 
-            //TODO: ATTACK VECTOR FLASH LOAN? Maybe require a flan deposit equal to the flan purchased or an SCX
-            //deposit equal to the SCX genned or something?
             (VARS.transferFee, , ) = BehodlerLike(VARS.behodler).config();
             VARS.amountIn = triangleOfFairness.div(2).mul(VARS.transferFee).div(
                 1000
