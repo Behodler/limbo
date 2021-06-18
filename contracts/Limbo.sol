@@ -68,7 +68,6 @@ We have s maximum of 4% per day. So some flash staker comes along and moves it 3
 elligible to be slashed. 
 
 */
-
 enum SoulState {calibration, staking, waitingToCross, crossedOver}
 enum SoulType {
     uninitialized,
@@ -87,11 +86,9 @@ Error string legend:
  token accounted for.	                        E7
  burning excess SCX failed.	                    E8
  Invocation reward failed.	                    E9
- token not recognized as valid soul.	        E10
- flan quote drift too high                      E11
- not enough time between quote and execution    E12
- claim rewards disabled when exit penlaty>0     E13
- only threshold souls can be migrated           E14
+ claim rewards disabled when exit penlaty>0     EA
+ only threshold souls can be migrated           EB
+ not enough time between crossing and migration EC
 */
 contract Limbo is Governable {
     using SafeMath for uint256;
@@ -107,7 +104,7 @@ contract Limbo is Governable {
         uint256 index,
         uint256 amount
     );
-    event YourSoulIsMine(address token, address destination, address proposal);
+    event YourSoulIsMine(address token, address proposal);
     event BonusPaid(
         address token,
         uint256 index,
@@ -145,6 +142,7 @@ contract Limbo is Governable {
         LimboAddTokenToBehodlerPowerLike power;
         uint256 flanQuoteDivergenceTolerance;
         uint256 minQuoteWaitDuration;
+        uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
     }
 
     struct User {
@@ -153,13 +151,13 @@ contract Limbo is Governable {
         bool bonusPaid;
     }
 
-    bytes4 private constant TRANSFER_SELECTOR =
+    bytes4 private constant TRANSFER_SELEBTOR =
         bytes4(keccak256(bytes("transfer(address,uint256)")));
 
-    uint256 constant TERA = 1e12;
+    uint256 constant TERA = 1E12;
     uint256 constant myriad = 1e4;
     uint256 constant SCX_calc = TERA * 10000;
-
+    bool protocolEnabled = true;
     uint256 flanPerSecond;
     CrossingConfig public crossingConfig;
     uint256 public totalAllocationPoints;
@@ -172,8 +170,12 @@ contract Limbo is Governable {
 
     FlanLike Flan;
 
-    modifier updateSoul(address token) {
-        Soul storage soul = currentSoul(token);
+    modifier enabled {
+        require(protocolEnabled, "EC");
+        _;
+    }
+
+    function updateSoul(address token, Soul storage soul) internal {
         require(soul.soulType != SoulType.uninitialized, "E1");
 
         uint256 balance = IERC20(token).balanceOf(address(this));
@@ -190,12 +192,6 @@ contract Limbo is Governable {
                 .mul(TERA)
                 .div(balance);
         }
-        _;
-    }
-
-    modifier RequireState(address soul, SoulState state) {
-        require(currentSoul(soul).state == state, "E2");
-        _;
     }
 
     constructor(
@@ -214,7 +210,8 @@ contract Limbo is Governable {
         address behodler,
         address uniHelper,
         uint256[2] calldata flnQuoteConfig,
-        uint256 migrationInvocationReward
+        uint256 migrationInvocationReward,
+        uint256 crossingMigrationDelay
     ) public onlySuccessfulProposal {
         crossingConfig.SCXburnPercentage = SCXburnPercentage;
         crossingConfig.angband = AngbandLike(angband);
@@ -228,22 +225,50 @@ contract Limbo is Governable {
         crossingConfig.behodler = behodler;
         crossingConfig.flanQuoteDivergenceTolerance = flnQuoteConfig[0];
         crossingConfig.minQuoteWaitDuration = flnQuoteConfig[1];
+        crossingConfig.crossingMigrationDelay = crossingMigrationDelay;
+    }
+
+    function disableProtocol() public governanceApproved {
+        protocolEnabled = false;
+    }
+
+    function enableProtocol() public onlySuccessfulProposal {
+        protocolEnabled = true;
     }
 
     function adjustSoul(
         address token,
         uint256 allocPoint,
         uint16 exitPenalty,
-        uint initialCrossingBonus,
-        int crossingBonusDelta
+        uint256 initialCrossingBonus,
+        int256 crossingBonusDelta
     ) public governanceApproved {
         Soul storage soul = currentSoul(token);
+        enforceTolerance(soul.allocPoint, allocPoint);
+        enforceTolerance(soul.exitPenalty, exitPenalty);
+
         totalAllocationPoints = totalAllocationPoints.sub(soul.allocPoint);
         totalAllocationPoints = totalAllocationPoints.add(allocPoint);
         soul.allocPoint = allocPoint;
         soul.exitPenalty = exitPenalty;
-        
-        CrossingParameters storage params =  tokenCrossingParameters[token][latestIndex[token]];
+
+        CrossingParameters storage params =
+            tokenCrossingParameters[token][latestIndex[token]];
+
+        enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
+        enforceTolerance(
+            uint256(
+                params.crossingBonusDelta < 0
+                    ? params.crossingBonusDelta * -1
+                    : params.crossingBonusDelta
+            ),
+            uint256(
+                crossingBonusDelta < 0
+                    ? crossingBonusDelta * -1
+                    : crossingBonusDelta
+            )
+        );
+
         params.initialCrossingBonus = initialCrossingBonus;
         params.crossingBonusDelta = crossingBonusDelta;
     }
@@ -300,32 +325,21 @@ contract Limbo is Governable {
         currentSoul(token).crossingThreshold = crossingThreshold;
     }
 
-    function governanceShutdown(address token, address fundDestination)
+    function governanceShutdown(address token)
         public
         onlySuccessfulProposal
-        returns (bool)
     {
-        Soul storage soul = currentSoul(token);
-        soul.state = SoulState.calibration;
-
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        //We want the shutdown to go ahead regardless of whether the token implementation is broken
-        (bool transferSuccess, ) =
-            token.call(
-                abi.encodeWithSelector(
-                    TRANSFER_SELECTOR,
-                    fundDestination,
-                    balance
-                )
-            );
-
-        emit YourSoulIsMine(token, fundDestination, msg.sender);
-        return (transferSuccess);
+        currentSoul(token).soulType = SoulType.uninitialized;
+        emit YourSoulIsMine(token, msg.sender);
     }
 
     //First stake deletes previous so that we can do one for listing a token like SCX/EYE and then reopen it to be permanent?
-    function stake(address token, uint256 amount) public updateSoul(token) {
+    function stake(address token, uint256 amount)
+        public
+        enabled
+    {
         Soul storage soul = currentSoul(token);
+        updateSoul(token, soul);
         require(soul.state == SoulState.staking, "E2");
         uint256 currentIndex = latestIndex[token];
         User storage user = userInfo[token][msg.sender][currentIndex];
@@ -366,8 +380,9 @@ contract Limbo is Governable {
         address token,
         uint256 index,
         uint256 amount
-    ) public updateSoul(token) {
+    ) public enabled {
         Soul storage soul = souls[token][index];
+        updateSoul(token, soul);
         require(
             soul.state == SoulState.staking ||
                 soul.state == SoulState.crossedOver,
@@ -401,11 +416,12 @@ contract Limbo is Governable {
 
     function claimReward(address token, uint256 index)
         public
-        updateSoul(token)
+        enabled
     {
         Soul storage soul = souls[token][index];
+        updateSoul(token ,soul);
         User storage user = userInfo[token][msg.sender][index];
-        require(soul.exitPenalty == 0, "E13");
+        require(soul.exitPenalty == 0, "EA");
 
         uint256 pending =
             user.stakedAmount.mul(soul.accumulatedFlanPerShare).div(TERA).sub(
@@ -421,7 +437,7 @@ contract Limbo is Governable {
         }
     }
 
-    function claimBonus(address token, uint256 index) public {
+    function claimBonus(address token, uint256 index) public enabled {
         Soul storage soul = souls[token][index];
         CrossingParameters storage crossing =
             tokenCrossingParameters[token][index];
@@ -474,9 +490,19 @@ contract Limbo is Governable {
 
     function migrate(address token)
         public
-        RequireState(token, SoulState.waitingToCross)
+        enabled
     {
-        require(currentSoul(token).soulType == SoulType.threshold, "E14");
+        Soul storage soul = currentSoul(token);
+        require(soul.soulType == SoulType.threshold, "EB");
+        require(soul.state ==  SoulState.waitingToCross, "E2");
+        require(
+            block.timestamp -
+                tokenCrossingParameters[token][latestIndex[token]]
+                    .stakingEndTimestamp >
+                crossingConfig.crossingMigrationDelay,
+            "EC"
+        );
+
         //parameterize LimboAddTokenToBehodler
         crossingConfig.power.parameterize(
             token,

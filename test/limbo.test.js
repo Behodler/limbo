@@ -13,7 +13,9 @@ describe("Limbo", function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
   });
 
-  it("old souls can be claimed from", async function () {});
+  it("old souls can be claimed from", async function () {
+
+  });
 
   it("old souls can be bonus claimed from", async function () {});
 
@@ -49,4 +51,5 @@ describe("Limbo", function () {
   it("soul changed to crossedOver post migration", async function () {});
   it("token tradeable on Behodler post migration.", async function () {});
   it("any whitelisted contract can mint flan", async function () {});
+  it("flash governance max tolerance respected", async function (){})
 });

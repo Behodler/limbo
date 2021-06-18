@@ -111,4 +111,12 @@ abstract contract Governable {
         );
         delete pendingFlashDecision[msg.sender];
     }
+
+    function enforceTolerance(uint256 v1, uint256 v2) internal view {
+        if (v1 > v2) {
+            require(((v1 - v2) * 100) / v1 < security.changeTolerance, "FE1");
+        } else {
+            require(((v2 - v1) * 100) / v1 < security.changeTolerance, "FE1");
+        }
+    }
 }

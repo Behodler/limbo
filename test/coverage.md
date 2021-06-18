@@ -37,9 +37,10 @@
 - [ ] use flashGovernance to adjustSoul
 - [ ] flashGovernance adjust configureCrossingParameters
 - [ ] reverse fashGov decision and burn asset
-- [ ] shutdown soul staking and send tokens to fundDestination (governanceShutdown)
+- [ ] shutdown soul staking and withdraw tokens
+- [ ] protocol disabled blocks all functions
 
-**staking**
+**staking** 
 - [ ] unstaking rewards user correctly and sets unclaimed to zero
 - [ ] staking/unstaking only possible in staking state.
 - [ ] staking an invalid token fails
@@ -68,3 +69,5 @@
 - [ ] Flan price and liquidity higher post migration.
 - [ ] soul changed to crossedOver post migration
 - [ ] token tradeable on Behodler post migration.
+- [ ] flash governance max tolerance respected
+- [ ] not enough time between crossing and migration
