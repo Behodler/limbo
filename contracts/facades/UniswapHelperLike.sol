@@ -5,7 +5,7 @@ abstract contract UniswapHelperLike {
     function buyAndPoolFlan(
         uint256 divergenceTolerance,
         uint256 minQuoteWaitDuration,
-        uint256 triangleOfFairness
+        uint256 rectangleOfFairness
     ) public virtual returns (uint256 lpMinted);
 
     function generateFLNQuote() public virtual;

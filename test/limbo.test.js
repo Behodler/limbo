@@ -11,6 +11,9 @@ describe("Limbo", function () {
 
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
+
+    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower")
+    const addTokenPower = await addTokenPowerFactory.deploy()
   });
 
   it("old souls can be claimed from", async function () {
@@ -46,7 +49,7 @@ describe("Limbo", function () {
   it("stamping reserves requires wait to pass before migration", async function () {});
   it("too much reserve drift between stamping and execution fails (divergenceTolerance)", async function () {});
   it("only threshold souls can migrate", async function () {});
-  it("SCX burnt leaves triangle of fairness.", async function () {});
+  it("SCX burnt leaves rectangle of fairness.", async function () {});
   it("Flan price and liquidity higher post migration.", async function () {});
   it("soul changed to crossedOver post migration", async function () {});
   it("token tradeable on Behodler post migration.", async function () {});

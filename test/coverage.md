@@ -65,7 +65,7 @@
 - [ ] stamping reserves requires wait to pass before migration
 - [ ] too much reserve drift between stamping and execution fails (divergenceTolerance)
 - [ ] only threshold souls can migrate
-- [ ] SCX burnt leaves triangle of fairness.
+- [ ] SCX burnt leaves rectangle of fairness.
 - [ ] Flan price and liquidity higher post migration.
 - [ ] soul changed to crossedOver post migration
 - [ ] token tradeable on Behodler post migration.

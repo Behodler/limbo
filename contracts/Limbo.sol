@@ -514,7 +514,7 @@ contract Limbo is Governable {
         IERC20(token).transfer(address(crossingConfig.power), tokenBalance);
         crossingConfig.angband.executePower(address(crossingConfig.power));
 
-        //get marginal SCX price and calculate triangle of fairness
+        //get marginal SCX price and calculate rectangle of fairness
         uint256 scxMinted =
             IERC20(crossingConfig.behodler).balanceOf(address(this));
         uint256 tokensToRelease =
@@ -530,21 +530,21 @@ contract Limbo is Governable {
             If we take the marginal price and input quantity and project a linear
             relationship back to the origin then the area under the curve represents
             the fair supply of SCX where early adopters aren't disproportionately whaled.
-            This area under the curve is a right angle triangle and so is named the triangle
+            This area under the curve is a right angle rectangle and so is named the rectangle
             of fairness. Any excess SCX should be burnt.
             */
-        uint256 triangleOfFairness =
+        uint256 rectangleOfFairness =
             marginalPrice.mul(tokenBalance).div(SCX_calc);
 
-        //burn SCX - triangle
-        uint256 excessSCX = scxMinted.sub(triangleOfFairness);
+        //burn SCX - rectangle
+        uint256 excessSCX = scxMinted.sub(rectangleOfFairness);
         require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
 
         uint256 lpMinted =
             crossingConfig.uniHelper.buyAndPoolFlan(
                 crossingConfig.flanQuoteDivergenceTolerance,
                 crossingConfig.minQuoteWaitDuration,
-                triangleOfFairness
+                rectangleOfFairness
             );
         //reward caller and update soul state
         require(

@@ -77,7 +77,7 @@ contract UniswapHelper is Governable {
     function buyAndPoolFlan(
         uint256 divergenceTolerance,
         uint256 minQuoteWaitDuration,
-        uint256 triangleOfFairness
+        uint256 rectangleOfFairness
     ) public returns (uint256 lpMinted) {
         require(msg.sender == limbo);
         //purchase flan with half remaining scx:
@@ -111,7 +111,7 @@ contract UniswapHelper is Governable {
                 : reserve1;
 
             (VARS.transferFee, , ) = BehodlerLike(VARS.behodler).config();
-            VARS.amountIn = triangleOfFairness.div(2).mul(VARS.transferFee).div(
+            VARS.amountIn = rectangleOfFairness.div(2).mul(VARS.transferFee).div(
                 1000
             );
 
