@@ -12,13 +12,220 @@ describe("Limbo", function () {
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
 
-    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower")
-    const addTokenPower = await addTokenPowerFactory.deploy()
+    const MockAngband = await ethers.getContractFactory("MockAngband");
+    this.mockAngband = await MockAngband.deploy();
+
+    const addTokenPowerFactory = await ethers.getContractFactory(
+      "MockAddTokenPower"
+    );
+    this.addTokenPower = await addTokenPowerFactory.deploy();
+
+    const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
+    this.mockBehodler = await MockBehodlerFactory.deploy(
+      "Scarcity",
+      "SCX",
+      this.addTokenPower.address
+    );
+
+    const TransferHelperFactory = await ethers.getContractFactory(
+      "TransferHelper"
+    );
+    const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
+      libraries: {
+        TransferHelper: (await TransferHelperFactory.deploy()).address,
+      },
+    });
+
+    this.limboDAO = await LimboDAOFactory.deploy();
+
+    const TokenFactory = await ethers.getContractFactory("MockToken");
+    this.eye = await TokenFactory.deploy("eye", "eye", [], []);
+
+    this.aave = await TokenFactory.deploy("aave", "aave", [], []);
+
+    const FlanFactory = await ethers.getContractFactory("Flan");
+    this.flan = await FlanFactory.deploy(this.limboDAO.address);
+
+    const LimboFactory = await ethers.getContractFactory("Limbo");
+    this.limbo = await LimboFactory.deploy(
+      this.flan.address,
+      10000000,
+      this.limboDAO.address
+    );
+
+    await this.addTokenPower.seed(
+      this.mockBehodler.address,
+      this.limbo.address
+    );
+
+    const UniswapFactoryFactory = await ethers.getContractFactory(
+      "UniswapFactory"
+    );
+
+    const sushiSwapFactory = await UniswapFactoryFactory.deploy();
+    const uniswapFactory = await UniswapFactoryFactory.deploy();
+
+    const ProposalFactoryFactory = await ethers.getContractFactory(
+      "ProposalFactory"
+    );
+    this.proposalFactory = await ProposalFactoryFactory.deploy();
+
+    await this.limboDAO.seed(
+      this.limbo.address,
+      this.flan.address,
+      this.eye.address,
+      this.proposalFactory.address,
+      sushiSwapFactory.address,
+      uniswapFactory.address,
+      [],
+      []
+    );
+
+    await this.limboDAO.makeLive();
+
+    const UniswapHelperFactory = await ethers.getContractFactory(
+      "UniswapHelper"
+    );
+    this.uniswapHelper = await UniswapHelperFactory.deploy(
+      this.limbo.address,
+      this.limboDAO.address
+    );
+
+    //Create proposal for configuring
+    //vote proposal passes
+    //execute
+
+    await this.limbo.configureCrossingConfig(
+      this.mockAngband.address,
+      this.addTokenPower.address,
+      this.mockBehodler.address,
+      this.uniswapHelper.address,
+      10000000,
+      10000
+    );
+
+    await this.limbo.configureSecurityParameters(10, 100, 30);
+   // await this.eye.approve(this.limbo.address, 2000);
+    await this.limbo.configureFlashGovernance(this.eye.address, 1000, 10, true);
   });
 
-  it("old souls can be claimed from", async function () {
+  it("governance actions free to be invoked until configured set to true", async function () {
+    //first invoke all of these successfully, then set config true and try again
 
+    //onlySuccessfulProposal:
+    //configureSoul
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      0,
+      0,
+      0,
+      0
+    );
+    await this.aave.transfer(this.limbo.address, 1000);
+    //enableProtocol
+    await this.limbo.enableProtocol();
+    //governanceShutdown
+    await this.limbo.governanceShutdown(this.aave.address);
+    //withdrawERC20
+    console.log(`secondPerson: ${secondPerson.address}`);
+    await this.limbo.withdrawERC20(this.aave.address, secondPerson.address);
+    expect(await this.aave.balanceOf(secondPerson.address)).to.equal(1000);
+    //configureCrossingConfig
+    await this.limbo.configureCrossingConfig(
+      this.mockAngband.address,
+      this.addTokenPower.address,
+      this.mockBehodler.address,
+      this.uniswapHelper.address,
+      10000000,
+      10000
+    );
+
+    //governanceApproved:
+    //disableProtocol
+    await this.limbo.disableProtocol();
+    await this.limbo.enableProtocol();
+    //adjustSoul
+    await this.limbo.adjustSoul(this.aave.address, 100, 1, 0, 1);
+    //configureCrossingParameters
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      1,
+      1,
+      true,
+      10000010
+    );
+
+    await this.limbo.endConfiguration();
+
+    await expect(
+      this.limbo.configureSoul(
+        this.aave.address,
+        100,
+        0,
+        0,
+        10000000,
+        0,
+        0,
+        0,
+        0
+      )
+    ).to.be.revertedWith("Limbo: governance action failed.");
+    // await this.aave.transfer(this.limbo.address, 1000);
+    // enableProtocol
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith(
+      "Limbo: governance action failed."
+    );
+    //governanceShutdown
+
+    //withdrawERC20
+
+    await expect(
+      this.limbo.withdrawERC20(this.aave.address, secondPerson.address)
+    ).to.be.revertedWith("Limbo: governance action failed.");
+
+    //configureCrossingConfig
+    await expect(
+      this.limbo.configureCrossingConfig(
+        this.mockAngband.address,
+        this.addTokenPower.address,
+        this.mockBehodler.address,
+        this.uniswapHelper.address,
+        10000000,
+        10000
+      )
+    ).to.be.revertedWith("Limbo: governance action failed.");
+
+    //governanceApproved:
+    //disableProtocol
+    await expect(this.limbo.disableProtocol()).to.be.revertedWith(
+      "revert ERC20: transfer amount exceeds allowance"
+    );
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith(
+      "Limbo: governance action failed."
+    );
+    //adjustSoul
+    await expect(
+      this.limbo.adjustSoul(this.aave.address, 100, 1, 0, 1)
+    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+    //configureCrossingParameters
+
+    await expect(
+      this.limbo.configureCrossingParameters(
+        this.aave.address,
+        1,
+        1,
+        true,
+        10000010
+      )
+    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
   });
+
+  it("old souls can be claimed from", async function () {});
 
   it("old souls can be bonus claimed from", async function () {});
 
@@ -54,5 +261,5 @@ describe("Limbo", function () {
   it("soul changed to crossedOver post migration", async function () {});
   it("token tradeable on Behodler post migration.", async function () {});
   it("any whitelisted contract can mint flan", async function () {});
-  it("flash governance max tolerance respected", async function (){})
+  it("flash governance max tolerance respected", async function () {});
 });

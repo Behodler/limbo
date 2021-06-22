@@ -8,6 +8,7 @@ import "../Flan.sol";
 import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
 import "../facades/UniPairLike.sol";
+import "./Governable.sol";
 
 /*
 This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having 
@@ -154,7 +155,7 @@ contract LimboDAO is Ownable {
         state.lastDamnAdjustment = block.timestamp;
     }
 
-    constructor(
+    function seed(
         address limbo,
         address flan,
         address eye,
@@ -163,7 +164,7 @@ contract LimboDAO is Ownable {
         address uniFactory,
         address[] memory sushiLPs,
         address[] memory uniLPs
-    ) {
+    ) public onlyOwner {
         _seed(limbo, flan, eye, sushiFactory, uniFactory);
         proposalConfig.votingDuration = 2 days;
         proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
@@ -190,20 +191,10 @@ contract LimboDAO is Ownable {
         }
     }
 
-    function seed(
-        address limbo,
-        address flan,
-        address eye,
-        address sushiFactory,
-        address uniFactory
-    ) public onlyOwner {
-        _seed(limbo, flan, eye, sushiFactory, uniFactory);
-    }
-
     function killDAO(address newOwner) public onlyOwner isLive {
         domainConfig.live = false;
-        Ownable(domainConfig.flan).transferOwnership(newOwner);
-        Ownable(domainConfig.limbo).transferOwnership(newOwner);
+        Governable(domainConfig.flan).setDAO(newOwner);
+        Governable(domainConfig.limbo).setDAO(newOwner);
         emit daoKilled(newOwner);
     }
 
@@ -392,8 +383,8 @@ contract LimboDAO is Ownable {
 
     function makeLive() public onlyOwner {
         require(
-            Ownable(domainConfig.limbo).owner() == address(this) &&
-                Ownable(domainConfig.flan).owner() == address(this),
+            Governable(domainConfig.limbo).DAO() == address(this) &&
+                Governable(domainConfig.flan).DAO() == address(this),
             "LimboDAO: transfer ownership of limbo and flan."
         );
         domainConfig.live = true;

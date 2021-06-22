@@ -7,7 +7,7 @@ contract MockAddTokenPower is LimboAddTokenToBehodlerPowerLike {
     address behodler;
     address limbo;
 
-    constructor(address _behodler, address _limbo) {
+    function seed(address _behodler, address _limbo) public {
         limbo = _limbo;
         behodler = _behodler;
     }

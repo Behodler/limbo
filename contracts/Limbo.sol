@@ -134,7 +134,6 @@ contract Limbo is Governable {
 
     struct CrossingConfig {
         address behodler;
-        uint16 SCXburnPercentage; //% between 1 and 10000: When SCX is generated from a crossing, most of the SCX is burnt. The rest is used to prop up flan.
         uint256 SCX_fee;
         uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
         UniswapHelperLike uniHelper;
@@ -204,16 +203,13 @@ contract Limbo is Governable {
     }
 
     function configureCrossingConfig(
-        uint16 SCXburnPercentage,
         address angband,
         address addToBehodlerPower,
         address behodler,
         address uniHelper,
-        uint256[2] calldata flnQuoteConfig,
         uint256 migrationInvocationReward,
         uint256 crossingMigrationDelay
     ) public onlySuccessfulProposal {
-        crossingConfig.SCXburnPercentage = SCXburnPercentage;
         crossingConfig.angband = AngbandLike(angband);
         crossingConfig.power = LimboAddTokenToBehodlerPowerLike(
             addToBehodlerPower
@@ -223,8 +219,6 @@ contract Limbo is Governable {
             migrationInvocationReward *
             (1 ether);
         crossingConfig.behodler = behodler;
-        crossingConfig.flanQuoteDivergenceTolerance = flnQuoteConfig[0];
-        crossingConfig.minQuoteWaitDuration = flnQuoteConfig[1];
         crossingConfig.crossingMigrationDelay = crossingMigrationDelay;
     }
 
@@ -316,28 +310,29 @@ contract Limbo is Governable {
         bool burnable,
         uint256 crossingThreshold
     ) public governanceApproved {
+        CrossingParameters storage params =
+            tokenCrossingParameters[token][latestIndex[token]];
+        enforceTolerance(initialCrossingBonus, params.initialCrossingBonus);
+        enforceToleranceInt(crossingBonusDelta, params.crossingBonusDelta);
+
         tokenCrossingParameters[token][latestIndex[token]]
             .initialCrossingBonus = initialCrossingBonus;
         tokenCrossingParameters[token][latestIndex[token]]
             .crossingBonusDelta = crossingBonusDelta;
         tokenCrossingParameters[token][latestIndex[token]].burnable = burnable;
 
+        Soul storage soul = currentSoul(token);
+        enforceTolerance(crossingThreshold, soul.crossingThreshold);
         currentSoul(token).crossingThreshold = crossingThreshold;
     }
 
-    function governanceShutdown(address token)
-        public
-        onlySuccessfulProposal
-    {
+    function governanceShutdown(address token) public onlySuccessfulProposal {
         currentSoul(token).soulType = SoulType.uninitialized;
         emit YourSoulIsMine(token, msg.sender);
     }
 
     //First stake deletes previous so that we can do one for listing a token like SCX/EYE and then reopen it to be permanent?
-    function stake(address token, uint256 amount)
-        public
-        enabled
-    {
+    function stake(address token, uint256 amount) public enabled {
         Soul storage soul = currentSoul(token);
         updateSoul(token, soul);
         require(soul.state == SoulState.staking, "E2");
@@ -414,12 +409,9 @@ contract Limbo is Governable {
         }
     }
 
-    function claimReward(address token, uint256 index)
-        public
-        enabled
-    {
+    function claimReward(address token, uint256 index) public enabled {
         Soul storage soul = souls[token][index];
-        updateSoul(token ,soul);
+        updateSoul(token, soul);
         User storage user = userInfo[token][msg.sender][index];
         require(soul.exitPenalty == 0, "EA");
 
@@ -488,13 +480,10 @@ contract Limbo is Governable {
         return souls[token][latestIndex[token]];
     }
 
-    function migrate(address token)
-        public
-        enabled
-    {
+    function migrate(address token) public enabled {
         Soul storage soul = currentSoul(token);
         require(soul.soulType == SoulType.threshold, "EB");
-        require(soul.state ==  SoulState.waitingToCross, "E2");
+        require(soul.state == SoulState.waitingToCross, "E2");
         require(
             block.timestamp -
                 tokenCrossingParameters[token][latestIndex[token]]
@@ -517,6 +506,7 @@ contract Limbo is Governable {
         //get marginal SCX price and calculate rectangle of fairness
         uint256 scxMinted =
             IERC20(crossingConfig.behodler).balanceOf(address(this));
+
         uint256 tokensToRelease =
             BehodlerLike(crossingConfig.behodler).withdrawLiquidityFindSCX(
                 token,

@@ -24,42 +24,63 @@ abstract contract Governable {
     FlashGovernanceConfig public flashGovernanceConfig;
     SecurityParameters public security;
     mapping(address => FlashGovernanceConfig) pendingFlashDecision;
-
+    bool private configured;
     address public DAO;
 
+    function endConfiguration() public {
+        configured = true;
+    }
+
     modifier onlySuccessfulProposal {
-        require(
-            LimboDAOLike(DAO).successfulProposal(msg.sender),
-            "Limbo: flash governance not allowed."
-        );
+        assertSuccessfulProposal(msg.sender);
         _;
     }
 
     modifier governanceApproved {
-        if (LimboDAOLike(DAO).successfulProposal(msg.sender)) {
-            //quirk of modifier syntax: appears to do nothing if success
+        assertGovernanceApproved(msg.sender);
+        _;
+    }
+
+    function assertSuccessfulProposal(address sender) internal view {
+        require(
+            !configured || LimboDAOLike(DAO).successfulProposal(sender),
+            "Limbo: governance action failed."
+        );
+    }
+
+    function assertGovernanceApproved(address sender) internal {
+        if (!configured) return;
+        if (LimboDAOLike(DAO).successfulProposal(sender)) {
+            return;
         } else if (
             IERC20(flashGovernanceConfig.asset).transferFrom(
-                msg.sender,
+                sender,
                 address(this),
                 flashGovernanceConfig.amount
-            ) && pendingFlashDecision[msg.sender].lockDuration < block.timestamp
+            ) && pendingFlashDecision[sender].lockDuration < block.timestamp
         ) {
             require(
                 block.timestamp - security.lastFlashGovernanceAct >
                     security.epochSize,
                 "Limbo: flash governance disabled for rest of epoch"
             );
-            pendingFlashDecision[msg.sender] = flashGovernanceConfig;
-            pendingFlashDecision[msg.sender].lockDuration += block.timestamp;
+            pendingFlashDecision[sender] = flashGovernanceConfig;
+            pendingFlashDecision[sender].lockDuration += block.timestamp;
             security.lastFlashGovernanceAct = block.timestamp;
         } else {
             revert("LIMBO: governance decision rejected.");
         }
-        _;
     }
 
     constructor(address dao) {
+        setDAO(dao);
+    }
+
+    function setDAO(address dao) public {
+        require(
+            DAO == address(0) || msg.sender == DAO,
+            "LimboDAO: access denied"
+        );
         DAO = dao;
     }
 
@@ -112,11 +133,28 @@ abstract contract Governable {
         delete pendingFlashDecision[msg.sender];
     }
 
+    function enforceToleranceInt(int256 v1, int256 v2) internal view {
+        uint256 uv1 = uint256(v1 > 0 ? v1 : -1 * v1);
+        uint256 uv2 = uint256(v2 > 0 ? v2 : -1 * v2);
+        enforceTolerance(uv1, uv2);
+    }
+
+    //bonus points for readability
     function enforceTolerance(uint256 v1, uint256 v2) internal view {
         if (v1 > v2) {
-            require(((v1 - v2) * 100) / v1 < security.changeTolerance, "FE1");
+            if (v2 == 0) require(v1 <= 1, "FE1");
+            else
+                require(
+                    ((v1 - v2) * 100) < security.changeTolerance * v1,
+                    "FE1"
+                );
         } else {
-            require(((v2 - v1) * 100) / v1 < security.changeTolerance, "FE1");
+            if (v1 == 0) require(v2 <= 1, "FE1");
+            else
+                require(
+                    ((v2 - v1) * 100) < security.changeTolerance * v1,
+                    "FE1"
+                );
         }
     }
 }

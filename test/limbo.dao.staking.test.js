@@ -114,11 +114,16 @@ describe("DAO staking", function () {
         TransferHelper: (await TransferHelperFactory.deploy()).address,
       },
     });
-    const OwnableStubFactory = await ethers.getContractFactory("OwnableStub");
-    const limbo = await OwnableStubFactory.deploy();
-    const flan = await OwnableStubFactory.deploy();
 
-    dao = await daoFactory.deploy(
+    dao = await daoFactory.deploy();
+
+    const GovernableStubFactory = await ethers.getContractFactory(
+      "GovernableStub"
+    );
+    const limbo = await GovernableStubFactory.deploy(dao.address);
+    const flan = await GovernableStubFactory.deploy(dao.address);
+    
+    await dao.seed(
       limbo.address,
       flan.address,
       eye.address,
@@ -128,8 +133,6 @@ describe("DAO staking", function () {
       [daiEYESLP.address, linkEYESLP.address, sushiEYESLP.address],
       [daiEYEULP.address, linkEYEULP.address, sushiEYEULP.address]
     );
-    await limbo.transferOwnership(dao.address);
-    await flan.transferOwnership(dao.address);
 
     const allAssets = [
       daiEYESLP,
