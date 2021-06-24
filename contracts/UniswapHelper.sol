@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 import "./facades/UniPairLike.sol";
 import "./facades/UniswapRouterLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 //TODO: migrate all uniswap code across to here to save on deployment size
 
@@ -13,7 +12,6 @@ contract BlackHole {
 }
 
 contract UniswapHelper is Governable {
-    using SafeMath for uint;
     address limbo;
     struct UniVARS {
         address token0;
@@ -71,7 +69,7 @@ contract UniswapHelper is Governable {
     function getLatestFLNQuote() internal view returns (uint256) {
         (uint256 reserve1, uint256 reserve2, ) =
             VARS.Flan_SCX_tokenPair.getReserves();
-        return reserve1.mul(TERA).div(reserve2);
+        return ((reserve1 * TERA)/reserve2)/TERA;
     }
 
     function buyAndPoolFlan(
@@ -111,9 +109,7 @@ contract UniswapHelper is Governable {
                 : reserve1;
 
             (VARS.transferFee, , ) = BehodlerLike(VARS.behodler).config();
-            VARS.amountIn = rectangleOfFairness.div(2).mul(VARS.transferFee).div(
-                1000
-            );
+            VARS.amountIn = (rectangleOfFairness *VARS.transferFee)/1000;
 
             VARS.expectedOutputToken = VARS.router.quote(
                 VARS.amountIn,
@@ -131,7 +127,7 @@ contract UniswapHelper is Governable {
                 VARS.expectedOutputToken,
                 VARS.path,
                 address(VARS.Flan_SCX_tokenPair),
-                uint256(-1)
+                type(uint).max
             );
 
             //mint FLN/SCX LP

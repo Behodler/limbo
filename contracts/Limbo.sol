@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/FlanLike.sol";
@@ -68,7 +67,12 @@ We have s maximum of 4% per day. So some flash staker comes along and moves it 3
 elligible to be slashed. 
 
 */
-enum SoulState {calibration, staking, waitingToCross, crossedOver}
+enum SoulState {
+    calibration,
+    staking,
+    waitingToCross,
+    crossedOver
+}
 enum SoulType {
     uninitialized,
     threshold, //the default soul type is staked and when reaching a threshold, migrates to Behodler
@@ -91,7 +95,6 @@ Error string legend:
  not enough time between crossing and migration EC
 */
 contract Limbo is Governable {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using SafeERC20 for FlanLike;
 
@@ -180,16 +183,14 @@ contract Limbo is Governable {
         uint256 balance = IERC20(token).balanceOf(address(this));
         soul.lastRewardTimestamp = block.timestamp;
         if (balance > 0) {
-            uint256 flanReward =
-                flanPerSecond.mul(soul.allocPoint).div(totalAllocationPoints);
+            uint256 flanReward = (flanPerSecond * soul.allocPoint) /
+                totalAllocationPoints;
 
             Flan.mint(flanReward);
 
-            soul.accumulatedFlanPerShare = soul
-                .accumulatedFlanPerShare
-                .add(flanReward)
-                .mul(TERA)
-                .div(balance);
+            soul.accumulatedFlanPerShare =
+                ((soul.accumulatedFlanPerShare + flanReward) * TERA) /
+                balance;
         }
     }
 
@@ -241,13 +242,14 @@ contract Limbo is Governable {
         enforceTolerance(soul.allocPoint, allocPoint);
         enforceTolerance(soul.exitPenalty, exitPenalty);
 
-        totalAllocationPoints = totalAllocationPoints.sub(soul.allocPoint);
-        totalAllocationPoints = totalAllocationPoints.add(allocPoint);
+        totalAllocationPoints = totalAllocationPoints - soul.allocPoint;
+        totalAllocationPoints = totalAllocationPoints + allocPoint;
         soul.allocPoint = allocPoint;
         soul.exitPenalty = exitPenalty;
 
-        CrossingParameters storage params =
-            tokenCrossingParameters[token][latestIndex[token]];
+        CrossingParameters storage params = tokenCrossingParameters[token][
+            latestIndex[token]
+        ];
 
         enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
         enforceTolerance(
@@ -285,8 +287,8 @@ contract Limbo is Governable {
         {
             Soul storage soul = currentSoul(token);
 
-            totalAllocationPoints = totalAllocationPoints.sub(soul.allocPoint);
-            totalAllocationPoints = totalAllocationPoints.add(allocPoint);
+            totalAllocationPoints = totalAllocationPoints - soul.allocPoint;
+            totalAllocationPoints = totalAllocationPoints + allocPoint;
             latestIndex[token] = index > latestIndex[token]
                 ? latestIndex[token] + 1
                 : latestIndex[token];
@@ -310,15 +312,16 @@ contract Limbo is Governable {
         bool burnable,
         uint256 crossingThreshold
     ) public governanceApproved {
-        CrossingParameters storage params =
-            tokenCrossingParameters[token][latestIndex[token]];
+        CrossingParameters storage params = tokenCrossingParameters[token][
+            latestIndex[token]
+        ];
         enforceTolerance(initialCrossingBonus, params.initialCrossingBonus);
         enforceToleranceInt(crossingBonusDelta, params.crossingBonusDelta);
 
         tokenCrossingParameters[token][latestIndex[token]]
-            .initialCrossingBonus = initialCrossingBonus;
+        .initialCrossingBonus = initialCrossingBonus;
         tokenCrossingParameters[token][latestIndex[token]]
-            .crossingBonusDelta = crossingBonusDelta;
+        .crossingBonusDelta = crossingBonusDelta;
         tokenCrossingParameters[token][latestIndex[token]].burnable = burnable;
 
         Soul storage soul = currentSoul(token);
@@ -340,34 +343,30 @@ contract Limbo is Governable {
         User storage user = userInfo[token][msg.sender][currentIndex];
 
         if (user.stakedAmount > 0) {
-            uint256 pending =
-                user
-                    .stakedAmount
-                    .mul(soul.accumulatedFlanPerShare)
-                    .div(TERA)
-                    .sub(user.rewardDebt);
+            uint256 pending = ((user.stakedAmount *
+                soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
             if (pending > 0) {
                 Flan.safeTransfer(msg.sender, pending);
             }
         }
         if (amount > 0) {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-            user.stakedAmount = user.stakedAmount.add(amount);
+            user.stakedAmount = user.stakedAmount + amount;
             uint256 newBalance = IERC20(token).balanceOf(address(this));
             if (
                 soul.soulType == SoulType.threshold &&
                 newBalance > soul.crossingThreshold
             ) {
                 soul.state = SoulState.waitingToCross;
-                CrossingParameters storage crossing =
-                    tokenCrossingParameters[token][latestIndex[token]];
+                CrossingParameters storage crossing = tokenCrossingParameters[
+                    token
+                ][latestIndex[token]];
                 crossing.stakingEndTimestamp = block.timestamp;
             }
         }
-        user.rewardDebt = user
-            .stakedAmount
-            .mul(soul.accumulatedFlanPerShare)
-            .div(TERA);
+        user.rewardDebt =
+            (user.stakedAmount * soul.accumulatedFlanPerShare) /
+            TERA;
         emit Staked(msg.sender, token, amount);
     }
 
@@ -388,23 +387,20 @@ contract Limbo is Governable {
         User storage user = userInfo[token][msg.sender][index];
         require(user.stakedAmount >= amount, "E4");
 
-        uint256 pending =
-            user.stakedAmount.mul(soul.accumulatedFlanPerShare).div(TERA).sub(
-                user.rewardDebt
-            );
+        uint256 pending = ((user.stakedAmount * soul.accumulatedFlanPerShare) /
+            TERA -
+            user.rewardDebt);
+
         if (pending > 0) {
-            pending = myriad.sub(uint256(soul.exitPenalty)).mul(pending).div(
-                10000
-            );
+            pending = myriad - ((uint256(soul.exitPenalty) * pending) / myriad);
             Flan.safeTransfer(msg.sender, pending);
             if (amount > 0) {
-                user.stakedAmount = user.stakedAmount.sub(amount);
+                user.stakedAmount = user.stakedAmount - amount;
                 IERC20(token).safeTransfer(address(msg.sender), amount);
             }
-            user.rewardDebt = user
-                .stakedAmount
-                .mul(soul.accumulatedFlanPerShare)
-                .div(TERA);
+            user.rewardDebt =
+                (user.stakedAmount * soul.accumulatedFlanPerShare) /
+                TERA;
             emit Unstaked(msg.sender, token, amount);
         }
     }
@@ -415,24 +411,23 @@ contract Limbo is Governable {
         User storage user = userInfo[token][msg.sender][index];
         require(soul.exitPenalty == 0, "EA");
 
-        uint256 pending =
-            user.stakedAmount.mul(soul.accumulatedFlanPerShare).div(TERA).sub(
-                user.rewardDebt
-            );
+        uint256 pending = ((user.stakedAmount * soul.accumulatedFlanPerShare) /
+            TERA) - user.rewardDebt;
+
         if (pending > 0) {
             Flan.safeTransfer(msg.sender, pending);
-            user.rewardDebt = user
-                .stakedAmount
-                .mul(soul.accumulatedFlanPerShare)
-                .div(TERA);
+            user.rewardDebt =
+                (user.stakedAmount * soul.accumulatedFlanPerShare) /
+                TERA;
             emit ClaimedReward(msg.sender, token, index, pending);
         }
     }
 
     function claimBonus(address token, uint256 index) public enabled {
         Soul storage soul = souls[token][index];
-        CrossingParameters storage crossing =
-            tokenCrossingParameters[token][index];
+        CrossingParameters storage crossing = tokenCrossingParameters[token][
+            index
+        ];
         require(
             soul.state == SoulState.crossedOver ||
                 soul.state == SoulState.waitingToCross,
@@ -442,10 +437,10 @@ contract Limbo is Governable {
         User storage user = userInfo[token][msg.sender][index];
         require(!user.bonusPaid, "E5");
         user.bonusPaid = true;
-        uint256 totalStakingDuration =
-            crossing.stakingEndTimestamp - crossing.stakingBeginsTimestamp;
-        int256 accumulatedTeraFlanPerToken =
-            crossing.crossingBonusDelta * int256(totalStakingDuration);
+        uint256 totalStakingDuration = crossing.stakingEndTimestamp -
+            crossing.stakingBeginsTimestamp;
+        int256 accumulatedTeraFlanPerToken = crossing.crossingBonusDelta *
+            int256(totalStakingDuration);
 
         //assert signs are the same
         require(
@@ -453,8 +448,8 @@ contract Limbo is Governable {
             "E6"
         );
 
-        int256 finalTeraFlanPerToken =
-            int256(crossing.initialCrossingBonus) + accumulatedTeraFlanPerToken;
+        int256 finalTeraFlanPerToken = int256(crossing.initialCrossingBonus) +
+            accumulatedTeraFlanPerToken;
 
         uint256 flanBonus = 0;
         if (finalTeraFlanPerToken > 0) {
@@ -487,7 +482,7 @@ contract Limbo is Governable {
         require(
             block.timestamp -
                 tokenCrossingParameters[token][latestIndex[token]]
-                    .stakingEndTimestamp >
+                .stakingEndTimestamp >
                 crossingConfig.crossingMigrationDelay,
             "EC"
         );
@@ -504,17 +499,13 @@ contract Limbo is Governable {
         crossingConfig.angband.executePower(address(crossingConfig.power));
 
         //get marginal SCX price and calculate rectangle of fairness
-        uint256 scxMinted =
-            IERC20(crossingConfig.behodler).balanceOf(address(this));
+        uint256 scxMinted = IERC20(crossingConfig.behodler).balanceOf(
+            address(this)
+        );
 
-        uint256 tokensToRelease =
-            BehodlerLike(crossingConfig.behodler).withdrawLiquidityFindSCX(
-                token,
-                1000,
-                10000,
-                8
-            );
-        uint256 marginalPrice = SCX_calc.div(tokensToRelease);
+        uint256 tokensToRelease = BehodlerLike(crossingConfig.behodler)
+        .withdrawLiquidityFindSCX(token, 1000, 10000, 8);
+        uint256 marginalPrice = SCX_calc / tokensToRelease;
 
         /*
             If we take the marginal price and input quantity and project a linear
@@ -523,19 +514,17 @@ contract Limbo is Governable {
             This area under the curve is a right angle rectangle and so is named the rectangle
             of fairness. Any excess SCX should be burnt.
             */
-        uint256 rectangleOfFairness =
-            marginalPrice.mul(tokenBalance).div(SCX_calc);
+        uint256 rectangleOfFairness = (marginalPrice * tokenBalance) / SCX_calc;
 
         //burn SCX - rectangle
-        uint256 excessSCX = scxMinted.sub(rectangleOfFairness);
+        uint256 excessSCX = scxMinted - rectangleOfFairness;
         require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
 
-        uint256 lpMinted =
-            crossingConfig.uniHelper.buyAndPoolFlan(
-                crossingConfig.flanQuoteDivergenceTolerance,
-                crossingConfig.minQuoteWaitDuration,
-                rectangleOfFairness
-            );
+        uint256 lpMinted = crossingConfig.uniHelper.buyAndPoolFlan(
+            crossingConfig.flanQuoteDivergenceTolerance,
+            crossingConfig.minQuoteWaitDuration,
+            rectangleOfFairness
+        );
         //reward caller and update soul state
         require(
             Flan.transfer(msg.sender, crossingConfig.migrationInvocationReward),

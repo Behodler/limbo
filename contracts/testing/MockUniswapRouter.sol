@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 import "../facades/UniswapRouterLike.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract MockUniswapRouter is UniswapRouterLike {
-    using SafeMath for uint256;
 
     function quote(
         uint256 amountA,
@@ -17,7 +15,7 @@ contract MockUniswapRouter is UniswapRouterLike {
             reserveA > 0 && reserveB > 0,
             "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
         );
-        amountB = amountA.mul(reserveB) / reserveA;
+        amountB = (amountA * reserveB) / reserveA;
     }
 
     function swapExactTokensForTokens(

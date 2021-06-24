@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../ERC677/ERC677.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
@@ -50,7 +49,6 @@ contract LimboDAO is Ownable {
     event assetBurnt(address burner, address asset, uint256 fateCreated);
 
     using TransferHelper for address;
-    using SafeMath for uint256;
     uint256 constant ONE = 1 ether;
 
     struct DomainConfig {
@@ -120,7 +118,7 @@ contract LimboDAO is Ownable {
         incrementFateFor(_msgSender());
         if (address(currentProposal) != address(0)) {
             uint256 durationSinceStart =
-                block.timestamp.sub(currentProposalState.start);
+                block.timestamp - currentProposalState.start;
             if (
                 durationSinceStart >= proposalConfig.votingDuration &&
                 currentProposalState.decision == ProposalDecision.voting
@@ -212,9 +210,8 @@ contract LimboDAO is Ownable {
                 currentProposalState.decision != ProposalDecision.voting,
             "LimboDAO: active proposal."
         );
-        fateState[proposer].fateBalance = fateState[proposer].fateBalance.sub(
-            proposalConfig.requiredFateStake * 2
-        );
+        fateState[proposer].fateBalance = fateState[proposer].fateBalance - 
+            proposalConfig.requiredFateStake * 2;
         currentProposal = Proposal(proposal);
         currentProposalState.decision = ProposalDecision.voting;
         currentProposalState.fate = 0;
@@ -259,8 +256,7 @@ contract LimboDAO is Ownable {
         }
         uint256 cost = fate > 0 ? uint256(fate) : uint256(-fate);
         fateState[_msgSender()].fateBalance = fateState[_msgSender()]
-            .fateBalance
-            .sub(cost);
+            .fateBalance-cost;
 
         currentProposalState.fate += fate;
         emit voteCast(_msgSender(), proposal, fate);
@@ -403,7 +399,7 @@ contract LimboDAO is Ownable {
             currentProposalState.decision == ProposalDecision.voting,
             "LimboDAO: proposal finished."
         );
-        uint256 elapsed = block.timestamp.sub(currentProposalState.start);
+        uint256 elapsed = block.timestamp - currentProposalState.start;
         if (elapsed > proposalConfig.votingDuration) return 0;
         return proposalConfig.votingDuration - elapsed;
     }

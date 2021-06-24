@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 import "./ERC677/ERC677.sol";
 import "../contracts/DAO/Governable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Flan is ERC677("Flan", "FLN"), Governable {
-    using SafeMath for uint256;
     mapping(address => uint256) public mintAllowance; //uint(-1) == whitelist
 
     constructor(address dao) Governable(dao) {}
@@ -21,7 +19,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         public
         onlySuccessfulProposal
     {
-        mintAllowance[minter] = mintAllowance[minter].add(_allowance);
+        mintAllowance[minter] = mintAllowance[minter] +_allowance;
     }
 
     function mint(uint256 amount) public {
@@ -50,7 +48,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     ) internal {
         _mint(recipient, amount);
         if (allowance < type(uint256).max) {
-            mintAllowance[minter] = mintAllowance[minter].sub(amount);
+            mintAllowance[minter] = mintAllowance[minter] - amount;
         }
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.0;
 import "../ERC677/ERC677.sol";
 import "../facades/BehodlerLike.sol";
 
