@@ -18,6 +18,22 @@ abstract contract LimboDAOLike {
 
     function setApprovedAsset(address asset, bool approved) public virtual;
 
-     function successfulProposal (address proposal) public virtual view returns (bool) ;
+    function successfulProposal(address proposal)
+        public
+        view
+        virtual
+        returns (bool);
 
+    function domainConfig()
+        public
+        virtual
+        returns (
+            address,
+            address,
+            address,
+            address,
+            bool,
+            address,
+            address
+        );
 }

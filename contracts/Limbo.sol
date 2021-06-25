@@ -153,9 +153,6 @@ contract Limbo is Governable {
         bool bonusPaid;
     }
 
-    bytes4 private constant TRANSFER_SELEBTOR =
-        bytes4(keccak256(bytes("transfer(address,uint256)")));
-
     uint256 constant TERA = 1E12;
     uint256 constant myriad = 1e4;
     uint256 constant SCX_calc = TERA * 10000;
@@ -164,7 +161,7 @@ contract Limbo is Governable {
     CrossingConfig public crossingConfig;
     uint256 public totalAllocationPoints;
     mapping(address => mapping(uint256 => Soul)) public souls;
-    mapping(address => uint256) latestIndex;
+    mapping(address => uint256) public latestIndex;
     mapping(address => mapping(address => mapping(uint256 => User)))
         public userInfo; //tokenAddress->userAddress->soulIndex->Userinfo
     mapping(address => mapping(uint256 => CrossingParameters))
@@ -177,21 +174,26 @@ contract Limbo is Governable {
         _;
     }
 
+    function updateSoul(address token) public {
+        Soul storage s = currentSoul(token);
+        updateSoul(token, s);
+    }
+
     function updateSoul(address token, Soul storage soul) internal {
         require(soul.soulType != SoulType.uninitialized, "E1");
 
         uint256 balance = IERC20(token).balanceOf(address(this));
-        soul.lastRewardTimestamp = block.timestamp;
+       
         if (balance > 0) {
-            uint256 flanReward = (flanPerSecond * soul.allocPoint) /
+            uint accruedFlan = (block.timestamp -   soul.lastRewardTimestamp)*flanPerSecond;
+            uint256 flanReward = (accruedFlan * soul.allocPoint) /
                 totalAllocationPoints;
 
             Flan.mint(flanReward);
 
-            soul.accumulatedFlanPerShare =
-                ((soul.accumulatedFlanPerShare + flanReward) * TERA) /
-                balance;
+            soul.accumulatedFlanPerShare =soul.accumulatedFlanPerShare + ((flanReward*TERA)/balance);
         }
+         soul.lastRewardTimestamp = block.timestamp;
     }
 
     constructor(
@@ -334,7 +336,6 @@ contract Limbo is Governable {
         emit YourSoulIsMine(token, msg.sender);
     }
 
-    //First stake deletes previous so that we can do one for listing a token like SCX/EYE and then reopen it to be permanent?
     function stake(address token, uint256 amount) public enabled {
         Soul storage soul = currentSoul(token);
         updateSoul(token, soul);
@@ -342,13 +343,6 @@ contract Limbo is Governable {
         uint256 currentIndex = latestIndex[token];
         User storage user = userInfo[token][msg.sender][currentIndex];
 
-        if (user.stakedAmount > 0) {
-            uint256 pending = ((user.stakedAmount *
-                soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
-            if (pending > 0) {
-                Flan.safeTransfer(msg.sender, pending);
-            }
-        }
         if (amount > 0) {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
             user.stakedAmount = user.stakedAmount + amount;
@@ -382,7 +376,7 @@ contract Limbo is Governable {
                 soul.state == SoulState.crossedOver,
             "E2"
         );
-        int256 exitPenalty = soul.exitPenalty;
+        uint16 exitPenalty = soul.exitPenalty;
         require(exitPenalty < 10000, "E3");
         User storage user = userInfo[token][msg.sender][index];
         require(user.stakedAmount >= amount, "E4");
@@ -392,7 +386,7 @@ contract Limbo is Governable {
             user.rewardDebt);
 
         if (pending > 0) {
-            pending = myriad - ((uint256(soul.exitPenalty) * pending) / myriad);
+            pending = ((myriad - (uint256(soul.exitPenalty)) * pending) / myriad);
             Flan.safeTransfer(msg.sender, pending);
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;

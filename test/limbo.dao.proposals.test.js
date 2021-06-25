@@ -182,7 +182,9 @@ describe("DAO Proposals", function () {
   it("Insufficient fate to lodge rejected", async function () {
     await expect(
       proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
-    ).to.be.revertedWith("afeMath: subtraction overflow");
+    ).to.be.revertedWith(
+      "Arithmetic operation underflowed or overflowed outside of an unchecked block"
+    );
   });
 
   it("lodging proposal when none exist accepted", async function () {

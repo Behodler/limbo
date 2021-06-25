@@ -134,6 +134,7 @@ abstract contract Governable {
     }
 
     function enforceToleranceInt(int256 v1, int256 v2) internal view {
+        if (!configured) return;
         uint256 uv1 = uint256(v1 > 0 ? v1 : -1 * v1);
         uint256 uv2 = uint256(v2 > 0 ? v2 : -1 * v2);
         enforceTolerance(uv1, uv2);
@@ -141,6 +142,7 @@ abstract contract Governable {
 
     //bonus points for readability
     function enforceTolerance(uint256 v1, uint256 v2) internal view {
+        if (!configured) return;
         if (v1 > v2) {
             if (v2 == 0) require(v1 <= 1, "FE1");
             else

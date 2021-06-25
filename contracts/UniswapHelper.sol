@@ -5,8 +5,6 @@ import "./facades/UniswapRouterLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
 
-//TODO: migrate all uniswap code across to here to save on deployment size
-
 contract BlackHole {
 
 }

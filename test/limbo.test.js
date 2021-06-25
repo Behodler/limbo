@@ -53,6 +53,9 @@ describe("Limbo", function () {
       this.limboDAO.address
     );
 
+    await this.flan.whiteListMinting(this.limbo.address, true);
+    await this.flan.endConfiguration();
+
     await this.addTokenPower.seed(
       this.mockBehodler.address,
       this.limbo.address
@@ -83,6 +86,9 @@ describe("Limbo", function () {
 
     await this.limboDAO.makeLive();
 
+    const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
+    this.soulReader = await SoulReaderFactory.deploy(this.limboDAO.address);
+
     const UniswapHelperFactory = await ethers.getContractFactory(
       "UniswapHelper"
     );
@@ -91,9 +97,13 @@ describe("Limbo", function () {
       this.limboDAO.address
     );
 
-    //Create proposal for configuring
-    //vote proposal passes
-    //execute
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      1,
+      1,
+      true,
+      10000010
+    );
 
     await this.limbo.configureCrossingConfig(
       this.mockAngband.address,
@@ -105,9 +115,14 @@ describe("Limbo", function () {
     );
 
     await this.limbo.configureSecurityParameters(10, 100, 30);
-   // await this.eye.approve(this.limbo.address, 2000);
+    // await this.eye.approve(this.limbo.address, 2000);
     await this.limbo.configureFlashGovernance(this.eye.address, 1000, 10, true);
   });
+
+  const advanceTime = async (seconds) => {
+    await network.provider.send("evm_increaseTime", [seconds]); //6 hours
+    await network.provider.send("evm_mine");
+  };
 
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
@@ -203,7 +218,7 @@ describe("Limbo", function () {
     //governanceApproved:
     //disableProtocol
     await expect(this.limbo.disableProtocol()).to.be.revertedWith(
-      "revert ERC20: transfer amount exceeds allowance"
+      "ERC20: transfer amount exceeds allowance"
     );
     await expect(this.limbo.enableProtocol()).to.be.revertedWith(
       "Limbo: governance action failed."
@@ -225,9 +240,55 @@ describe("Limbo", function () {
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
   });
 
-  it("old souls can be claimed from", async function () {});
+  it("old souls can be claimed from", async function () {
+    //make a threshold pool.
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      1,
+      0,
+      1,
+      0
+    );
+    await this.limbo.endConfiguration();
 
-  it("old souls can be bonus claimed from", async function () {});
+    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+
+    console.log((await this.flan.balanceOf(owner.address)).toString())
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+    console.log((await this.flan.balanceOf(owner.address)).toString())
+    //fast forward time
+    await advanceTime(90000); //just over a day
+
+    //stake enough tokens to cross threshold
+    await this.limbo.stake(this.aave.address, "9990001");
+    console.log((await this.flan.balanceOf(owner.address)).toString())
+    //assert soul state change
+    const stats = await this.soulReader.SoulStats(this.aave.address);
+    expect(stats[0].toString()).to.equal("2");
+    expect(stats[1].toString()).to.equal("10000001");
+    //claim
+
+    await this.limbo.claimReward(this.aave.address, 0);
+    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    console.log((await this.flan.balanceOf(owner.address)).toString())
+    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
+      "9999999"
+    );
+  });
+
+  it("old souls can be bonus claimed from", async function () {
+    // make a threshold pool.
+    // stake tokens
+    // fast forward time
+    // stake enough tokens to cross threshold
+    // claim bonus
+  });
 
   it("perpetual pools have no upper limit", async function () {});
 
