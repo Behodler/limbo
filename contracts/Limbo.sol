@@ -7,12 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/FlanLike.sol";
-import "./facades/AngbandLike.sol";
-import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
-import "./facades/BehodlerLike.sol";
 import "./facades/UniPairLike.sol";
+import "./facades/MigratorLike.sol";
 import "./DAO/Governable.sol";
-import "./facades/UniswapHelperLike.sol";
 /*
 LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from both
 Masterchef.
@@ -115,8 +112,6 @@ contract Limbo is Governable {
         uint256 bonus
     );
 
-    event TokenListed(address token, uint256 amount, uint256 scxfln_LP_minted);
-
     struct Soul {
         uint256 allocPoint;
         uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.
@@ -139,12 +134,10 @@ contract Limbo is Governable {
         address behodler;
         uint256 SCX_fee;
         uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
-        UniswapHelperLike uniHelper;
-        AngbandLike angband;
-        LimboAddTokenToBehodlerPowerLike power;
         uint256 flanQuoteDivergenceTolerance;
         uint256 minQuoteWaitDuration;
         uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
+        MigratorLike migrator;
     }
 
     struct User {
@@ -209,23 +202,17 @@ contract Limbo is Governable {
     }
 
     function configureCrossingConfig(
-        address angband,
-        address addToBehodlerPower,
         address behodler,
-        address uniHelper,
+        address migrator,
         uint256 migrationInvocationReward,
         uint256 crossingMigrationDelay
     ) public onlySuccessfulProposal {
-        crossingConfig.angband = AngbandLike(angband);
-        crossingConfig.power = LimboAddTokenToBehodlerPowerLike(
-            addToBehodlerPower
-        );
-        crossingConfig.uniHelper = UniswapHelperLike(uniHelper);
         crossingConfig.migrationInvocationReward =
             migrationInvocationReward *
             (1 ether);
         crossingConfig.behodler = behodler;
         crossingConfig.crossingMigrationDelay = crossingMigrationDelay;
+        crossingConfig.migrator = MigratorLike(migrator);
     }
 
     function disableProtocol() public governanceApproved {
@@ -475,6 +462,10 @@ contract Limbo is Governable {
         return souls[token][latestIndex[token]];
     }
 
+    /*
+    token,power,unihelper, emits: TokenListed(token, tokenBalance, lpMinted);
+    */
+
     //TODO: possibly refactor migrate into contract
     function migrate(address token) public enabled {
         Soul storage soul = currentSoul(token);
@@ -488,43 +479,14 @@ contract Limbo is Governable {
             "EC"
         );
 
-        //parameterize LimboAddTokenToBehodler
-        crossingConfig.power.parameterize(
-            token,
-            tokenCrossingParameters[token][latestIndex[token]].burnable
-        );
-
-        //invoke Angband execute on power that migrates token type to Behodler
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(address(crossingConfig.power), tokenBalance);
-        crossingConfig.angband.executePower(address(crossingConfig.power));
+        IERC20(token).transfer(address(crossingConfig.migrator), tokenBalance);
 
-        //get marginal SCX price and calculate rectangle of fairness
-        uint256 scxMinted = IERC20(crossingConfig.behodler).balanceOf(
-            address(this)
-        );
-
-        uint256 tokensToRelease = BehodlerLike(crossingConfig.behodler)
-        .withdrawLiquidityFindSCX(token, 1000, 10000, 8);
-        uint256 marginalPrice = SCX_calc / tokensToRelease;
-
-        /*
-            If we take the marginal price and input quantity and project a linear
-            relationship back to the origin then the area under the curve represents
-            the fair supply of SCX where early adopters aren't disproportionately whaled.
-            This area under the curve is a right angle rectangle and so is named the rectangle
-            of fairness. Any excess SCX should be burnt.
-            */
-        uint256 rectangleOfFairness = (marginalPrice * tokenBalance) / SCX_calc;
-
-        //burn SCX - rectangle
-        uint256 excessSCX = scxMinted - rectangleOfFairness;
-        require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
-
-        uint256 lpMinted = crossingConfig.uniHelper.buyAndPoolFlan(
+        crossingConfig.migrator.execute(
+            token,
+            tokenCrossingParameters[token][latestIndex[token]].burnable,
             crossingConfig.flanQuoteDivergenceTolerance,
-            crossingConfig.minQuoteWaitDuration,
-            rectangleOfFairness
+            crossingConfig.minQuoteWaitDuration
         );
         //reward caller and update soul state
         require(
@@ -532,7 +494,5 @@ contract Limbo is Governable {
             "E9"
         );
         currentSoul(token).state = SoulState.crossedOver;
-
-        emit TokenListed(token, tokenBalance, lpMinted);
     }
 }

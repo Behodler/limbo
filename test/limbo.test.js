@@ -97,6 +97,15 @@ describe("Limbo", function () {
       this.limboDAO.address
     );
 
+    const migratorFactory = await ethers.getContractFactory("Migrator");
+    this.migrator = await migratorFactory.deploy(
+      this.limbo.address,
+      this.addTokenPower.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.mockBehodler.address
+    );
+
     await this.limbo.configureCrossingParameters(
       this.aave.address,
       1,
@@ -106,10 +115,8 @@ describe("Limbo", function () {
     );
 
     await this.limbo.configureCrossingConfig(
-      this.mockAngband.address,
-      this.addTokenPower.address,
       this.mockBehodler.address,
-      this.uniswapHelper.address,
+      this.migrator.address,
       10000000,
       10000
     );
@@ -123,7 +130,7 @@ describe("Limbo", function () {
     await network.provider.send("evm_increaseTime", [seconds]); //6 hours
     await network.provider.send("evm_mine");
   };
-  
+
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -150,11 +157,10 @@ describe("Limbo", function () {
     await this.limbo.withdrawERC20(this.aave.address, secondPerson.address);
     expect(await this.aave.balanceOf(secondPerson.address)).to.equal(1000);
     //configureCrossingConfig
+
     await this.limbo.configureCrossingConfig(
-      this.mockAngband.address,
-      this.addTokenPower.address,
       this.mockBehodler.address,
-      this.uniswapHelper.address,
+      this.migrator.address,
       10000000,
       10000
     );
@@ -206,10 +212,8 @@ describe("Limbo", function () {
     //configureCrossingConfig
     await expect(
       this.limbo.configureCrossingConfig(
-        this.mockAngband.address,
-        this.addTokenPower.address,
         this.mockBehodler.address,
-        this.uniswapHelper.address,
+        this.migrator.address,
         10000000,
         10000
       )
@@ -257,17 +261,17 @@ describe("Limbo", function () {
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
 
-    console.log((await this.flan.balanceOf(owner.address)).toString())
+    console.log((await this.flan.balanceOf(owner.address)).toString());
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
-    console.log((await this.flan.balanceOf(owner.address)).toString())
+    console.log((await this.flan.balanceOf(owner.address)).toString());
     //fast forward time
     await advanceTime(90000); //just over a day
 
     //stake enough tokens to cross threshold
     await this.limbo.stake(this.aave.address, "9990001");
-    console.log((await this.flan.balanceOf(owner.address)).toString())
+    console.log((await this.flan.balanceOf(owner.address)).toString());
     //assert soul state change
     const stats = await this.soulReader.SoulStats(this.aave.address);
     expect(stats[0].toString()).to.equal("2");
@@ -276,7 +280,7 @@ describe("Limbo", function () {
 
     await this.limbo.claimReward(this.aave.address, 0);
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
-    console.log((await this.flan.balanceOf(owner.address)).toString())
+    console.log((await this.flan.balanceOf(owner.address)).toString());
     expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
       "9999999"
     );
@@ -385,7 +389,6 @@ describe("Limbo", function () {
     );
   });
 
-
   it("old souls can be bonus claimed from (DELTA < 0)", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(
@@ -428,10 +431,6 @@ describe("Limbo", function () {
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
 
-    // const result = await this.limbo.claimBonusRead(this.aave.address, 0);
-    // console.log(
-    //   `duration: ${result[0].toString()}, accumulated delta: ${result[1].toString()}`
-    // );
     await this.limbo.claimBonus(this.aave.address, 0);
 
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
@@ -474,5 +473,4 @@ describe("Limbo", function () {
   it("token tradeable on Behodler post migration.", async function () {});
   it("any whitelisted contract can mint flan", async function () {});
   it("flash governance max tolerance respected", async function () {});
-  
 });
