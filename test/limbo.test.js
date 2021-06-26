@@ -123,7 +123,7 @@ describe("Limbo", function () {
     await network.provider.send("evm_increaseTime", [seconds]); //6 hours
     await network.provider.send("evm_mine");
   };
-
+  
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -282,12 +282,163 @@ describe("Limbo", function () {
     );
   });
 
-  it("old souls can be bonus claimed from", async function () {
-    // make a threshold pool.
-    // stake tokens
-    // fast forward time
-    // stake enough tokens to cross threshold
-    // claim bonus
+  it("old souls can be bonus claimed from (DELTA = 0)", async function () {
+    //make a threshold pool.
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      1,
+      0,
+      1,
+      0
+    );
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      21000000,
+      0,
+      true,
+      10000000
+    );
+
+    await this.limbo.endConfiguration();
+
+    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //fast forward time
+    await advanceTime(90000); //just over a day
+
+    //stake enough tokens to cross threshold
+    await this.limbo.stake(this.aave.address, "9990001");
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //assert soul state change
+    const stats = await this.soulReader.SoulStats(this.aave.address);
+    expect(stats[0].toString()).to.equal("2");
+    expect(stats[1].toString()).to.equal("10000001");
+    //claim
+
+    await this.limbo.claimBonus(this.aave.address, 0);
+
+    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
+      "210" //crossing bonus * staked tokens.
+    );
+  });
+
+  it("old souls can be bonus claimed from (DELTA > 0)", async function () {
+    //make a threshold pool.
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      1,
+      0,
+      1,
+      0
+    );
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      21000000,
+      10000000,
+      true,
+      10000000
+    );
+
+    await this.limbo.endConfiguration();
+
+    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //fast forward time
+    await advanceTime(90000); //just over a day
+
+    //stake enough tokens to cross threshold
+    await this.limbo.stake(this.aave.address, "9990001");
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //assert soul state change
+    const stats = await this.soulReader.SoulStats(this.aave.address);
+    expect(stats[0].toString()).to.equal("2");
+    expect(stats[1].toString()).to.equal("10000001");
+
+    await this.limbo.claimBonus(this.aave.address, 0);
+
+    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
+      "9000710" //crossing bonus * staked tokens.
+    );
+  });
+
+
+  it("old souls can be bonus claimed from (DELTA < 0)", async function () {
+    //make a threshold pool.
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      1,
+      0,
+      1,
+      0
+    );
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      20000000000,
+      "-1000",
+      true,
+      10000000
+    );
+
+    await this.limbo.endConfiguration();
+
+    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //fast forward time
+    await advanceTime(44000); //half a day
+
+    //stake enough tokens to cross threshold
+    await this.limbo.stake(this.aave.address, "9990001");
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    //assert soul state change
+    const stats = await this.soulReader.SoulStats(this.aave.address);
+    expect(stats[0].toString()).to.equal("2");
+    expect(stats[1].toString()).to.equal("10000001");
+
+    // const result = await this.limbo.claimBonusRead(this.aave.address, 0);
+    // console.log(
+    //   `duration: ${result[0].toString()}, accumulated delta: ${result[1].toString()}`
+    // );
+    await this.limbo.claimBonus(this.aave.address, 0);
+
+    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    console.log((await this.flan.balanceOf(owner.address)).toString());
+    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
+      "199559" //crossing bonus * staked tokens.
+    );
   });
 
   it("perpetual pools have no upper limit", async function () {});
@@ -323,4 +474,5 @@ describe("Limbo", function () {
   it("token tradeable on Behodler post migration.", async function () {});
   it("any whitelisted contract can mint flan", async function () {});
   it("flash governance max tolerance respected", async function () {});
+  
 });

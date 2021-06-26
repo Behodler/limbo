@@ -183,17 +183,20 @@ contract Limbo is Governable {
         require(soul.soulType != SoulType.uninitialized, "E1");
 
         uint256 balance = IERC20(token).balanceOf(address(this));
-       
+
         if (balance > 0) {
-            uint accruedFlan = (block.timestamp -   soul.lastRewardTimestamp)*flanPerSecond;
+            uint256 accruedFlan = (block.timestamp - soul.lastRewardTimestamp) *
+                flanPerSecond;
             uint256 flanReward = (accruedFlan * soul.allocPoint) /
                 totalAllocationPoints;
 
             Flan.mint(flanReward);
 
-            soul.accumulatedFlanPerShare =soul.accumulatedFlanPerShare + ((flanReward*TERA)/balance);
+            soul.accumulatedFlanPerShare =
+                soul.accumulatedFlanPerShare +
+                ((flanReward * TERA) / balance);
         }
-         soul.lastRewardTimestamp = block.timestamp;
+        soul.lastRewardTimestamp = block.timestamp;
     }
 
     constructor(
@@ -301,6 +304,10 @@ contract Limbo is Governable {
             soul.accumulatedFlanPerShare = accumulatedFlanPerShare;
             soul.crossingThreshold = crossingThreshold;
             soul.state = state;
+            if (state == SoulState.staking) {
+                tokenCrossingParameters[token][latestIndex[token]]
+                .stakingBeginsTimestamp = block.timestamp;
+            }
             soul.soulType = SoulType(soulType);
             soul.exitPenalty = exitPenalty;
         }
@@ -352,10 +359,8 @@ contract Limbo is Governable {
                 newBalance > soul.crossingThreshold
             ) {
                 soul.state = SoulState.waitingToCross;
-                CrossingParameters storage crossing = tokenCrossingParameters[
-                    token
-                ][latestIndex[token]];
-                crossing.stakingEndTimestamp = block.timestamp;
+                tokenCrossingParameters[token][latestIndex[token]]
+                .stakingEndTimestamp = block.timestamp;
             }
         }
         user.rewardDebt =
@@ -386,7 +391,8 @@ contract Limbo is Governable {
             user.rewardDebt);
 
         if (pending > 0) {
-            pending = ((myriad - (uint256(soul.exitPenalty)) * pending) / myriad);
+            pending = ((myriad - (uint256(soul.exitPenalty)) * pending) /
+                myriad);
             Flan.safeTransfer(msg.sender, pending);
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;
@@ -433,22 +439,22 @@ contract Limbo is Governable {
         user.bonusPaid = true;
         uint256 totalStakingDuration = crossing.stakingEndTimestamp -
             crossing.stakingBeginsTimestamp;
-        int256 accumulatedTeraFlanPerToken = crossing.crossingBonusDelta *
+        int256 accumulatedFlanPerTeraToken = crossing.crossingBonusDelta *
             int256(totalStakingDuration);
 
         //assert signs are the same
         require(
-            accumulatedTeraFlanPerToken * crossing.crossingBonusDelta > 0,
+            accumulatedFlanPerTeraToken * crossing.crossingBonusDelta >= 0,
             "E6"
         );
 
-        int256 finalTeraFlanPerToken = int256(crossing.initialCrossingBonus) +
-            accumulatedTeraFlanPerToken;
+        int256 finalFlanPerTeraToken = int256(crossing.initialCrossingBonus) +
+            accumulatedFlanPerTeraToken;
 
         uint256 flanBonus = 0;
-        if (finalTeraFlanPerToken > 0) {
+        if (finalFlanPerTeraToken > 0) {
             flanBonus =
-                uint256((int256(user.stakedAmount) * finalTeraFlanPerToken)) /
+                uint256((int256(user.stakedAmount) * finalFlanPerTeraToken)) /
                 TERA;
             Flan.mint(msg.sender, flanBonus);
         }
@@ -469,6 +475,7 @@ contract Limbo is Governable {
         return souls[token][latestIndex[token]];
     }
 
+    //TODO: possibly refactor migrate into contract
     function migrate(address token) public enabled {
         Soul storage soul = currentSoul(token);
         require(soul.soulType == SoulType.threshold, "EB");
