@@ -6,6 +6,7 @@ abstract contract MigratorLike {
         address token,
         bool burnable,
         uint256 flanQuoteDivergenceTolerance,
-        uint256 minQuoteWaitDuration
+        uint256 minQuoteWaitDuration,
+        address power
     ) public virtual;
 }

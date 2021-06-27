@@ -24,13 +24,11 @@ contract Migrator {
 
     constructor(
         address limbo,
-        address power,
         address angband,
         address uniHelper,
         address behodler
     ) {
         config.limbo = limbo;
-        config.morgothPower = LimboAddTokenToBehodlerPowerLike(power);
         config.angband = AngbandLike(angband);
         config.uniHelper = UniswapHelperLike(uniHelper);
         config.behodler = BehodlerLike(behodler);
@@ -40,8 +38,10 @@ contract Migrator {
         address token,
         bool burnable,
         uint256 flanQuoteDivergenceTolerance,
-        uint256 minQuoteWaitDuration
+        uint256 minQuoteWaitDuration,
+        address power
     ) public {
+        config.morgothPower = LimboAddTokenToBehodlerPowerLike(power);
         require(msg.sender == config.limbo, "LIMBO: Only callable by Limbo");
         //parameterize LimboAddTokenToBehodler
         config.morgothPower.parameterize(token, burnable);

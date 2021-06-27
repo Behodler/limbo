@@ -119,7 +119,6 @@ describe("Limbo", function () {
     const migratorFactory = await ethers.getContractFactory("Migrator");
     this.migrator = await migratorFactory.deploy(
       this.limbo.address,
-      this.addTokenPower.address,
       this.mockAngband.address,
       this.uniswapHelper.address,
       this.mockBehodler.address
@@ -130,7 +129,8 @@ describe("Limbo", function () {
       1,
       1,
       true,
-      10000010
+      10000010,
+      this.addTokenPower.address
     );
 
     await this.limbo.configureCrossingConfig(
@@ -195,7 +195,8 @@ describe("Limbo", function () {
       1,
       1,
       true,
-      10000010
+      10000010,
+      this.addTokenPower.address
     );
 
     await this.limbo.endConfiguration();
@@ -256,7 +257,8 @@ describe("Limbo", function () {
         1,
         1,
         true,
-        10000010
+        10000010,
+        this.addTokenPower.address
       )
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
   });
@@ -322,7 +324,8 @@ describe("Limbo", function () {
       21000000,
       0,
       true,
-      10000000
+      10000000,
+      this.addTokenPower.address
     );
 
     await this.limbo.endConfiguration();
@@ -374,7 +377,8 @@ describe("Limbo", function () {
       21000000,
       10000000,
       true,
-      10000000
+      10000000,
+      this.addTokenPower.address
     );
 
     await this.limbo.endConfiguration();
@@ -425,7 +429,8 @@ describe("Limbo", function () {
       20000000000,
       "-1000",
       true,
-      10000000
+      10000000,
+      this.addTokenPower.address
     );
 
     await this.limbo.endConfiguration();
@@ -476,7 +481,8 @@ describe("Limbo", function () {
       20000000000,
       "-1000",
       true,
-      10000000
+      10000000,
+      this.addTokenPower.address
     );
 
     await this.limbo.endConfiguration();
@@ -507,7 +513,8 @@ describe("Limbo", function () {
       20000000000,
       "-1000",
       true,
-      10000000
+      10000000,
+      this.addTokenPower.address
     );
 
     //set flash loan params

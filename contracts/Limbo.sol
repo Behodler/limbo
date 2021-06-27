@@ -128,6 +128,7 @@ contract Limbo is Governable {
         int256 crossingBonusDelta; //change in teraFlanPerToken per second
         uint256 initialCrossingBonus; //measured in teraflanPerToken
         bool burnable;
+        address power;
     }
 
     struct CrossingConfig {
@@ -309,7 +310,8 @@ contract Limbo is Governable {
         uint256 initialCrossingBonus,
         int256 crossingBonusDelta,
         bool burnable,
-        uint256 crossingThreshold
+        uint256 crossingThreshold,
+        address power
     ) public governanceApproved {
         CrossingParameters storage params = tokenCrossingParameters[token][
             latestIndex[token]
@@ -328,6 +330,7 @@ contract Limbo is Governable {
         tokenCrossingParameters[token][latestIndex[token]]
         .crossingBonusDelta = crossingBonusDelta;
         tokenCrossingParameters[token][latestIndex[token]].burnable = burnable;
+        tokenCrossingParameters[token][latestIndex[token]].power = power;
 
         Soul storage soul = currentSoul(token);
         flashGoverner.enforceTolerance(
@@ -493,7 +496,8 @@ contract Limbo is Governable {
             token,
             tokenCrossingParameters[token][latestIndex[token]].burnable,
             crossingConfig.flanQuoteDivergenceTolerance,
-            crossingConfig.minQuoteWaitDuration
+            crossingConfig.minQuoteWaitDuration,
+            tokenCrossingParameters[token][latestIndex[token]].power
         );
         //reward caller and update soul state
         require(
