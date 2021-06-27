@@ -36,4 +36,6 @@ abstract contract LimboDAOLike {
             address,
             address
         );
+
+    function getFlashGoverner() external view virtual returns (address);
 }

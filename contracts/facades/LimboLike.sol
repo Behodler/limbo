@@ -23,4 +23,16 @@ abstract contract LimboLike {
             uint256,
             uint16
         );
+
+    function tokenCrossingParameters(address, uint256)
+        public
+        view
+        virtual
+        returns (
+            uint256,
+            uint256,
+            int256,
+            uint256,
+            bool
+        );
 }

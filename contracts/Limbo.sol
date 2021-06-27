@@ -231,8 +231,8 @@ contract Limbo is Governable {
         int256 crossingBonusDelta
     ) public governanceApproved {
         Soul storage soul = currentSoul(token);
-        enforceTolerance(soul.allocPoint, allocPoint);
-        enforceTolerance(soul.exitPenalty, exitPenalty);
+        flashGoverner.enforceTolerance(soul.allocPoint, allocPoint);
+        flashGoverner.enforceTolerance(soul.exitPenalty, exitPenalty);
 
         totalAllocationPoints = totalAllocationPoints - soul.allocPoint;
         totalAllocationPoints = totalAllocationPoints + allocPoint;
@@ -243,8 +243,11 @@ contract Limbo is Governable {
             latestIndex[token]
         ];
 
-        enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
-        enforceTolerance(
+        flashGoverner.enforceTolerance(
+            params.initialCrossingBonus,
+            initialCrossingBonus
+        );
+        flashGoverner.enforceTolerance(
             uint256(
                 params.crossingBonusDelta < 0
                     ? params.crossingBonusDelta * -1
@@ -311,8 +314,14 @@ contract Limbo is Governable {
         CrossingParameters storage params = tokenCrossingParameters[token][
             latestIndex[token]
         ];
-        enforceTolerance(initialCrossingBonus, params.initialCrossingBonus);
-        enforceToleranceInt(crossingBonusDelta, params.crossingBonusDelta);
+        flashGoverner.enforceTolerance(
+            initialCrossingBonus,
+            params.initialCrossingBonus
+        );
+        flashGoverner.enforceToleranceInt(
+            crossingBonusDelta,
+            params.crossingBonusDelta
+        );
 
         tokenCrossingParameters[token][latestIndex[token]]
         .initialCrossingBonus = initialCrossingBonus;
@@ -321,7 +330,10 @@ contract Limbo is Governable {
         tokenCrossingParameters[token][latestIndex[token]].burnable = burnable;
 
         Soul storage soul = currentSoul(token);
-        enforceTolerance(crossingThreshold, soul.crossingThreshold);
+        flashGoverner.enforceTolerance(
+            crossingThreshold,
+            soul.crossingThreshold
+        );
         currentSoul(token).crossingThreshold = crossingThreshold;
     }
 
@@ -462,11 +474,6 @@ contract Limbo is Governable {
         return souls[token][latestIndex[token]];
     }
 
-    /*
-    token,power,unihelper, emits: TokenListed(token, tokenBalance, lpMinted);
-    */
-
-    //TODO: possibly refactor migrate into contract
     function migrate(address token) public enabled {
         Soul storage soul = currentSoul(token);
         require(soul.soulType == SoulType.threshold, "EB");

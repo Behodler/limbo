@@ -36,9 +36,17 @@ library TransferHelper {
     }
 }
 
-enum FateGrowthStrategy {straight, directRoot, indirectTwoRootEye}
+enum FateGrowthStrategy {
+    straight,
+    directRoot,
+    indirectTwoRootEye
+}
 
-enum ProposalDecision {voting, approved, rejected}
+enum ProposalDecision {
+    voting,
+    approved,
+    rejected
+}
 
 contract LimboDAO is Ownable {
     event daoKilled(address newOwner);
@@ -57,6 +65,7 @@ contract LimboDAO is Ownable {
         address eye;
         address fate;
         bool live;
+        address flashGoverner;
         address sushiFactory;
         address uniFactory;
     }
@@ -117,21 +126,20 @@ contract LimboDAO is Ownable {
     modifier updateCurrentProposal {
         incrementFateFor(_msgSender());
         if (address(currentProposal) != address(0)) {
-            uint256 durationSinceStart =
-                block.timestamp - currentProposalState.start;
+            uint256 durationSinceStart = block.timestamp -
+                currentProposalState.start;
             if (
                 durationSinceStart >= proposalConfig.votingDuration &&
                 currentProposalState.decision == ProposalDecision.voting
             ) {
                 if (currentProposalState.fate > 0) {
                     currentProposalState.decision = ProposalDecision.approved;
-                    (bool success, ) =
-                        address(currentProposal).call(
-                            abi.encodeWithSignature("orchestrateExecute()")
-                        );
+                    (bool success, ) = address(currentProposal).call(
+                        abi.encodeWithSignature("orchestrateExecute()")
+                    );
                     if (success)
                         fateState[currentProposalState.proposer]
-                            .fateBalance += proposalConfig.requiredFateStake;
+                        .fateBalance += proposalConfig.requiredFateStake;
                 } else {
                     currentProposalState.decision = ProposalDecision.rejected;
                 }
@@ -160,10 +168,11 @@ contract LimboDAO is Ownable {
         address proposalFactory,
         address sushiFactory,
         address uniFactory,
+        address flashGoverner,
         address[] memory sushiLPs,
         address[] memory uniLPs
     ) public onlyOwner {
-        _seed(limbo, flan, eye, sushiFactory, uniFactory);
+        _seed(limbo, flan, eye, sushiFactory, uniFactory, flashGoverner);
         proposalConfig.votingDuration = 2 days;
         proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
         proposalConfig.proposalFactory = proposalFactory;
@@ -175,7 +184,7 @@ contract LimboDAO is Ownable {
             if (IERC20(eye).balanceOf(sushiLPs[i]) > 1000)
                 assetApproved[sushiLPs[i]] = true;
             fateGrowthStrategy[sushiLPs[i]] = FateGrowthStrategy
-                .indirectTwoRootEye;
+            .indirectTwoRootEye;
         }
         for (uint256 i = 0; i < uniLPs.length; i++) {
             require(
@@ -185,7 +194,7 @@ contract LimboDAO is Ownable {
             if (IERC20(eye).balanceOf(uniLPs[i]) > 1000)
                 assetApproved[uniLPs[i]] = true;
             fateGrowthStrategy[uniLPs[i]] = FateGrowthStrategy
-                .indirectTwoRootEye;
+            .indirectTwoRootEye;
         }
     }
 
@@ -210,8 +219,10 @@ contract LimboDAO is Ownable {
                 currentProposalState.decision != ProposalDecision.voting,
             "LimboDAO: active proposal."
         );
-        fateState[proposer].fateBalance = fateState[proposer].fateBalance - 
-            proposalConfig.requiredFateStake * 2;
+        fateState[proposer].fateBalance =
+            fateState[proposer].fateBalance -
+            proposalConfig.requiredFateStake *
+            2;
         currentProposal = Proposal(proposal);
         currentProposalState.decision = ProposalDecision.voting;
         currentProposalState.fate = 0;
@@ -255,8 +266,9 @@ contract LimboDAO is Ownable {
             }
         }
         uint256 cost = fate > 0 ? uint256(fate) : uint256(-fate);
-        fateState[_msgSender()].fateBalance = fateState[_msgSender()]
-            .fateBalance-cost;
+        fateState[_msgSender()].fateBalance =
+            fateState[_msgSender()].fateBalance -
+            cost;
 
         currentProposalState.fate += fate;
         emit voteCast(_msgSender(), proposal, fate);
@@ -320,8 +332,9 @@ contract LimboDAO is Ownable {
             clout.fateWeight = 2 * rootEYE;
             fateState[sender].fatePerDay += clout.fateWeight;
 
-            uint256 actualEyeBalance =
-                IERC20(domainConfig.eye).balanceOf(asset);
+            uint256 actualEyeBalance = IERC20(domainConfig.eye).balanceOf(
+                asset
+            );
             require(actualEyeBalance > 0, "LimboDAO: No EYE");
             uint256 totalSupply = IERC20(asset).totalSupply();
             uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
@@ -354,8 +367,9 @@ contract LimboDAO is Ownable {
             fateCreated = amount * 10;
             ERC677(domainConfig.eye).burn(amount);
         } else {
-            uint256 actualEyeBalance =
-                IERC20(domainConfig.eye).balanceOf(asset);
+            uint256 actualEyeBalance = IERC20(domainConfig.eye).balanceOf(
+                asset
+            );
             require(actualEyeBalance > 0, "LimboDAO: No EYE");
             uint256 totalSupply = IERC20(asset).totalSupply();
             uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
@@ -409,14 +423,20 @@ contract LimboDAO is Ownable {
         address flan,
         address eye,
         address sushiFactory,
-        address uniFactory
+        address uniFactory,
+        address flashGoverner
     ) internal {
         domainConfig.limbo = limbo;
         domainConfig.flan = flan;
         domainConfig.eye = eye;
         domainConfig.uniFactory = uniFactory;
         domainConfig.sushiFactory = sushiFactory;
+        domainConfig.flashGoverner = flashGoverner;
         assetApproved[eye] = true;
         fateGrowthStrategy[eye] = FateGrowthStrategy.directRoot;
+    }
+
+    function getFlashGoverner() external view returns (address) {
+        return domainConfig.flashGoverner;
     }
 }

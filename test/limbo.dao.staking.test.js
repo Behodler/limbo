@@ -117,6 +117,10 @@ describe("DAO staking", function () {
 
     dao = await daoFactory.deploy();
 
+    const flashGovernanceFactory = await ethers.getContractFactory('FlashGovernanceArbiter');
+    const flashGovernance = await  flashGovernanceFactory.deploy(dao.address);
+
+
     const GovernableStubFactory = await ethers.getContractFactory(
       "GovernableStub"
     );
@@ -130,6 +134,7 @@ describe("DAO staking", function () {
       proposalFactory.address,
       sushiSwapFactory.address,
       uniswapFactory.address,
+      flashGovernance.address,
       [daiEYESLP.address, linkEYESLP.address, sushiEYESLP.address],
       [daiEYEULP.address, linkEYEULP.address, sushiEYEULP.address]
     );

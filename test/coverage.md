@@ -28,12 +28,12 @@
 
 ## Limbo
 **old souls**
-- [ ] old souls can be claimed from
-- [ ] old souls can be bonus claimed from
-- [ ] perpetual pools have no upper limit
+- [x] old souls can be claimed from
+- [x] old souls can be bonus claimed from
+- [x] perpetual pools have no upper limit
 
 **Config**
-- [ ] populating crossingConfig with configureCrossingConfig
+- [x] populating crossingConfig with configureCrossingConfig
 - [ ] use flashGovernance to adjustSoul
 - [ ] flashGovernance adjust configureCrossingParameters
 - [ ] reverse fashGov decision and burn asset

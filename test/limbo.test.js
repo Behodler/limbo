@@ -43,6 +43,22 @@ describe("Limbo", function () {
 
     this.aave = await TokenFactory.deploy("aave", "aave", [], []);
 
+    const flashGovernanceFactory = await ethers.getContractFactory(
+      "FlashGovernanceArbiter"
+    );
+    this.flashGovernance = await flashGovernanceFactory.deploy(
+      this.limboDAO.address
+    );
+
+    await this.flashGovernance.configureSecurityParameters(10, 100, 30);
+    // await this.eye.approve(this.limbo.address, 2000);
+    await this.flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      1000,
+      10,
+      true
+    );
+
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(this.limboDAO.address);
 
@@ -80,9 +96,12 @@ describe("Limbo", function () {
       this.proposalFactory.address,
       sushiSwapFactory.address,
       uniswapFactory.address,
+      this.flashGovernance.address,
       [],
       []
     );
+
+    await this.limbo.setDAO(this.limboDAO.address);
 
     await this.limboDAO.makeLive();
 
@@ -120,16 +139,14 @@ describe("Limbo", function () {
       10000000,
       10000
     );
-
-    await this.limbo.configureSecurityParameters(10, 100, 30);
-    // await this.eye.approve(this.limbo.address, 2000);
-    await this.limbo.configureFlashGovernance(this.eye.address, 1000, 10, true);
   });
 
   const advanceTime = async (seconds) => {
     await network.provider.send("evm_increaseTime", [seconds]); //6 hours
     await network.provider.send("evm_mine");
   };
+
+  const stringifyBigNumber = (b) => b.map((i) => i.toString());
 
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
@@ -440,11 +457,91 @@ describe("Limbo", function () {
     );
   });
 
-  it("perpetual pools have no upper limit", async function () {});
+  it("perpetual pools have no upper limit", async function () {
+    //make a threshold pool.
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      2,
+      0,
+      1,
+      0
+    );
 
-  it("populating crossingConfig with configureCrossingConfig", async function () {});
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      20000000000,
+      "-1000",
+      true,
+      10000000
+    );
 
-  it("use flashGovernance to adjustSoul", async function () {});
+    await this.limbo.endConfiguration();
+
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000001");
+
+    const stats = await this.soulReader.SoulStats(this.aave.address);
+    expect(stats[0].toNumber()).to.equal(1);
+  });
+
+  it("use flashGovernance to adjustSoul", async function () {
+    //configure soul
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100,
+      0,
+      0,
+      10000000,
+      2,
+      0,
+      1,
+      0
+    );
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      20000000000,
+      "-1000",
+      true,
+      10000000
+    );
+
+    //set flash loan params
+    await this.flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      604800, //lock duration = 1 week,
+      true // asset is burnable
+    );
+    await this.flashGovernance.endConfiguration();
+    //end configuration
+    await this.limbo.endConfiguration();
+
+    //try to adjust soul and fail
+    await expect(
+      this.limbo.adjustSoul(this.aave.address, 100, 1, 10, 1)
+    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+
+    //stake requisite tokens, try again and succeed.
+    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.limbo.adjustSoul(this.aave.address, 100, 1, 20000000001, -1001);
+
+    const newStates = await this.soulReader.CrossingParameters(
+      this.aave.address
+    );
+
+    //assert newStates
+    const stringNewStates = stringifyBigNumber(newStates);
+    expect(stringNewStates[0]).to.equal("100");
+    expect(stringNewStates[1]).to.equal("1");
+    expect(stringNewStates[2]).to.equal("20000000001");
+    expect(stringNewStates[3]).to.equal("-1001");
+  });
+
   it("flashGovernance adjust configureCrossingParameters", async function () {});
   it("reverse fashGov decision and burn asset", async function () {});
   it("shutdown soul staking and send tokens to fundDestination (governanceShutdown)", async function () {});
