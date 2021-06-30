@@ -16,4 +16,8 @@ contract MockToken is ERC677 {
             _mint(LPs[i], mintVal[i] * deceth);
         }
     }
+
+    function mint(uint amount) public {
+        _mint(msg.sender,amount);
+    }
 }

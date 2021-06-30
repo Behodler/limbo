@@ -29,4 +29,14 @@ abstract contract LimboLike {
             uint256,
             bool
         );
+
+    function configureSoul(
+         address token,
+        uint256 allocPoint,
+        uint256 crossingThreshold,
+        uint256 soulType,
+        uint16 exitPenalty,
+        uint state,
+        uint256 index
+    ) public virtual;
 }

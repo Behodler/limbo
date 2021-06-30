@@ -150,7 +150,7 @@ contract Limbo is Governable {
     uint256 constant myriad = 1e4;
     uint256 constant SCX_calc = TERA * 10000;
     bool protocolEnabled = true;
-    uint256 flanPerSecond;
+    uint256 public flanPerSecond;
     CrossingConfig public crossingConfig;
     uint256 public totalAllocationPoints;
     mapping(address => mapping(uint256 => Soul)) public souls;
@@ -271,12 +271,10 @@ contract Limbo is Governable {
     function configureSoul(
         address token,
         uint256 allocPoint,
-        uint256 lastRewardTimestamp,
-        uint256 accumulatedFlanPerShare,
         uint256 crossingThreshold,
         uint256 soulType,
         uint16 exitPenalty,
-        SoulState state,
+        uint state,
         uint256 index
     ) public onlySuccessfulProposal {
         {
@@ -290,11 +288,9 @@ contract Limbo is Governable {
 
             soul = currentSoul(token);
             soul.allocPoint = allocPoint;
-            soul.lastRewardTimestamp = lastRewardTimestamp;
-            soul.accumulatedFlanPerShare = accumulatedFlanPerShare;
             soul.crossingThreshold = crossingThreshold;
-            soul.state = state;
-            if (state == SoulState.staking) {
+            soul.state = SoulState(state);
+            if (SoulState(state) == SoulState.staking) {
                 tokenCrossingParameters[token][latestIndex[token]]
                 .stakingBeginsTimestamp = block.timestamp;
             }
@@ -376,8 +372,7 @@ contract Limbo is Governable {
         Soul storage soul = souls[token][index];
         updateSoul(token, soul);
         require(
-            soul.state == SoulState.staking ||
-                soul.state == SoulState.crossedOver,
+            soul.state == SoulState.staking,
             "E2"
         );
         uint16 exitPenalty = soul.exitPenalty;
@@ -390,8 +385,7 @@ contract Limbo is Governable {
             user.rewardDebt);
 
         if (pending > 0) {
-            pending = ((myriad - (uint256(soul.exitPenalty)) * pending) /
-                myriad);
+            pending -= ((uint256(soul.exitPenalty)) * pending)/myriad;
             Flan.safeTransfer(msg.sender, pending);
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;

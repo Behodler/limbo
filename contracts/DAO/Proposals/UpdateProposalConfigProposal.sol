@@ -12,7 +12,7 @@ contract UpdateProposalConfigProposal is Proposal {
     Parameters public params;
 
     constructor(address dao, string memory _description)
-        Proposal(dao, description)
+        Proposal(dao, _description)
     {}
 
     function parameterize(
