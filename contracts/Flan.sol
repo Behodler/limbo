@@ -4,9 +4,17 @@ import "./ERC677/ERC677.sol";
 import "../contracts/DAO/Governable.sol";
 
 contract Flan is ERC677("Flan", "FLN"), Governable {
+    event burnOnTransferFeeAdjusted(uint8 oldFee, uint8 newFee);
     mapping(address => uint256) public mintAllowance; //uint(-1) == whitelist
+    uint8 public burnOnTransferFee = 0; //% between 1 and 100
 
     constructor(address dao) Governable(dao) {}
+
+    function setBurnOnTransferFee(uint8 fee) public onlySuccessfulProposal {
+        uint8 priorFee = burnOnTransferFee;
+        burnOnTransferFee = fee > 100 ? 100 : fee;
+        emit burnOnTransferFeeAdjusted(priorFee, burnOnTransferFee);
+    }
 
     function whiteListMinting(address minter, bool enabled)
         public
@@ -19,7 +27,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         public
         onlySuccessfulProposal
     {
-        mintAllowance[minter] = mintAllowance[minter] +_allowance;
+        mintAllowance[minter] = mintAllowance[minter] + _allowance;
     }
 
     function mint(uint256 amount) public {
@@ -52,12 +60,35 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         }
     }
 
-     function safeTransfer(
-        address _to,
-        uint256 _amount
-    ) external {
+    function safeTransfer(address _to, uint256 _amount) external {
         uint256 flanBal = balanceOf(address(this));
         uint256 flanToTransfer = _amount > flanBal ? flanBal : _amount;
         _transfer(_msgSender(), _to, flanToTransfer);
+    }
+
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal override {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        _beforeTokenTransfer(sender, recipient, amount);
+
+        uint256 fee = 0;
+        if (burnOnTransferFee > 0) {
+            fee = (burnOnTransferFee * amount) / 100;
+        }
+        _totalSupply = _totalSupply - fee;
+        uint256 senderBalance = _balances[sender];
+        require(
+            senderBalance >= amount,
+            "ERC20: transfer amount exceeds balance"
+        );
+        _balances[sender] = senderBalance - amount;
+        _balances[recipient] += amount - burnOnTransferFee;
+
+        emit Transfer(sender, recipient, amount);
     }
 }

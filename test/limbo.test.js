@@ -88,6 +88,7 @@ describe("Limbo", function () {
       "ProposalFactory"
     );
     this.proposalFactory = await ProposalFactoryFactory.deploy();
+    await this.proposalFactory.seed(this.limboDAO.address);
 
     await this.limboDAO.seed(
       this.limbo.address,
@@ -121,7 +122,8 @@ describe("Limbo", function () {
       this.limbo.address,
       this.mockAngband.address,
       this.uniswapHelper.address,
-      this.mockBehodler.address
+      this.mockBehodler.address,
+      this.addTokenPower.address
     );
 
     await this.limbo.configureCrossingParameters(
@@ -129,8 +131,7 @@ describe("Limbo", function () {
       1,
       1,
       true,
-      10000010,
-      this.addTokenPower.address
+      10000010
     );
 
     await this.limbo.configureCrossingConfig(
@@ -147,7 +148,7 @@ describe("Limbo", function () {
   };
 
   const stringifyBigNumber = (b) => b.map((i) => i.toString());
-
+  
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -195,8 +196,7 @@ describe("Limbo", function () {
       1,
       1,
       true,
-      10000010,
-      this.addTokenPower.address
+      10000010
     );
 
     await this.limbo.endConfiguration();
@@ -257,8 +257,7 @@ describe("Limbo", function () {
         1,
         1,
         true,
-        10000010,
-        this.addTokenPower.address
+        10000010
       )
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
   });
@@ -324,8 +323,7 @@ describe("Limbo", function () {
       21000000,
       0,
       true,
-      10000000,
-      this.addTokenPower.address
+      10000000
     );
 
     await this.limbo.endConfiguration();
@@ -377,8 +375,7 @@ describe("Limbo", function () {
       21000000,
       10000000,
       true,
-      10000000,
-      this.addTokenPower.address
+      10000000
     );
 
     await this.limbo.endConfiguration();
@@ -429,8 +426,7 @@ describe("Limbo", function () {
       20000000000,
       "-1000",
       true,
-      10000000,
-      this.addTokenPower.address
+      10000000
     );
 
     await this.limbo.endConfiguration();
@@ -481,8 +477,7 @@ describe("Limbo", function () {
       20000000000,
       "-1000",
       true,
-      10000000,
-      this.addTokenPower.address
+      10000000
     );
 
     await this.limbo.endConfiguration();
@@ -513,8 +508,7 @@ describe("Limbo", function () {
       20000000000,
       "-1000",
       true,
-      10000000,
-      this.addTokenPower.address
+      10000000
     );
 
     //set flash loan params
@@ -549,8 +543,160 @@ describe("Limbo", function () {
     expect(stringNewStates[3]).to.equal("-1001");
   });
 
-  it("flashGovernance adjust configureCrossingParameters", async function () {});
-  it("reverse fashGov decision and burn asset", async function () {});
+  it("flashGovernance adjust configureCrossingParameters", async function () {
+    //set flash loan params
+    await this.flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      604800, //lock duration = 1 week,
+      true // asset is burnable
+    );
+    await this.flashGovernance.endConfiguration();
+    //end configuration
+    await this.limbo.endConfiguration();
+    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      1,
+      1,
+      true,
+      10000010
+    );
+
+    await expect(
+      this.flashGovernance.withdrawGovernanceAsset(
+        this.limbo.address,
+        this.eye.address
+      )
+    ).to.be.revertedWith("Limbo: Flashgovernance decision pending.");
+
+    await advanceTime(604801);
+
+    const eyeBalanceBefore = await this.eye.balanceOf(owner.address);
+    await this.flashGovernance.withdrawGovernanceAsset(
+      this.limbo.address,
+      this.eye.address
+    );
+    const eyeBalanceAfter = await this.eye.balanceOf(owner.address);
+
+    expect(eyeBalanceAfter.sub(eyeBalanceBefore).toString()).to.equal(
+      "21000000"
+    );
+  });
+
+  it("burn asset for flashGov decision", async function () {
+    //set flash loan params
+    await this.flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      604800, //lock duration = 1 week,
+      true // asset is burnable
+    );
+    await this.flashGovernance.endConfiguration();
+    //end configuration
+    await this.limbo.endConfiguration();
+
+    //make flashgovernance decision.
+    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      1,
+      1,
+      true,
+      10000010
+    );
+
+    // //we need fate to lodge proposal.
+    const requiredFate = (await this.limboDAO.proposalConfig())[1];
+    const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+    console.log("EYE to burn " + eyeToBurn.toString());
+    await this.eye.approve(this.limboDAO.address, eyeToBurn.mul(100));
+    await this.limboDAO.burnAsset(this.eye.address, eyeToBurn);
+
+    //configure and lodge proposal
+    const burnFlashStakeProposalFactory = await ethers.getContractFactory(
+      "BurnFlashStakeDeposit"
+    );
+    const burnFlashStakeProposal = await burnFlashStakeProposalFactory.deploy(
+      this.limboDAO.address,
+      "burnFlash"
+    );
+    await burnFlashStakeProposal.parameterize(
+      owner.address,
+      this.eye.address,
+      "21000000",
+      this.flashGovernance.address,
+      this.limbo.address
+    );
+    await this.proposalFactory.toggleWhitelistProposal(
+      burnFlashStakeProposal.address
+    );
+    await this.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
+    let currentProposal = await this.limboDAO.currentProposal();
+    console.log("proposal: " + currentProposal);
+    expect(
+      currentProposal.toString() !==
+        "0x0000000000000000000000000000000000000000"
+    ).to.be.true;
+
+    //get more fate to vote
+    await this.limboDAO.burnAsset(this.eye.address, "10000");
+
+    //vote on proposal
+    await this.limboDAO.vote(burnFlashStakeProposal.address, "10000");
+
+    const flashGovConfig = await this.flashGovernance.flashGovernanceConfig();
+    const advancement = flashGovConfig[2].sub(1000);
+    console.log("advancement: " + advancement.toString());
+    //fast forward time to after voting round finishes but before flash asset unlocked
+    await advanceTime(advancement.toNumber()); //more time
+
+    //assert eye locked for user
+    const pendingBeforeAttempt =
+      await this.flashGovernance.pendingFlashDecision(
+        this.limbo.address,
+        owner.address
+      );
+    expect(pendingBeforeAttempt[1].toString()).to.equal("21000000");
+
+    //try to withdraw flash gov asset and fail. Assert money still there
+    await expect(
+      this.flashGovernance.withdrawGovernanceAsset(
+        this.limbo.address,
+        this.eye.address
+      )
+    ).to.be.revertedWith("Limbo: Flashgovernance decision pending.");
+
+    //execute burn proposal
+
+    const eyeTotalsupplyBefore = await this.eye.totalSupply();
+    const eyeInFlashGovBefore = await this.eye.balanceOf(
+      this.flashGovernance.address
+    );
+
+    await this.limboDAO.executeCurrentProposal();
+
+    const eyeInFlashGovAfter = await this.eye.balanceOf(
+      this.flashGovernance.address
+    );
+    const eyeTotalsupplyAfter = await this.eye.totalSupply();
+    const pendingAfterAttempt = await this.flashGovernance.pendingFlashDecision(
+      this.limbo.address,
+      owner.address
+    );
+
+    expect(pendingAfterAttempt[1].toString()).to.equal("21000000");
+    //assert eye has declined by 21000000
+    expect(eyeInFlashGovBefore.sub(eyeInFlashGovAfter).toString()).to.equal(
+      "21000000"
+    );
+    expect(eyeTotalsupplyBefore.sub(eyeTotalsupplyAfter).toString()).to.equal(
+      "21000000"
+    );
+
+  });
+
+  
   it("shutdown soul staking and send tokens to fundDestination (governanceShutdown)", async function () {});
   it("unstaking rewards user correctly and sets unclaimed to zero", async function () {});
   it("staking/unstaking only possible in staking state", async function () {});
@@ -577,4 +723,6 @@ describe("Limbo", function () {
   it("token tradeable on Behodler post migration.", async function () {});
   it("any whitelisted contract can mint flan", async function () {});
   it("flash governance max tolerance respected", async function () {});
+  it("flan burn fee on transfer proposal", async function () {});
+  
 });

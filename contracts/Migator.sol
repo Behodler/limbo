@@ -26,22 +26,22 @@ contract Migrator {
         address limbo,
         address angband,
         address uniHelper,
-        address behodler
+        address behodler,
+        address power
     ) {
         config.limbo = limbo;
         config.angband = AngbandLike(angband);
         config.uniHelper = UniswapHelperLike(uniHelper);
         config.behodler = BehodlerLike(behodler);
+        config.morgothPower = LimboAddTokenToBehodlerPowerLike(power);
     }
 
     function exectute(
         address token,
         bool burnable,
         uint256 flanQuoteDivergenceTolerance,
-        uint256 minQuoteWaitDuration,
-        address power
+        uint256 minQuoteWaitDuration
     ) public {
-        config.morgothPower = LimboAddTokenToBehodlerPowerLike(power);
         require(msg.sender == config.limbo, "LIMBO: Only callable by Limbo");
         //parameterize LimboAddTokenToBehodler
         config.morgothPower.parameterize(token, burnable);

@@ -134,12 +134,13 @@ contract LimboDAO is Ownable {
             ) {
                 if (currentProposalState.fate > 0) {
                     currentProposalState.decision = ProposalDecision.approved;
-                    (bool success, ) = address(currentProposal).call(
-                        abi.encodeWithSignature("orchestrateExecute()")
-                    );
-                    if (success)
-                        fateState[currentProposalState.proposer]
-                        .fateBalance += proposalConfig.requiredFateStake;
+                    currentProposal.orchestrateExecute();
+                    // (bool success, ) = address(currentProposal).call(
+                    //     abi.encodeWithSignature("orchestrateExecute()")
+                    // );
+                    // require(success, "LimboDAO: error in proposal contract");
+                    fateState[currentProposalState.proposer]
+                    .fateBalance += proposalConfig.requiredFateStake;
                 } else {
                     currentProposalState.decision = ProposalDecision.rejected;
                 }
@@ -231,12 +232,7 @@ contract LimboDAO is Ownable {
         emit proposalLodged(proposal, proposer);
     }
 
-    function vote(address proposal, int256 fate)
-        public
-        // updateCurrentProposal
-        incrementFate
-        isLive
-    {
+    function vote(address proposal, int256 fate) public incrementFate isLive {
         require(
             proposal == address(currentProposal), //this is just to protect users with out of sync UIs
             "LimboDAO: stated proposal does not match current proposal"

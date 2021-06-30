@@ -10,7 +10,7 @@ contract FlashGovernanceArbiter is Governable {
     struct FlashGovernanceConfig {
         address asset;
         uint256 amount;
-        uint256 lockDuration;
+        uint256 unlockTime;
         bool assetBurnable;
     }
     struct SecurityParameters {
@@ -22,16 +22,17 @@ contract FlashGovernanceArbiter is Governable {
 
     FlashGovernanceConfig public flashGovernanceConfig;
     SecurityParameters public security;
-    mapping(address => mapping(address => FlashGovernanceConfig)) pendingFlashDecision; //contract->user->config
+    mapping(address => mapping(address => FlashGovernanceConfig))
+        public pendingFlashDecision; //contract->user->config
 
     function assertGovernanceApproved(address sender, address target) public {
         if (
             IERC20(flashGovernanceConfig.asset).transferFrom(
                 sender,
-                address(target),
+                address(this),
                 flashGovernanceConfig.amount
             ) &&
-            pendingFlashDecision[target][sender].lockDuration < block.timestamp
+            pendingFlashDecision[target][sender].unlockTime < block.timestamp
         ) {
             require(
                 block.timestamp - security.lastFlashGovernanceAct >
@@ -39,8 +40,7 @@ contract FlashGovernanceArbiter is Governable {
                 "Limbo: flash governance disabled for rest of epoch"
             );
             pendingFlashDecision[target][sender] = flashGovernanceConfig;
-            pendingFlashDecision[target][sender].lockDuration += block
-            .timestamp;
+            pendingFlashDecision[target][sender].unlockTime += block.timestamp;
             security.lastFlashGovernanceAct = block.timestamp;
             emit flashDecision(
                 sender,
@@ -55,12 +55,12 @@ contract FlashGovernanceArbiter is Governable {
     function configureFlashGovernance(
         address asset,
         uint256 amount,
-        uint256 lockDuration,
+        uint256 unlockTime,
         bool assetBurnable
     ) public virtual onlySuccessfulProposal {
         flashGovernanceConfig.asset = asset;
         flashGovernanceConfig.amount = amount;
-        flashGovernanceConfig.lockDuration = lockDuration;
+        flashGovernanceConfig.unlockTime = unlockTime;
         flashGovernanceConfig.assetBurnable = assetBurnable;
     }
 
@@ -85,7 +85,7 @@ contract FlashGovernanceArbiter is Governable {
             Burnable(asset).burn(amount);
         }
 
-        delete pendingFlashDecision[targetContract][user];
+        pendingFlashDecision[targetContract][user] = flashGovernanceConfig;
     }
 
     function withdrawGovernanceAsset(address targetContract, address asset)
@@ -95,13 +95,13 @@ contract FlashGovernanceArbiter is Governable {
         require(
             pendingFlashDecision[targetContract][msg.sender].asset == asset &&
                 pendingFlashDecision[targetContract][msg.sender].amount > 0 &&
-                pendingFlashDecision[targetContract][msg.sender].lockDuration <
+                pendingFlashDecision[targetContract][msg.sender].unlockTime <
                 block.timestamp,
             "Limbo: Flashgovernance decision pending."
         );
         IERC20(pendingFlashDecision[targetContract][msg.sender].asset).transfer(
             msg.sender,
-            pendingFlashDecision[targetContract][asset].amount //TODO: is this correct
+            pendingFlashDecision[targetContract][msg.sender].amount
         );
         delete pendingFlashDecision[targetContract][msg.sender];
     }
