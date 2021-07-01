@@ -39,4 +39,7 @@ abstract contract LimboLike {
         uint state,
         uint256 index
     ) public virtual;
+
+      function withdrawERC20(address token, address destination)
+        public virtual;
 }

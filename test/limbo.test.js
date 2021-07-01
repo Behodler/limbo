@@ -702,7 +702,7 @@ describe("Limbo", function () {
     const expectedFlan = flanPerSecond.mul(400001).toString(); // only staker, 1 second extra
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
 
-    await this.limbo.unstake(this.aave.address, 0, 4000);
+    await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
     const userInfoAfterUnstake = await this.limbo.userInfo(
@@ -746,7 +746,7 @@ describe("Limbo", function () {
 
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
 
-    await this.limbo.unstake(this.aave.address, 0, 4000);
+    await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
     const userInfoAfterUnstake = await this.limbo.userInfo(
@@ -810,7 +810,7 @@ describe("Limbo", function () {
     const expectedFlan = flanPerSecond.mul(400001).div(4).toString(); // quarter rewards because sharing with other token
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
 
-    await this.limbo.unstake(this.aave.address, 0, 4000);
+    await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
     const userInfoAfterUnstake = await this.limbo.userInfo(
@@ -882,25 +882,355 @@ describe("Limbo", function () {
     ).to.be.revertedWith("E2");
 
     await expect(
-      this.limbo.unstake(this.aave.address, 0, "10000")
+      this.limbo.unstake(this.aave.address, "10000")
     ).to.be.revertedWith("E2");
   });
 
-  it("staking an invalid token fails", async function () {});
+  it("staking an invalid token fails", async function () {
+    this.titan = await this.TokenFactory.deploy("iron", "finance", [], []);
 
-  it("aggregate rewards per token per second aligns with configuration and adds up to flan per second.", async function () {});
-  it("unstaking with exitPenalty > 1000 reverts with E3", async function () {});
-  it("unstaking amount larger than balance reverts with E4", async function () {});
-  it("unstaking with exitPenalty > 0 incurs penalty on claims  ", async function () {});
-  it("claims disabled on exitPenalty>0", async function () {});
-  it("claiming staked reward resets unclaimed to zero", async function () {});
-  it("claim bonus ", async function () {});
-  it("claim bonus disabled during staking", async function () {});
-  it("claiming negative bonus fails", async function () {});
-  it("withdrawERC20 fails on souls", async function () {});
-  it("withdrawERC20 fails on souls", async function () {});
-  it("withdrawERC20 succeeds on non listed tokens or previously listed tokens.", async function () {});
-  it("migration fails on not waitingToCross", async function () {});
+    //stake tokens
+    await this.titan.approve(this.limbo.address, "10000001");
+    await expect(
+      this.limbo.stake(this.titan.address, "10000")
+    ).to.be.revertedWith("E1");
+  });
+
+  it("unstaking with exitPenalty >= 10000 reverts with E3", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      10000, //exitPenalty
+      1, //state
+      0
+    );
+    await this.limbo.endConfiguration();
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await expect(
+      this.limbo.unstake(this.aave.address, "100")
+    ).to.be.revertedWith("E3");
+  });
+
+  it("unstaking amount larger than balance reverts with E4", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    await this.limbo.endConfiguration();
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await expect(
+      this.limbo.unstake(this.aave.address, "10001")
+    ).to.be.revertedWith("E4");
+  });
+
+  it("unstaking with exitPenalty > 0 incurs penalty on claims  ", async function () {
+    //gather rewards for zero penalty
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+
+    const flanBeforeZeroPenaltyStake = await this.flan.balanceOf(owner.address);
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await advanceTime(1000);
+
+    this.limbo.unstake(this.aave.address, "10000");
+    const flanAfterZeroPenaltyStake = await this.flan.balanceOf(owner.address);
+
+    const zeroPenaltyRewards = flanAfterZeroPenaltyStake.sub(
+      flanBeforeZeroPenaltyStake
+    );
+
+    const flanBeforeQuarterRewardStake = await this.flan.balanceOf(
+      owner.address
+    );
+
+    //gather rewards for exit penalty = 75%
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      7500, //exitPenalty = 75%
+      1, //state
+      0
+    );
+
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await advanceTime(1000);
+
+    this.limbo.unstake(this.aave.address, "10000");
+    const flanAfterQuarterRewardStake = await this.flan.balanceOf(
+      owner.address
+    );
+
+    const quarterRewards = flanAfterQuarterRewardStake.sub(
+      flanBeforeQuarterRewardStake
+    );
+
+    expect(quarterRewards.mul(4).toString()).to.equal(
+      zeroPenaltyRewards.toString()
+    );
+  });
+
+  it("claims disabled on exitPenalty>0", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      1, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await advanceTime(1000);
+
+    await expect(
+      this.limbo.claimReward(this.aave.address, 0)
+    ).to.be.revertedWith("EA");
+
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+
+    const flanBeforeClaim = await this.flan.balanceOf(owner.address);
+    await this.limbo.claimReward(this.aave.address, 0);
+    const flanAfterClaim = await this.flan.balanceOf(owner.address);
+    const actualReward = flanAfterClaim.sub(flanBeforeClaim);
+
+    const expectedFlanRewardLowerBound = (await this.limbo.flanPerSecond()).mul(
+      1000
+    );
+    const expectedFlanRewardUpperBound = (await this.limbo.flanPerSecond()).mul(
+      1005
+    );
+
+    expect(actualReward.gte(expectedFlanRewardLowerBound)).to.be.true;
+    expect(actualReward.lte(expectedFlanRewardUpperBound)).to.be.true;
+  });
+
+  it("unstaking amount larger than balance reverts with E4", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    await this.limbo.endConfiguration();
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await expect(
+      this.limbo.unstake(this.aave.address, "10001")
+    ).to.be.revertedWith("E4");
+  });
+
+  it("claiming staked reward resets unclaimed to zero", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await advanceTime(1000);
+
+    const flanBeforeFirstClaim = await this.flan.balanceOf(owner.address);
+    await this.limbo.claimReward(this.aave.address, 0);
+    const flanAfterFirstClaim = await this.flan.balanceOf(owner.address);
+    await this.limbo.claimReward(this.aave.address, 0);
+    const flanAfterSecondClaim = await this.flan.balanceOf(owner.address);
+
+    expect(flanAfterFirstClaim.gt(flanBeforeFirstClaim));
+    expect(flanAfterSecondClaim).to.equal(flanAfterFirstClaim.add("10000000"));
+  });
+
+  it("claim bonus disabled during staking", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await advanceTime(1000);
+    await expect(
+      this.limbo.claimBonus(this.aave.address, 0)
+    ).to.be.revertedWith("E2");
+  });
+
+  it("claiming negative bonus fails", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      10,
+      -10,
+      true,
+      10000
+    );
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "9999");
+
+    await advanceTime(1000);
+    await this.limbo.stake(this.aave.address, "2");
+
+    await expect(
+      this.limbo.claimBonus(this.aave.address, 0)
+    ).to.be.revertedWith("ED");
+  });
+
+  it("withdrawERC20 fails on souls", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    await this.aave.transfer(this.limbo.address, "6666");
+    const withdrawERC20Factory = await ethers.getContractFactory(
+      "WithdrawERC20Proposal"
+    );
+    const withdrawERC20 = await withdrawERC20Factory.deploy(
+      this.limboDAO.address
+    );
+
+    await withdrawERC20.parameterize(this.aave.address, secondPerson.address);
+    await this.proposalFactory.toggleWhitelistProposal(withdrawERC20.address);
+
+    // //we need fate to lodge proposal.
+    const requiredFate = (await this.limboDAO.proposalConfig())[1];
+    const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+    await this.eye.approve(this.limboDAO.address, eyeToBurn.mul(100));
+    await this.limboDAO.burnAsset(this.eye.address, eyeToBurn);
+
+    await this.proposalFactory.lodgeProposal(withdrawERC20.address);
+    const fateState = await this.limboDAO.fateState(owner.address);
+    expect(fateState[1].toNumber()).to.be.greaterThan(0);
+    await this.limboDAO.vote(withdrawERC20.address, fateState[1].toNumber());
+
+    await advanceTime(6048010);
+
+    await expect(this.limboDAO.executeCurrentProposal()).to.be.revertedWith(
+      "E7"
+    );
+  });
+
+  it("withdrawERC20 succeeds on non listed tokens or previously listed tokens.", async function () {
+    await this.aave.transfer(this.limbo.address, "6666");
+    const withdrawERC20Factory = await ethers.getContractFactory(
+      "WithdrawERC20Proposal"
+    );
+    const withdrawERC20 = await withdrawERC20Factory.deploy(
+      this.limboDAO.address
+    );
+
+    await withdrawERC20.parameterize(this.aave.address, secondPerson.address);
+    await this.proposalFactory.toggleWhitelistProposal(withdrawERC20.address);
+
+    // //we need fate to lodge proposal.
+    const requiredFate = (await this.limboDAO.proposalConfig())[1];
+    const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+    await this.eye.approve(this.limboDAO.address, eyeToBurn.mul(100));
+    await this.limboDAO.burnAsset(this.eye.address, eyeToBurn);
+
+    await this.proposalFactory.lodgeProposal(withdrawERC20.address);
+    const fateState = await this.limboDAO.fateState(owner.address);
+    expect(fateState[1].toNumber()).to.be.greaterThan(0);
+    await this.limboDAO.vote(withdrawERC20.address, fateState[1].toNumber());
+
+    await advanceTime(6048010);
+    const aaveBalanceBefore = await this.aave.balanceOf(secondPerson.address);
+    await this.limboDAO.executeCurrentProposal();
+
+    const aaveBalanceAfter = await this.aave.balanceOf(secondPerson.address);
+
+    expect(aaveBalanceAfter.sub(aaveBalanceBefore).toNumber()).to.equal(6666);
+  });
+
+  it("migration fails on not waitingToCross", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      10000000, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
+      "E2"
+    );
+  });
+
   it("stamping reserves requires wait to pass before migration", async function () {});
   it("too much reserve drift between stamping and execution fails (divergenceTolerance)", async function () {});
   it("only threshold souls can migrate", async function () {});

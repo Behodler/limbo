@@ -90,6 +90,7 @@ Error string legend:
  claim rewards disabled when exit penlaty>0     EA
  only threshold souls can be migrated           EB
  not enough time between crossing and migration EC
+ bonus must be positive                         ED
 */
 contract Limbo is Governable {
     using SafeERC20 for IERC20;
@@ -274,7 +275,7 @@ contract Limbo is Governable {
         uint256 crossingThreshold,
         uint256 soulType,
         uint16 exitPenalty,
-        uint state,
+        uint256 state,
         uint256 index
     ) public onlySuccessfulProposal {
         {
@@ -364,20 +365,13 @@ contract Limbo is Governable {
         emit Staked(msg.sender, token, amount);
     }
 
-    function unstake(
-        address token,
-        uint256 index,
-        uint256 amount
-    ) public enabled {
-        Soul storage soul = souls[token][index];
+    function unstake(address token, uint256 amount) public enabled {
+        Soul storage soul = currentSoul(token);
         updateSoul(token, soul);
-        require(
-            soul.state == SoulState.staking,
-            "E2"
-        );
+        require(soul.state == SoulState.staking, "E2");
         uint16 exitPenalty = soul.exitPenalty;
         require(exitPenalty < 10000, "E3");
-        User storage user = userInfo[token][msg.sender][index];
+        User storage user = userInfo[token][msg.sender][latestIndex[token]];
         require(user.stakedAmount >= amount, "E4");
 
         uint256 pending = ((user.stakedAmount * soul.accumulatedFlanPerShare) /
@@ -385,7 +379,7 @@ contract Limbo is Governable {
             user.rewardDebt);
 
         if (pending > 0) {
-            pending -= ((uint256(soul.exitPenalty)) * pending)/myriad;
+            pending -= ((uint256(soul.exitPenalty)) * pending) / myriad;
             Flan.safeTransfer(msg.sender, pending);
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;
@@ -445,12 +439,13 @@ contract Limbo is Governable {
             accumulatedFlanPerTeraToken;
 
         uint256 flanBonus = 0;
-        if (finalFlanPerTeraToken > 0) {
-            flanBonus =
-                uint256((int256(user.stakedAmount) * finalFlanPerTeraToken)) /
-                TERA;
-            Flan.mint(msg.sender, flanBonus);
-        }
+        require(finalFlanPerTeraToken > 0, "ED");
+
+        flanBonus =
+            uint256((int256(user.stakedAmount) * finalFlanPerTeraToken)) /
+            TERA;
+        Flan.mint(msg.sender, flanBonus);
+
         emit BonusPaid(token, index, msg.sender, flanBonus);
     }
 

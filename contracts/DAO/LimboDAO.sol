@@ -135,10 +135,6 @@ contract LimboDAO is Ownable {
                 if (currentProposalState.fate > 0) {
                     currentProposalState.decision = ProposalDecision.approved;
                     currentProposal.orchestrateExecute();
-                    // (bool success, ) = address(currentProposal).call(
-                    //     abi.encodeWithSignature("orchestrateExecute()")
-                    // );
-                    // require(success, "LimboDAO: error in proposal contract");
                     fateState[currentProposalState.proposer]
                     .fateBalance += proposalConfig.requiredFateStake;
                 } else {
