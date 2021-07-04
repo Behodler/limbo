@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../facades/LimboDAOLike.sol";
+import "./Governable.sol";
 
 abstract contract Proposal {
     string public description;
@@ -20,10 +20,8 @@ abstract contract Proposal {
     }
 
     modifier notCurrent {
-        require(
-            DAO.currentProposal() != address(this),
-            "LimboDAO: proposal locked"
-        );
+        (, , , , address proposal) = DAO.currentProposalState();
+        require(proposal != address(this), "LimboDAO: proposal locked");
         _;
     }
 
@@ -34,15 +32,17 @@ abstract contract Proposal {
     function execute() internal virtual returns (bool);
 }
 
-contract ProposalFactory is Ownable {
-    LimboDAOLike dao;
+contract ProposalFactory is Governable {
     mapping(address => bool) public whitelistedProposalContracts;
 
-    function seed(address _dao) public onlyOwner {
-        dao = LimboDAOLike(_dao);
+    constructor(address _dao, address whitelistingProposal) Governable(_dao) {
+        whitelistedProposalContracts[whitelistingProposal] = true;
     }
 
-    function toggleWhitelistProposal(address proposal) public onlyOwner {
+    function toggleWhitelistProposal(address proposal)
+        public
+        onlySuccessfulProposal
+    {
         whitelistedProposalContracts[proposal] = !whitelistedProposalContracts[
             proposal
         ];
@@ -53,6 +53,6 @@ contract ProposalFactory is Ownable {
             whitelistedProposalContracts[proposal],
             "LimboDAO: invalid proposal"
         );
-         dao.makeProposal(proposal, msg.sender);
+        LimboDAOLike(DAO).makeProposal(proposal, msg.sender);
     }
 }

@@ -6,10 +6,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
+import "./facades/BehodlerLike.sol";
 import "./facades/FlanLike.sol";
 import "./facades/UniPairLike.sol";
 import "./facades/MigratorLike.sol";
 import "./DAO/Governable.sol";
+import "./facades/UniswapHelperLike.sol";
+import "./facades/AngbandLike.sol";
+import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
+import "hardhat/console.sol";
 /*
 LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from both
 Masterchef.
@@ -91,6 +96,10 @@ Error string legend:
  only threshold souls can be migrated           EB
  not enough time between crossing and migration EC
  bonus must be positive                         ED
+ Unauthorized call                              EE
+ Protocol disabled                              EF
+ Reserve divergence tolerance exceeded          EG
+ not enough time between reserve stamps         EH
 */
 contract Limbo is Governable {
     using SafeERC20 for IERC20;
@@ -99,6 +108,8 @@ contract Limbo is Governable {
     event SoulUpdated(address soul, uint256 allocPoint);
     event Staked(address staker, address soul, uint256 amount);
     event Unstaked(address staker, address soul, uint256 amount);
+    event TokenListed(address token, uint256 amount, uint256 scxfln_LP_minted);
+
     event ClaimedReward(
         address staker,
         address soul,
@@ -138,7 +149,9 @@ contract Limbo is Governable {
         uint256 flanQuoteDivergenceTolerance;
         uint256 minQuoteWaitDuration;
         uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
-        MigratorLike migrator;
+        address morgothPower;
+        address angband;
+        address uniswapHelper;
     }
 
     struct User {
@@ -164,7 +177,7 @@ contract Limbo is Governable {
     FlanLike Flan;
 
     modifier enabled {
-        require(protocolEnabled, "EC");
+        require(protocolEnabled, "EF");
         _;
     }
 
@@ -184,7 +197,7 @@ contract Limbo is Governable {
             uint256 flanReward = (accruedFlan * soul.allocPoint) /
                 totalAllocationPoints;
 
-            Flan.mint(flanReward);
+            Flan.mint(address(this), flanReward);
 
             soul.accumulatedFlanPerShare =
                 soul.accumulatedFlanPerShare +
@@ -204,16 +217,25 @@ contract Limbo is Governable {
 
     function configureCrossingConfig(
         address behodler,
-        address migrator,
+        address angband,
+        address uniswapHelper,
+        address morgothPower,
         uint256 migrationInvocationReward,
-        uint256 crossingMigrationDelay
+        uint256 crossingMigrationDelay,
+        uint256 minQuoteWaitDuration,
+        uint256 flanQuoteDivergenceTolerance
     ) public onlySuccessfulProposal {
         crossingConfig.migrationInvocationReward =
             migrationInvocationReward *
             (1 ether);
         crossingConfig.behodler = behodler;
         crossingConfig.crossingMigrationDelay = crossingMigrationDelay;
-        crossingConfig.migrator = MigratorLike(migrator);
+        crossingConfig.minQuoteWaitDuration = minQuoteWaitDuration;
+        crossingConfig.angband = angband;
+        crossingConfig.uniswapHelper = uniswapHelper;
+        crossingConfig.morgothPower = morgothPower;
+        crossingConfig
+        .flanQuoteDivergenceTolerance = flanQuoteDivergenceTolerance;
     }
 
     function disableProtocol() public governanceApproved {
@@ -475,20 +497,69 @@ contract Limbo is Governable {
             "EC"
         );
 
-        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(address(crossingConfig.migrator), tokenBalance);
-
-        crossingConfig.migrator.execute(
+        LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower)
+            .parameterize(
             token,
-            tokenCrossingParameters[token][latestIndex[token]].burnable,
-            crossingConfig.flanQuoteDivergenceTolerance,
-            crossingConfig.minQuoteWaitDuration
+            tokenCrossingParameters[token][latestIndex[token]].burnable
         );
+
+        //invoke Angband execute on power that migrates token type to Behodler
+        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(
+            address(crossingConfig.morgothPower),
+            tokenBalance
+        );
+        AngbandLike(crossingConfig.angband).executePower(
+            address(crossingConfig.morgothPower)
+        );
+
+        //get marginal SCX price and calculate rectangle of fairness
+        uint256 scxMinted = IERC20(address(crossingConfig.behodler)).balanceOf(
+            address(this)
+        );
+        console.log("scxMinted by migration %s", scxMinted);
+
+        uint256 tokensToRelease = BehodlerLike(crossingConfig.behodler)
+        .withdrawLiquidityFindSCX(token, 1000, 10000, 8);
+        uint256 marginalPrice = SCX_calc / tokensToRelease;
+
+        uint256 rectangleOfFairness = (marginalPrice * tokenBalance * 10) /
+            (SCX_calc * 9); //implied scx fee hardcoded at 10% for simplicity of approximation. Keep in mind Uni/sushi's xy=k curve protects SCX
+
+        //burn SCX - rectangle
+        uint256 excessSCX = scxMinted - rectangleOfFairness;
+        uint256 balance = IERC20(crossingConfig.behodler).balanceOf(
+            address(this)
+        );
+
+        console.log(
+            "rectangle of fairness, %s and excess SCX %s and token balance %s",
+            rectangleOfFairness,
+            excessSCX,
+            balance
+        );
+
+        require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
+        IERC20(crossingConfig.behodler).transfer(
+            crossingConfig.uniswapHelper,
+            rectangleOfFairness
+        );
+        uint256 lpMinted = UniswapHelperLike(crossingConfig.uniswapHelper)
+        .buyAndPoolFlan(
+            crossingConfig.flanQuoteDivergenceTolerance,
+            crossingConfig.minQuoteWaitDuration,
+            rectangleOfFairness
+        );
+
+        emit TokenListed(token, tokenBalance, lpMinted);
+
         //reward caller and update soul state
+
         require(
-            Flan.transfer(msg.sender, crossingConfig.migrationInvocationReward),
+            Flan.mint(msg.sender, crossingConfig.migrationInvocationReward),
             "E9"
         );
+
         currentSoul(token).state = SoulState.crossedOver;
     }
 }

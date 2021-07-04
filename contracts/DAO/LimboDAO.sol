@@ -8,6 +8,7 @@ import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
 import "../facades/UniPairLike.sol";
 import "./Governable.sol";
+import "hardhat/console.sol";
 
 /*
 This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having 
@@ -53,7 +54,7 @@ contract LimboDAO is Ownable {
     event proposalLodged(address proposal, address proposer);
     event voteCast(address voter, address proposal, int256 fateCast);
     event assetApproval(address asset, bool appoved);
-    event proposalExecuted(address proposal);
+    event proposalExecuted(address proposal, bool approved);
     event assetBurnt(address burner, address asset, uint256 fateCreated);
 
     using TransferHelper for address;
@@ -81,6 +82,7 @@ contract LimboDAO is Ownable {
         ProposalDecision decision;
         address proposer;
         uint256 start;
+        Proposal proposal;
     }
 
     //rateCrate
@@ -102,30 +104,40 @@ contract LimboDAO is Ownable {
     mapping(address => FateState) public fateState; //lateDate
     mapping(address => mapping(address => AssetClout))
         public stakedUserAssetWeight; //user->asset->weight
-    Proposal public currentProposal;
     ProposalState public currentProposalState;
+    ProposalState public previousProposalState;
 
     modifier isLive {
         require(domainConfig.live, "LimboDAO: DAO is not live. Wen Limbo?");
         _;
     }
 
+    function nextProposal() internal {
+        previousProposalState = currentProposalState;
+        currentProposalState.proposal = Proposal(address(0));
+        currentProposalState.fate = 0;
+        currentProposalState.decision = ProposalDecision.voting;
+        currentProposalState.proposer = address(0);
+        currentProposalState.start = 0;
+    }
+
     modifier onlySuccessfulProposal {
+       // console.log('onlySuccessfulProposal');
         require(successfulProposal(msg.sender), "LimboDAO: approve proposal");
         _;
-        currentProposalState.decision = ProposalDecision.voting;
-        currentProposal = Proposal(address(0));
+        //nextProposal();
     }
 
     function successfulProposal(address proposal) public view returns (bool) {
         return
             currentProposalState.decision == ProposalDecision.approved &&
-            proposal == address(currentProposal);
+            proposal == address(currentProposalState.proposal);
     }
 
     modifier updateCurrentProposal {
+        //console.log('update');
         incrementFateFor(_msgSender());
-        if (address(currentProposal) != address(0)) {
+        if (address(currentProposalState.proposal) != address(0)) {
             uint256 durationSinceStart = block.timestamp -
                 currentProposalState.start;
             if (
@@ -134,12 +146,20 @@ contract LimboDAO is Ownable {
             ) {
                 if (currentProposalState.fate > 0) {
                     currentProposalState.decision = ProposalDecision.approved;
-                    currentProposal.orchestrateExecute();
+                    currentProposalState.proposal.orchestrateExecute();
                     fateState[currentProposalState.proposer]
                     .fateBalance += proposalConfig.requiredFateStake;
+                        //  console.log("accepted");
+                        //  console.log("current proposer %s",currentProposalState.proposer);
                 } else {
+                    // console.log("rejected");
                     currentProposalState.decision = ProposalDecision.rejected;
                 }
+                emit proposalExecuted(
+                    address(currentProposalState.proposal),
+                    currentProposalState.decision == ProposalDecision.approved
+                );
+                nextProposal();
             }
         }
         _;
@@ -212,15 +232,20 @@ contract LimboDAO is Ownable {
             "LimboDAO: only Proposal Factory"
         );
         require(
-            address(currentProposal) == address(0) ||
-                currentProposalState.decision != ProposalDecision.voting,
+            address(currentProposalState.proposal) == address(0),
             "LimboDAO: active proposal."
         );
+        // console.log(
+        //     "fateBalance: %s, required:  %s",
+        //     fateState[proposer].fateBalance,
+        //     proposalConfig.requiredFateStake * 2
+        // );
+
         fateState[proposer].fateBalance =
             fateState[proposer].fateBalance -
             proposalConfig.requiredFateStake *
             2;
-        currentProposal = Proposal(proposal);
+        currentProposalState.proposal = Proposal(proposal);
         currentProposalState.decision = ProposalDecision.voting;
         currentProposalState.fate = 0;
         currentProposalState.proposer = proposer;
@@ -230,7 +255,7 @@ contract LimboDAO is Ownable {
 
     function vote(address proposal, int256 fate) public incrementFate isLive {
         require(
-            proposal == address(currentProposal), //this is just to protect users with out of sync UIs
+            proposal == address(currentProposalState.proposal), //this is just to protect users with out of sync UIs
             "LimboDAO: stated proposal does not match current proposal"
         );
         require(
@@ -266,9 +291,7 @@ contract LimboDAO is Ownable {
         emit voteCast(_msgSender(), proposal, fate);
     }
 
-    function executeCurrentProposal() public updateCurrentProposal {
-        emit proposalExecuted(address(currentProposal));
-    }
+    function executeCurrentProposal() public updateCurrentProposal {}
 
     function setProposalConfig(
         uint256 votingDuration,

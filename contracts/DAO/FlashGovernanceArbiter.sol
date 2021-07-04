@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "./Governable.sol";
+import "hardhat/console.sol";
 
 contract FlashGovernanceArbiter is Governable {
     event flashDecision(address actor, address deposit_asset, uint256 amount);
@@ -92,6 +93,13 @@ contract FlashGovernanceArbiter is Governable {
         public
         virtual
     {
+        console.log(
+            "asset %s, amount %s,  unlock ready %s",
+            pendingFlashDecision[targetContract][msg.sender].asset,
+            pendingFlashDecision[targetContract][msg.sender].amount,
+            pendingFlashDecision[targetContract][msg.sender].unlockTime <
+                block.timestamp
+        );
         require(
             pendingFlashDecision[targetContract][msg.sender].asset == asset &&
                 pendingFlashDecision[targetContract][msg.sender].amount > 0 &&

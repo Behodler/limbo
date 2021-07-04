@@ -8,7 +8,7 @@ abstract contract LimboDAOLike {
 
     function makeProposal(address proposal, address proposer) public virtual;
 
-    function currentProposal() public view virtual returns (address);
+    function currentProposalState() public view virtual returns (uint,uint,address,uint,address);
 
     function setProposalConfig(
         uint256 votingDuration,

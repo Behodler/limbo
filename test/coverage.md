@@ -34,40 +34,43 @@
 
 **Config**
 - [x] populating crossingConfig with configureCrossingConfig
-- [ ] use flashGovernance to adjustSoul
-- [ ] flashGovernance adjust configureCrossingParameters
-- [ ] reverse fashGov decision and burn asset
-- [ ] shutdown soul staking and withdraw tokens
-- [ ] protocol disabled blocks all functions
+- [x] use flashGovernance to adjustSoul
+- [x] flashGovernance adjust configureCrossingParameters
+- [x] reverse fashGov decision and burn asset
+- [x] shutdown soul staking and withdraw tokens
+- [x] protocol disabled blocks all functions
 
 **staking** 
-- [ ] unstaking rewards user correctly and sets unclaimed to zero
-- [ ] staking/unstaking only possible in staking state.
-- [ ] staking an invalid token fails
-- [ ] aggregate rewards per token per second aligns with configuration and adds up to flan per second.
-- [ ] unstaking with exitPenalty > 1000 reverts with E3
-- [ ] unstaking amount larger than balance reverts with E4
-- [ ] unstaking with exitPenalty > 0 incurs penalty on claims  
+- [x] unstaking rewards user correctly and sets unclaimed to zero
+- [x] staking/unstaking only possible in staking state.
+- [x] staking an invalid token fails
+- [x] aggregate rewards per token per second aligns with configuration and adds up to flan per second.
+- [x] unstaking with exitPenalty > 1000 reverts with E3
+- [x] unstaking amount larger than balance reverts with E4
+- [x] unstaking with exitPenalty > 0 incurs penalty on claims  
 
 **claims**
-- [ ] claims disabled on exitPenalty>0
-- [ ] claiming staked reward resets unclaimed to zero
-- [ ] claim rising bonus 
-- [ ] claim falling bonus 
-- [ ] claim bonus disabled during staking
-- [ ] claiming bonus twice fails.
-- [ ] claiming negative bonus fails
+- [x] claims disabled on exitPenalty>0
+- [x] claiming staked reward resets unclaimed to zero
+- [x] claim rising bonus 
+- [x] claim falling bonus 
+- [x] claim bonus disabled during staking
+- [x] claiming bonus twice fails.
+- [x] claiming negative bonus fails
 
 **migration governance**
-- [ ] withdrawERC20 fails on souls
-- [ ] withdrawERC20 succeeds on non listed tokens or previously listed tokens.
-- [ ] migration fails on not waitingToCross
-- [ ] stamping reserves requires wait to pass before migration
-- [ ] too much reserve drift between stamping and execution fails (divergenceTolerance)
-- [ ] only threshold souls can migrate
-- [ ] SCX burnt leaves rectangle of fairness.
-- [ ] Flan price and liquidity higher post migration.
-- [ ] soul changed to crossedOver post migration
-- [ ] token tradeable on Behodler post migration.
-- [ ] flash governance max tolerance respected
-- [ ] not enough time between crossing and migration
+- [x] withdrawERC20 fails on souls
+- [x] withdrawERC20 succeeds on non listed tokens or previously listed tokens.
+- [x] migration fails on not waitingToCross
+- [x] stamping reserves requires wait to pass before migration
+- [x] too much reserve drift between stamping and execution fails (divergenceTolerance)
+- [x] only threshold souls can migrate
+- [x] SCX burnt leaves rectangle of fairness.
+- [x] Flan price and liquidity higher post migration.
+- [x] soul changed to crossedOver post migration
+- [x] token tradeable on Behodler post migration.
+- [x] flash governance max tolerance respected
+- [x] not enough time between crossing and migration
+- [x] flan fee on transfer proposal
+- [x] successful mock migration
+- [] flan genesis event

@@ -7,6 +7,7 @@ describe("Limbo", function () {
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP;
   let dao, proposalFactory, updateProposalConfigProposal;
+  let toggleWhiteList;
   const zero = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async function () {
@@ -70,7 +71,8 @@ describe("Limbo", function () {
     );
 
     await this.flan.whiteListMinting(this.limbo.address, true);
-    await this.flan.endConfiguration();
+    await this.flan.whiteListMinting(owner.address, true);
+    // await this.flan.endConfiguration();
 
     await this.addTokenPower.seed(
       this.mockBehodler.address,
@@ -84,11 +86,30 @@ describe("Limbo", function () {
     const sushiSwapFactory = await UniswapFactoryFactory.deploy();
     const uniswapFactory = await UniswapFactoryFactory.deploy();
 
+    const firstProposalFactory = await ethers.getContractFactory(
+      "ToggleWhitelistProposalProposal"
+    );
+    this.whiteListingProposal = await firstProposalFactory.deploy(
+      this.limboDAO.address,
+      "toggle whitelist"
+    );
+
+    //  const flanSCXPair = await sushiSwapFactory.
+    this.ProposalFactoryFactory = await ethers.getContractFactory(
+      "ProposalFactory"
+    );
+    this.proposalFactory = await this.ProposalFactoryFactory.deploy(
+      this.limboDAO.address,
+      this.whiteListingProposal.address
+    );
+
     const ProposalFactoryFactory = await ethers.getContractFactory(
       "ProposalFactory"
     );
-    this.proposalFactory = await ProposalFactoryFactory.deploy();
-    await this.proposalFactory.seed(this.limboDAO.address);
+    proposalFactory = await ProposalFactoryFactory.deploy(
+      this.limboDAO.address,
+      this.whiteListingProposal.address
+    );
 
     await this.limboDAO.seed(
       this.limbo.address,
@@ -117,13 +138,28 @@ describe("Limbo", function () {
       this.limboDAO.address
     );
 
-    const migratorFactory = await ethers.getContractFactory("Migrator");
-    this.migrator = await migratorFactory.deploy(
+    const routerFactory = await ethers.getContractFactory("MockUniswapRouter");
+    this.router = await routerFactory.deploy();
+
+    await this.flan.mint(this.router.address, 1000000);
+    await this.mockBehodler.mintTo(this.router.address, 1000000);
+
+    const migrationTokenPairFactory = await ethers.getContractFactory(
+      "MockMigrationUniPair"
+    );
+    this.migrationTokenPair = await migrationTokenPairFactory.deploy(
+      "uni",
+      "uni"
+    );
+    await this.migrationTokenPair.setReserves(1000, 3000);
+    await this.router.setPairAddress(this.migrationTokenPair.address);
+
+    await this.uniswapHelper.configure(
       this.limbo.address,
-      this.mockAngband.address,
-      this.uniswapHelper.address,
+      this.migrationTokenPair.address,
       this.mockBehodler.address,
-      this.addTokenPower.address
+      this.flan.address,
+      this.router.address
     );
 
     await this.limbo.configureCrossingParameters(
@@ -136,9 +172,20 @@ describe("Limbo", function () {
 
     await this.limbo.configureCrossingConfig(
       this.mockBehodler.address,
-      this.migrator.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.addTokenPower.address,
       10000000,
-      10000
+      10000,
+      10,
+      32
+    );
+
+    toggleWhiteList = toggleWhiteListFactory(
+      this.eye,
+      this.limboDAO,
+      this.whiteListingProposal,
+      this.proposalFactory
     );
   });
 
@@ -147,7 +194,37 @@ describe("Limbo", function () {
     await network.provider.send("evm_mine");
   };
 
+  const advanceBlocks = async (blocks) => {
+    for (let i = 0; i < blocks; i++) {
+      await network.provider.send("evm_mine");
+    }
+  };
+
   const stringifyBigNumber = (b) => b.map((i) => i.toString());
+
+  var toggleWhiteListFactory = (
+    eye,
+    dao,
+    whiteListingProposal,
+    proposalFactory
+  ) => {
+    return async function (contractToToggle) {
+      await whiteListingProposal.parameterize(
+        proposalFactory.address,
+        contractToToggle
+      );
+      const requiredFateToLodge = (await dao.proposalConfig())[1];
+
+      await eye.mint(requiredFateToLodge);
+      await eye.approve(dao.address, requiredFateToLodge.mul(2));
+      await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10));
+
+      await proposalFactory.lodgeProposal(whiteListingProposal.address);
+      await dao.vote(whiteListingProposal.address, "100");
+      await advanceTime(100000000);
+      await dao.executeCurrentProposal();
+    };
+  };
 
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
@@ -176,9 +253,13 @@ describe("Limbo", function () {
 
     await this.limbo.configureCrossingConfig(
       this.mockBehodler.address,
-      this.migrator.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.addTokenPower.address,
       10000000,
-      10000
+      10000,
+      10,
+      44
     );
 
     //governanceApproved:
@@ -219,9 +300,13 @@ describe("Limbo", function () {
     await expect(
       this.limbo.configureCrossingConfig(
         this.mockBehodler.address,
-        this.migrator.address,
+        this.mockAngband.address,
+        this.uniswapHelper.address,
+        this.addTokenPower.address,
         10000000,
-        10000
+        10000,
+        10,
+        3
       )
     ).to.be.revertedWith("Limbo: governance action failed.");
 
@@ -575,13 +660,6 @@ describe("Limbo", function () {
 
     //make flashgovernance decision.
     await this.eye.approve(this.flashGovernance.address, 21000000);
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      1,
-      1,
-      true,
-      10000010
-    );
 
     // //we need fate to lodge proposal.
     const requiredFate = (await this.limboDAO.proposalConfig())[1];
@@ -605,11 +683,18 @@ describe("Limbo", function () {
       this.flashGovernance.address,
       this.limbo.address
     );
-    await this.proposalFactory.toggleWhitelistProposal(
-      burnFlashStakeProposal.address
+
+    await toggleWhiteList(burnFlashStakeProposal.address);
+
+    await this.limbo.configureCrossingParameters(
+      this.aave.address,
+      1,
+      1,
+      true,
+      10000010
     );
     await this.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
-    let currentProposal = await this.limboDAO.currentProposal();
+    let currentProposal = (await this.limboDAO.currentProposalState())[4];
     console.log("proposal: " + currentProposal);
     expect(
       currentProposal.toString() !==
@@ -699,9 +784,15 @@ describe("Limbo", function () {
     expect(userInfoBeforeUntake[0].toNumber()).to.equal(10000);
 
     const flanPerSecond = await this.limbo.flanPerSecond();
-    const expectedFlan = flanPerSecond.mul(400001).toString(); // only staker, 1 second extra
+    const expectedFlanLowerbound = flanPerSecond
+      .mul(400001)
+      .div(1000000)
+      .toNumber(); // only staker, 1 second extra
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
-
+    const expectedFlanUpperbound = flanPerSecond
+      .mul(400006)
+      .div(1000000)
+      .toNumber();
     await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
@@ -711,9 +802,14 @@ describe("Limbo", function () {
       0
     );
 
-    expect(userFlanBalanceAfter.sub(userFlanBalanceBefore).toString()).to.equal(
-      expectedFlan
-    );
+    const actualFlanDiff = userFlanBalanceAfter
+      .sub(userFlanBalanceBefore)
+      .div(1000000)
+      .toNumber();
+
+    expect(actualFlanDiff).to.be.greaterThanOrEqual(expectedFlanLowerbound);
+    expect(actualFlanDiff).to.be.lessThanOrEqual(expectedFlanUpperbound);
+
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
@@ -742,7 +838,6 @@ describe("Limbo", function () {
     await this.limbo.connect(secondPerson).stake(this.aave.address, 2000);
 
     await advanceTime(400000);
-    const expectedFlan = flanPerSecond.mul(400001);
 
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
 
@@ -755,9 +850,16 @@ describe("Limbo", function () {
       0
     );
 
-    expect(userFlanBalanceAfter.sub(userFlanBalanceBefore).toString()).to.equal(
-      "3333371666666" // 83%
-    );
+    const changeInFlan = userFlanBalanceAfter
+      .sub(userFlanBalanceBefore)
+      .div("10000000")
+      .toNumber();
+    console.log("change in flan " + changeInFlan);
+    const lowerBound = 333335;
+    const upperBound = 333339;
+    assert.isAbove(changeInFlan, lowerBound);
+    assert.isBelow(changeInFlan, upperBound);
+
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
@@ -807,7 +909,17 @@ describe("Limbo", function () {
     expect(userInfoBeforeUntake[0].toNumber()).to.equal(10000);
 
     const flanPerSecond = await this.limbo.flanPerSecond();
-    const expectedFlan = flanPerSecond.mul(400001).div(4).toString(); // quarter rewards because sharing with other token
+    const expectedFlanLowerRange = flanPerSecond
+      .mul(400001)
+      .div(4)
+      .div(1000000)
+      .toNumber(); // quarter rewards because sharing with other token
+    const expectedFlanUpperRange = flanPerSecond
+      .mul(400003)
+      .div(4)
+      .div(1000000)
+      .toNumber(); // quarter rewards because sharing with other token
+
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
 
     await this.limbo.unstake(this.aave.address, 4000);
@@ -819,9 +931,13 @@ describe("Limbo", function () {
       0
     );
 
-    expect(userFlanBalanceAfter.sub(userFlanBalanceBefore).toString()).to.equal(
-      expectedFlan
-    );
+    const actualFlanDiff = userFlanBalanceAfter
+      .sub(userFlanBalanceBefore)
+      .div(1000000)
+      .toNumber();
+
+    expect(actualFlanDiff).to.be.greaterThanOrEqual(expectedFlanLowerRange);
+    expect(actualFlanDiff).to.be.lessThanOrEqual(expectedFlanUpperRange);
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
@@ -867,9 +983,7 @@ describe("Limbo", function () {
     await this.eye.mint(requiredFate);
     await this.limboDAO.burnAsset(this.eye.address, requiredFate);
 
-    await this.proposalFactory.toggleWhitelistProposal(
-      updateSoulConfigProposal.address
-    );
+    await toggleWhiteList(updateSoulConfigProposal.address);
     await this.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
 
     await this.limboDAO.vote(updateSoulConfigProposal.address, 1000);
@@ -1161,8 +1275,7 @@ describe("Limbo", function () {
     );
 
     await withdrawERC20.parameterize(this.aave.address, secondPerson.address);
-    await this.proposalFactory.toggleWhitelistProposal(withdrawERC20.address);
-
+    await toggleWhiteList(withdrawERC20.address);
     // //we need fate to lodge proposal.
     const requiredFate = (await this.limboDAO.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -1171,8 +1284,8 @@ describe("Limbo", function () {
 
     await this.proposalFactory.lodgeProposal(withdrawERC20.address);
     const fateState = await this.limboDAO.fateState(owner.address);
-    expect(fateState[1].toNumber()).to.be.greaterThan(0);
-    await this.limboDAO.vote(withdrawERC20.address, fateState[1].toNumber());
+    expect(fateState[1].toString()).to.equal("223000000000000000010");
+    await this.limboDAO.vote(withdrawERC20.address, "223000000000000000010");
 
     await advanceTime(6048010);
 
@@ -1191,8 +1304,8 @@ describe("Limbo", function () {
     );
 
     await withdrawERC20.parameterize(this.aave.address, secondPerson.address);
-    await this.proposalFactory.toggleWhitelistProposal(withdrawERC20.address);
 
+    await toggleWhiteList(withdrawERC20.address);
     // //we need fate to lodge proposal.
     const requiredFate = (await this.limboDAO.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -1201,8 +1314,8 @@ describe("Limbo", function () {
 
     await this.proposalFactory.lodgeProposal(withdrawERC20.address);
     const fateState = await this.limboDAO.fateState(owner.address);
-    expect(fateState[1].toNumber()).to.be.greaterThan(0);
-    await this.limboDAO.vote(withdrawERC20.address, fateState[1].toNumber());
+    expect(fateState[1].toString()).to.equal("223000000000000000010");
+    await this.limboDAO.vote(withdrawERC20.address, "223000000000000000010");
 
     await advanceTime(6048010);
     const aaveBalanceBefore = await this.aave.balanceOf(secondPerson.address);
@@ -1231,14 +1344,301 @@ describe("Limbo", function () {
     );
   });
 
-  it("stamping reserves requires wait to pass before migration", async function () {});
-  it("too much reserve drift between stamping and execution fails (divergenceTolerance)", async function () {});
-  it("only threshold souls can migrate", async function () {});
-  it("SCX burnt leaves rectangle of fairness.", async function () {});
-  it("Flan price and liquidity higher post migration.", async function () {});
-  it("soul changed to crossedOver post migration", async function () {});
-  it("token tradeable on Behodler post migration.", async function () {});
-  it("any whitelisted contract can mint flan", async function () {});
-  it("flash governance max tolerance respected", async function () {});
-  it("flan burn fee on transfer proposal", async function () {});
+  it("too much reserve drift between stamping and execution fails (divergenceTolerance)", async function () {
+    await this.limbo.configureCrossingConfig(
+      this.mockBehodler.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.addTokenPower.address,
+      6756,
+      1000,
+      20,
+      105
+    );
+
+    const crossingConfig = await this.limbo.crossingConfig();
+    const minWait = crossingConfig[4];
+    expect(minWait.toNumber()).to.equal(20);
+
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      100, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    //assert state is now waitingToCross
+    const currentSoul = await this.limbo.souls(this.aave.address, 0);
+    expect(currentSoul[5]).to.equal(2);
+
+    const requiredDelayBetweenEndOfStakingAndMigrate = (
+      await this.limbo.crossingConfig()
+    )[5].toNumber();
+
+    await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
+    await this.uniswapHelper.generateFLNQuote();
+
+    const minQuoteWaitDuration = (
+      await this.limbo.crossingConfig()
+    )[4].toNumber();
+
+    //3×10¹⁸
+    //
+    await advanceTime(minQuoteWaitDuration + 1);
+    await this.migrationTokenPair.setReserves(1000, 4000); //divergence = 133.333
+
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
+      "EG"
+    );
+
+    await this.migrationTokenPair.setReserves(2000, 4000); //divergence = 150
+
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
+      "EG"
+    );
+  });
+
+  it("stamping reserves requires wait to pass before migration", async function () {
+    await this.limbo.configureCrossingConfig(
+      this.mockBehodler.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.addTokenPower.address,
+      6756,
+      1000,
+      20,
+      105
+    );
+
+    const crossingConfig = await this.limbo.crossingConfig();
+    const minWait = crossingConfig[4];
+    expect(minWait.toNumber()).to.equal(20);
+
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      100, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    //assert state is now waitingToCross
+    const currentSoul = await this.limbo.souls(this.aave.address, 0);
+    expect(currentSoul[5]).to.equal(2);
+
+    const requiredDelayBetweenEndOfStakingAndMigrate = (
+      await this.limbo.crossingConfig()
+    )[5].toNumber();
+
+    await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
+    await this.uniswapHelper.generateFLNQuote();
+
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
+      "EH"
+    );
+  });
+
+  it("only threshold souls can migrate", async function () {
+    await this.limbo.configureCrossingConfig(
+      this.mockBehodler.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.addTokenPower.address,
+      6756,
+      1000,
+      20,
+      105
+    );
+
+    const crossingConfig = await this.limbo.crossingConfig();
+    const minWait = crossingConfig[4];
+    expect(minWait.toNumber()).to.equal(20);
+
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      100, //crossingThreshold
+      2, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    //assert state is now waitingToCross
+    const currentSoul = await this.limbo.souls(this.aave.address, 0);
+    expect(currentSoul[5]).to.equal(1);
+
+    const requiredDelayBetweenEndOfStakingAndMigrate = (
+      await this.limbo.crossingConfig()
+    )[5].toNumber();
+
+    await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
+    await this.uniswapHelper.generateFLNQuote();
+
+    const minQuoteWaitDuration = (
+      await this.limbo.crossingConfig()
+    )[4].toNumber();
+
+    await advanceTime(minQuoteWaitDuration + 1);
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
+      "EB"
+    );
+  });
+
+  it("SCX burnt leaves rectangle of fairness.", async function () {
+    await this.limbo.configureCrossingConfig(
+      this.mockBehodler.address,
+      this.mockAngband.address,
+      this.uniswapHelper.address,
+      this.addTokenPower.address,
+      6756,
+      1000,
+      20,
+      105
+    );
+
+    const crossingConfig = await this.limbo.crossingConfig();
+    const minWait = crossingConfig[4];
+    expect(minWait.toNumber()).to.equal(20);
+
+    await this.limbo.configureSoul(
+      this.aave.address,
+      100, //alloc
+      100, //crossingThreshold
+      1, //soulType
+      0, //exitPenalty
+      1, //state
+      0
+    );
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    //assert state is now waitingToCross
+    const currentSoul = await this.limbo.souls(this.aave.address, 0);
+    expect(currentSoul[5]).to.equal(2);
+
+    const requiredDelayBetweenEndOfStakingAndMigrate = (
+      await this.limbo.crossingConfig()
+    )[5].toNumber();
+
+    await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
+    await this.uniswapHelper.generateFLNQuote();
+
+    const minQuoteWaitDuration = (
+      await this.limbo.crossingConfig()
+    )[4].toNumber();
+
+    //3×10¹⁸
+    //
+    await advanceBlocks(minQuoteWaitDuration + 1);
+
+    //Just for mock testing
+    await this.flan.mint(this.router.address, 10000);
+    await this.mockBehodler.mintTo(this.router.address, 10000);
+
+    const scxBalanceOfPairBefore = await this.mockBehodler.balanceOf(
+      this.migrationTokenPair.address
+    );
+
+    const blackHoleAddress = await this.uniswapHelper.blackHole();
+
+    const blackHoleBalanceBefore = await this.migrationTokenPair.balanceOf(
+      blackHoleAddress
+    );
+    this.limbo.migrate(this.aave.address);
+    const blackHoleBalanceAfter = await this.migrationTokenPair.balanceOf(
+      blackHoleAddress
+    );
+
+    const scxBalanceOfPairAfter = await this.mockBehodler.balanceOf(
+      this.migrationTokenPair.address
+    );
+
+    expect(
+      scxBalanceOfPairAfter.sub(scxBalanceOfPairBefore).toNumber()
+    ).to.equal(54);
+
+    expect(
+      blackHoleBalanceAfter.sub(blackHoleBalanceBefore).toNumber()
+    ).to.equal(750);
+
+    //assert crossed over
+    const state = (await this.limbo.souls(this.aave.address, 0))[5].toString();
+    expect(state).to.equal("3");
+  });
+
+  it("any whitelisted contract can mint flan", async function () {
+    //assert secondPerson can't mint flan
+    await expect(
+      this.flan.connect(secondPerson).mint(owner.address, 1000)
+    ).to.be.revertedWith("Flan: Mint allowance exceeded");
+
+    //whitelist secondPerson
+    await this.flan.whiteListMinting(secondPerson.address, true);
+
+    //mint as secondPerson
+    const flanBefore = await this.flan.balanceOf(owner.address);
+    await this.flan.connect(secondPerson).mint(owner.address, 1000);
+    const flanAfter = await this.flan.balanceOf(owner.address);
+    expect(flanAfter.sub(flanBefore).toString()).to.equal("1000");
+
+    //unwhitelist secondPerson
+    await this.flan.whiteListMinting(secondPerson.address, false);
+
+    //assert secondPerson can't mint flan
+    await expect(
+      this.flan.connect(secondPerson).mint(owner.address, 1000)
+    ).to.be.revertedWith("Flan: Mint allowance exceeded");
+  });
+
+  it("flan burn fee on transfer proposal", async function () {
+    const feechangeProposalFactory = await ethers.getContractFactory('AdjustFlanFeeOnTransferProposal')
+    const feechangeProposal = await feechangeProposalFactory.deploy(this.limboDAO.address,"changer")
+
+    await feechangeProposal.parameterize(this.flan.address,3)
+
+    await this.flan.mint(owner.address,100)
+
+    //transfer flan to second and assert 100 arrives
+    await this.flan.transfer(secondPerson.address,100)
+    expect(await this.flan.balanceOf(secondPerson.address)).to.equal(100)
+
+    //execute proposal
+    await this.eye.mint('100000000000000000000')
+    await this.eye.approve(this.limboDAO.address,'100000000000000000000')
+    await this.limboDAO.burnAsset(this.eye.address,'100000000000000000000')
+    await toggleWhiteList(feechangeProposal.address)
+
+    await this.proposalFactory.lodgeProposal(feechangeProposal.address)
+    await this.limboDAO.vote(feechangeProposal.address,1000)
+
+    await advanceTime(1000000000)
+
+    await this.limboDAO.executeCurrentProposal()
+    //transfer flan back to owner and assert only 97 arrive
+    const totalSupplyBefore = await this.flan.totalSupply()
+    await this.flan.connect(secondPerson).transfer(owner.address,100)
+    expect(await this.flan.balanceOf(owner.address)).to.equal(97)
+
+
+    //assert flan supply fallen by 3
+    const totalSupplyAfter = await this.flan.totalSupply()
+    expect(totalSupplyBefore.sub(totalSupplyAfter)).to.equal(3)
+  });
+
 });

@@ -6,6 +6,20 @@ import "../facades/BehodlerLike.sol";
 contract MockBehodler is ERC677 {
     address addTokenPower;
 
+    function withdrawLiquidityFindSCX(
+        address outputToken,
+        uint256 tokensToRelease,
+        uint256 scx,
+        uint256 passes
+    ) external view returns (uint256){
+        return 200;
+    }
+
+
+    function mintTo(address recipient, uint amount ) public {
+          _mint(recipient, amount);
+    }
+
     function mint(uint256 amount) public {
         require(
             msg.sender == addTokenPower,

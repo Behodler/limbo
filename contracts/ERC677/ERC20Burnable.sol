@@ -409,9 +409,9 @@ abstract contract ERC20Burnable is Context, ERC20 {
      *
      * See {ERC20-_burn}.
      */
-    function burn(uint256 amount) public virtual {
-            //    revert("shlo shoooey");
-        _burn(_msgSender(), amount);
+    function burn(uint256 amount) public virtual returns (bool) {
+       _burn(_msgSender(), amount);
+       return true;
     }
 
     /**

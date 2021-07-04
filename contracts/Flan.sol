@@ -30,22 +30,14 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         mintAllowance[minter] = mintAllowance[minter] + _allowance;
     }
 
-    function mint(uint256 amount) public {
-        uint256 allowance = mintAllowance[_msgSender()];
-        require(
-            _msgSender() == owner() || allowance >= amount,
-            "Flan: Mint allowance exceeded"
-        );
-        approvedMint(_msgSender(), amount, _msgSender(), allowance);
-    }
-
-    function mint(address recipient, uint256 amount) public {
-        uint256 allowance = mintAllowance[_msgSender()];
+    function mint(address recipient, uint256 amount) public returns (bool) {
+        uint256 allowance = mintAllowance[_msgSender()]; 
         require(
             _msgSender() == owner() || allowance >= amount,
             "Flan: Mint allowance exceeded"
         );
         approvedMint(recipient, amount, _msgSender(), allowance);
+        return true;
     }
 
     function approvedMint(

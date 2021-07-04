@@ -4,7 +4,11 @@ import "../facades/UniswapRouterLike.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockUniswapRouter is UniswapRouterLike {
+address pair;
 
+function setPairAddress(address _pair) public {
+pair = _pair;
+}
     function quote(
         uint256 amountA,
         uint256 reserveA,
@@ -25,7 +29,7 @@ contract MockUniswapRouter is UniswapRouterLike {
         address to,
         uint256 deadline
     ) external override returns (uint256[] memory amounts) {
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(path[0]).transferFrom(msg.sender, pair, amountIn);
         IERC20(path[1]).transfer(to, amountOutMin);
     }
 }

@@ -11,10 +11,6 @@ describe("DAO Proposals", function () {
 
   beforeEach(async function () {
     [owner, secondPerson] = await ethers.getSigners();
-    const ProposalFactoryFactory = await ethers.getContractFactory(
-      "ProposalFactory"
-    );
-    proposalFactory = await ProposalFactoryFactory.deploy();
 
     const UniswapFactoryFactory = await ethers.getContractFactory(
       "UniswapFactory"
@@ -119,9 +115,26 @@ describe("DAO Proposals", function () {
     });
 
     dao = await daoFactory.deploy();
+    const firstProposalFactory = await ethers.getContractFactory(
+      "ToggleWhitelistProposalProposal"
+    );
+    this.whiteListingProposal = await firstProposalFactory.deploy(
+      dao.address,
+      "toggle whitelist"
+    );
 
-    const flashGovernanceFactory = await ethers.getContractFactory('FlashGovernanceArbiter');
-    const flashGovernance = await  flashGovernanceFactory.deploy(dao.address);
+    const ProposalFactoryFactory = await ethers.getContractFactory(
+      "ProposalFactory"
+    );
+    proposalFactory = await ProposalFactoryFactory.deploy(
+      dao.address,
+      this.whiteListingProposal.address
+    );
+
+    const flashGovernanceFactory = await ethers.getContractFactory(
+      "FlashGovernanceArbiter"
+    );
+    const flashGovernance = await flashGovernanceFactory.deploy(dao.address);
 
     const GovernableStubFactory = await ethers.getContractFactory(
       "GovernableStub"
@@ -160,7 +173,7 @@ describe("DAO Proposals", function () {
       );
     }
     await dao.makeLive();
-    await proposalFactory.seed(dao.address);
+    await proposalFactory.setDAO(dao.address);
 
     const UpdateProposalConfigProposalFactory = await ethers.getContractFactory(
       "UpdateProposalConfigProposal"
@@ -170,11 +183,30 @@ describe("DAO Proposals", function () {
         dao.address,
         "UPDATE_CONFIG"
       );
-    await proposalFactory.toggleWhitelistProposal(
-      updateProposalConfigProposal.address
+
+    await toggleWhiteList(
+      updateProposalConfigProposal.address,
+      this.whiteListingProposal
     );
     //stringToBytes
   });
+
+  const toggleWhiteList = async (contractToToggle, whiteListingProposal) => {
+    await whiteListingProposal.parameterize(
+      proposalFactory.address,
+      contractToToggle
+    );
+    const requiredFateToLodge = (await dao.proposalConfig())[1];
+
+    await eye.mint(requiredFateToLodge);
+    await eye.approve(dao.address, requiredFateToLodge.mul(2));
+    await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10));
+
+    await proposalFactory.lodgeProposal(whiteListingProposal.address);
+    await dao.vote(whiteListingProposal.address, "100");
+    await advanceTime(100000000);
+    await dao.executeCurrentProposal();
+  };
 
   const advanceTime = async (seconds) => {
     await network.provider.send("evm_increaseTime", [seconds]); //6 hours
@@ -182,7 +214,7 @@ describe("DAO Proposals", function () {
   };
   const ONE = BigInt("1000000000000000000");
   const NAUGHT_POINT_ONE = ONE / 10n;
-
+  
   it("Insufficient fate to lodge rejected", async function () {
     await expect(
       proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
@@ -195,10 +227,8 @@ describe("DAO Proposals", function () {
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await dao.burnAsset(eye.address, eyeToBurn);
-    const currentProposalBefore = await dao.currentProposal();
-    expect(currentProposalBefore.toString()).to.equal(zero);
     await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
-    const currentProposalAfter = await dao.currentProposal();
+    const currentProposalAfter = (await dao.currentProposalState())[4];
     expect(currentProposalAfter.toString()).to.equal(
       updateProposalConfigProposal.address
     );
@@ -209,8 +239,6 @@ describe("DAO Proposals", function () {
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await dao.burnAsset(eye.address, eyeToBurn);
-    const currentProposalBefore = await dao.currentProposal();
-    expect(currentProposalBefore.toString()).to.equal(zero);
     await updateProposalConfigProposal.parameterize(
       100,
       200,
@@ -221,7 +249,7 @@ describe("DAO Proposals", function () {
     expect(params[0].toString()).to.equal("100");
     expect(params[1].toString()).to.equal("200");
     expect(params[2]).to.equal(proposalFactory.address);
-    const currentProposalAfter = await dao.currentProposal();
+    const currentProposalAfter = (await dao.currentProposalState())[4];
     expect(currentProposalAfter.toString()).to.equal(
       updateProposalConfigProposal.address
     );
@@ -240,8 +268,6 @@ describe("DAO Proposals", function () {
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await dao.burnAsset(eye.address, eyeToBurn);
-    const currentProposalBefore = await dao.currentProposal();
-    expect(currentProposalBefore.toString()).to.equal(zero);
     await updateProposalConfigProposal.parameterize(
       100,
       200,
@@ -258,14 +284,13 @@ describe("DAO Proposals", function () {
       "ASSET"
     );
 
-    const currentState = await dao.currentProposalState();
-    const currentProposal = await dao.currentProposal();
     await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false);
-    await proposalFactory.toggleWhitelistProposal(
-      setAssetApprovalProposal.address
-    );
+
     await expect(
-      proposalFactory.lodgeProposal(setAssetApprovalProposal.address)
+      toggleWhiteList(
+        setAssetApprovalProposal.address,
+        this.whiteListingProposal
+      )
     ).to.be.revertedWith("LimboDAO: active proposal.");
   });
 
@@ -277,8 +302,6 @@ describe("DAO Proposals", function () {
 
     //fate before
     const fateBeforeLodge = (await dao.fateState(owner.address))[1];
-    const currentProposalBefore = await dao.currentProposal();
-    expect(currentProposalBefore.toString()).to.equal(zero);
     await updateProposalConfigProposal.parameterize(
       100,
       "223000000000000000000",
@@ -305,6 +328,7 @@ describe("DAO Proposals", function () {
     //3*24*60*60 =259200
     await advanceTime(259200);
     const fateBeforeExecute = (await dao.fateState(owner.address))[1];
+    console.log("owner: " + owner.address);
     await dao.executeCurrentProposal();
     const fateAfterExecute = (await dao.fateState(owner.address))[1];
     expect(fateAfterExecute.sub(fateBeforeExecute).toString()).to.equal(
@@ -312,6 +336,7 @@ describe("DAO Proposals", function () {
     );
   });
 
+  
   it("voting no on current proposal makes it unexecutable.", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
@@ -320,8 +345,6 @@ describe("DAO Proposals", function () {
 
     //fate before
     const fateBeforeLodge = (await dao.fateState(owner.address))[1];
-    const currentProposalBefore = await dao.currentProposal();
-    expect(currentProposalBefore.toString()).to.equal(zero);
     await updateProposalConfigProposal.parameterize(
       100,
       "123",
@@ -349,11 +372,12 @@ describe("DAO Proposals", function () {
     await advanceTime(259200);
     const fateBeforeExecute = (await dao.fateState(owner.address))[1];
     const configBefore = await dao.proposalConfig();
+ 
     await dao.executeCurrentProposal();
     const fateAfterExecute = (await dao.fateState(owner.address))[1];
     await expect(fateBeforeExecute).to.equal(fateBeforeExecute);
 
-    const decisionState = (await dao.currentProposalState())[1];
+    const decisionState = (await dao.previousProposalState())[1];
     expect(decisionState).to.equal(2);
     const configAfter = await dao.proposalConfig();
 
@@ -375,12 +399,14 @@ describe("DAO Proposals", function () {
     );
 
     await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false);
-    await proposalFactory.toggleWhitelistProposal(
-      setAssetApprovalProposal.address
+
+    await toggleWhiteList(
+      setAssetApprovalProposal.address,
+      this.whiteListingProposal
     );
     await proposalFactory.lodgeProposal(setAssetApprovalProposal.address);
 
-    const currentProposal = await dao.currentProposal();
+    const currentProposal = (await dao.currentProposalState())[4];
     expect(currentProposal).to.equal(setAssetApprovalProposal.address);
 
     const assetApprovedBefore = await dao.assetApproved(sushiEYEULP.address);
@@ -412,8 +438,6 @@ describe("DAO Proposals", function () {
 
     //fate before
     const fateBeforeLodge = (await dao.fateState(owner.address))[1];
-    const currentProposalBefore = await dao.currentProposal();
-    expect(currentProposalBefore.toString()).to.equal(zero);
     await updateProposalConfigProposal.parameterize(
       100,
       "123",
@@ -470,4 +494,5 @@ describe("DAO Proposals", function () {
         .vote(updateProposalConfigProposal.address, "100")
     ).to.be.revertedWith("LimboDAO: voting for current proposal has ended.");
   });
+  
 });

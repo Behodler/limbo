@@ -4,10 +4,10 @@ import "./facades/UniPairLike.sol";
 import "./facades/UniswapRouterLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
+import "hardhat/console.sol";
+import "./ERC677/ERC20Burnable.sol";
 
-contract BlackHole {
-
-}
+contract BlackHole {}
 
 contract UniswapHelper is Governable {
     address limbo;
@@ -30,7 +30,11 @@ contract UniswapHelper is Governable {
     }
 
     UniVARS VARS;
-    uint256 constant TERA = 1e12;
+    uint256 constant EXA = 1e18;
+
+    function blackHole () public view returns (address){
+        return VARS.blackHole;
+    }
 
     constructor(address _limbo, address limboDAO) Governable(limboDAO) {
         limbo = _limbo;
@@ -38,7 +42,7 @@ contract UniswapHelper is Governable {
     }
 
     struct FlanQuote {
-        uint256 teraRatio;
+        uint256 exaRatio;
         uint256 blockProduced;
     }
     FlanQuote public latestFlanQuote;
@@ -60,14 +64,15 @@ contract UniswapHelper is Governable {
     //First punch this and then wait a c
     function generateFLNQuote() public {
         // block delay
-        latestFlanQuote.teraRatio = getLatestFLNQuote();
+        latestFlanQuote.exaRatio = getLatestFLNQuote();
         latestFlanQuote.blockProduced = block.number;
     }
 
     function getLatestFLNQuote() internal view returns (uint256) {
-        (uint256 reserve1, uint256 reserve2, ) =
-            VARS.Flan_SCX_tokenPair.getReserves();
-        return ((reserve1 * TERA)/reserve2)/TERA;
+        (uint256 reserve1, uint256 reserve2, ) = VARS
+        .Flan_SCX_tokenPair
+        .getReserves();
+        return ((reserve1 * EXA) / reserve2);
     }
 
     function buyAndPoolFlan(
@@ -87,18 +92,24 @@ contract UniswapHelper is Governable {
             : (VARS.outputToken, VARS.inputToken);
 
         uint256 flanQuote = getLatestFLNQuote();
-        uint256 divergence =
-            latestFlanQuote.teraRatio > flanQuote
-                ? latestFlanQuote.teraRatio - flanQuote
-                : flanQuote - latestFlanQuote.teraRatio;
-        require(divergence < divergenceTolerance, "E11");
+        uint256 divergence = latestFlanQuote.exaRatio > flanQuote
+            ? (latestFlanQuote.exaRatio * 100) / flanQuote
+            : (flanQuote * 100) / latestFlanQuote.exaRatio;
+        console.log(
+            "divergence %s, divergence tolerance %s",
+            divergence,
+            divergenceTolerance
+        );
+
+        require(divergence < divergenceTolerance, "EG");
         require(
             block.number - latestFlanQuote.blockProduced > minQuoteWaitDuration,
-            "E12"
+            "EH"
         );
         {
-            (uint256 reserve1, uint256 reserve2, ) =
-                VARS.Flan_SCX_tokenPair.getReserves();
+            (uint256 reserve1, uint256 reserve2, ) = VARS
+            .Flan_SCX_tokenPair
+            .getReserves();
             VARS.reserveA = VARS.inputToken == VARS.token0
                 ? reserve1
                 : reserve2;
@@ -107,7 +118,8 @@ contract UniswapHelper is Governable {
                 : reserve1;
 
             (VARS.transferFee, , ) = BehodlerLike(VARS.behodler).config();
-            VARS.amountIn = (rectangleOfFairness *VARS.transferFee)/1000;
+            VARS.amountIn = ((rectangleOfFairness * (1000 - VARS.transferFee)) /
+                2000);
 
             VARS.expectedOutputToken = VARS.router.quote(
                 VARS.amountIn,
@@ -118,6 +130,10 @@ contract UniswapHelper is Governable {
             VARS.path = new address[](2);
             VARS.path[0] = VARS.behodler;
             VARS.path[1] = VARS.flan;
+            IERC20(VARS.behodler).approve(
+                address(VARS.router),
+                type(uint256).max
+            );
 
             //swap scx for flan
             VARS.router.swapExactTokensForTokens(
@@ -125,7 +141,7 @@ contract UniswapHelper is Governable {
                 VARS.expectedOutputToken,
                 VARS.path,
                 address(VARS.Flan_SCX_tokenPair),
-                type(uint).max
+                type(uint256).max
             );
 
             //mint FLN/SCX LP
@@ -133,6 +149,7 @@ contract UniswapHelper is Governable {
                 address(VARS.Flan_SCX_tokenPair),
                 VARS.amountIn
             );
+
         }
         lpMinted = VARS.Flan_SCX_tokenPair.mint(VARS.blackHole);
     }
