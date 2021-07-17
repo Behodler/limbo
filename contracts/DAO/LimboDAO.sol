@@ -59,6 +59,7 @@ contract LimboDAO is Ownable {
 
     using TransferHelper for address;
     uint256 constant ONE = 1 ether;
+    uint precision = 1e9;
 
     struct DomainConfig {
         address limbo;
@@ -122,7 +123,7 @@ contract LimboDAO is Ownable {
     }
 
     modifier onlySuccessfulProposal {
-       // console.log('onlySuccessfulProposal');
+        // console.log('onlySuccessfulProposal');
         require(successfulProposal(msg.sender), "LimboDAO: approve proposal");
         _;
         //nextProposal();
@@ -149,8 +150,8 @@ contract LimboDAO is Ownable {
                     currentProposalState.proposal.orchestrateExecute();
                     fateState[currentProposalState.proposer]
                     .fateBalance += proposalConfig.requiredFateStake;
-                        //  console.log("accepted");
-                        //  console.log("current proposer %s",currentProposalState.proposer);
+                    //  console.log("accepted");
+                    //  console.log("current proposer %s",currentProposalState.proposer);
                 } else {
                     // console.log("rejected");
                     currentProposalState.decision = ProposalDecision.rejected;
@@ -186,6 +187,7 @@ contract LimboDAO is Ownable {
         address sushiFactory,
         address uniFactory,
         address flashGoverner,
+        uint precisionOrderOfMagnitude,
         address[] memory sushiLPs,
         address[] memory uniLPs
     ) public onlyOwner {
@@ -193,6 +195,7 @@ contract LimboDAO is Ownable {
         proposalConfig.votingDuration = 2 days;
         proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
         proposalConfig.proposalFactory = proposalFactory;
+        precision = 10**precisionOrderOfMagnitude;
         for (uint256 i = 0; i < sushiLPs.length; i++) {
             require(
                 UniPairLike(sushiLPs[i]).factory() == sushiFactory,
@@ -312,7 +315,7 @@ contract LimboDAO is Ownable {
         emit assetApproval(asset, approved);
     }
 
-    function stakeEYEBasedAsset(
+    function setEYEBasedAssetStake(
         uint256 finalAssetBalance,
         uint256 finalEYEBalance,
         uint256 rootEYE,
@@ -353,9 +356,10 @@ contract LimboDAO is Ownable {
             require(actualEyeBalance > 0, "LimboDAO: No EYE");
             uint256 totalSupply = IERC20(asset).totalSupply();
             uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
-            uint256 impliedEye = (eyePerUnit * finalAssetBalance) / ONE;
+            uint256 impliedEye = (eyePerUnit * finalAssetBalance) / (ONE*precision);
+            finalEYEBalance/=precision;
             require(
-                finalEYEBalance == impliedEye,
+                finalEYEBalance == impliedEye, //precision cap
                 "LimboDAO: stake invariant check 2."
             );
             clout.balance = finalAssetBalance;

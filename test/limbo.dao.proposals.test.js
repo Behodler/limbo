@@ -151,6 +151,7 @@ describe("DAO Proposals", function () {
       sushiSwapFactory.address,
       uniswapFactory.address,
       flashGovernance.address,
+      9,
       [daiEYESLP.address, linkEYESLP.address, sushiEYESLP.address],
       [daiEYEULP.address, linkEYEULP.address, sushiEYEULP.address]
     );
