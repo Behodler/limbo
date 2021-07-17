@@ -2,17 +2,21 @@
 start
 :desireFate;
 if(permanence) then (limboDAO.burnAsset())
-    if(asset type) then (eye)
-    :fateCreated += amount * 10;
-    else (LP)
-       :fateCreated += eye balance of LP * 20;
-    endif
+    partition #thistle "transaction"{
+        if(asset type) then (eye)
+            :fateCreated += amount * 10;
+        else (LP)
+            :fateCreated += eye balance of LP * 20;
+        endif
+    }
 else (limboDAO.setEYEBasedAssetStake())
-   if(asset type) then (eye)
-    :fate per day += sqrt(amount);
-    else (LP)
-        :fate per day += sqrt(eye balance of LP) * 2;
-    endif
+    partition #CornflowerBlue "transaction"{
+        if(asset type) then (eye)
+            :fate per day += sqrt(amount);
+        else (LP)
+            :fate per day += sqrt(eye balance of LP) * 2;
+        endif
+    }
 endif
 stop
 @enduml
