@@ -167,6 +167,10 @@ describe("DAO staking", function () {
   const ONE = BigInt("1000000000000000000");
   const NAUGHT_POINT_ONE = ONE / 10n;
 
+  const bigIntify = (num) => {
+    return BigInt(num.toString());
+  };
+
   it("only eye or approved assets can be staked", async function () {
     await dao.makeLive();
     await expect(
@@ -296,6 +300,10 @@ describe("DAO staking", function () {
   //Tests staking and unstaking
   it("Staking multiple asset types sets fate rate correctly", async function () {
     await dao.makeLive();
+    const balanceOfDaiEYESLPBeforeStake = await daiEYESLP.balanceOf(
+      owner.address
+    );
+
     let finalEyeBalance = NAUGHT_POINT_ONE * BigInt(56);
     let finalAssetBalance = 5n * ONE;
     let rootEYEOfLP = 2366431913n;
@@ -305,7 +313,21 @@ describe("DAO staking", function () {
       rootEYEOfLP.toString(),
       daiEYESLP.address
     );
+
+    const balanceOfDaiEYESLPAftertake = await daiEYESLP.balanceOf(
+      owner.address
+    );
+
+    expect(
+      balanceOfDaiEYESLPBeforeStake.sub(balanceOfDaiEYESLPAftertake).toString()
+    ).to.equal(finalAssetBalance.toString());
+
+    const eyeBalanceBeforeStake = await eye.balanceOf(owner.address);
     await dao.setEYEBasedAssetStake(100, 100, 10, eye.address);
+    const eyeBalanceAfterStake = await eye.balanceOf(owner.address);
+    expect(eyeBalanceBeforeStake.sub(eyeBalanceAfterStake).toString()).to.equal(
+      "100"
+    );
 
     let fateState = await dao.fateState(owner.address);
     let expectedFateWeight = 10n + rootEYEOfLP * 2n;
@@ -313,12 +335,17 @@ describe("DAO staking", function () {
 
     await dao.setEYEBasedAssetStake(81, 81, 9, eye.address);
 
+    const eyeBalanceAfterReducedStake = await eye.balanceOf(owner.address);
+    expect(
+      eyeBalanceAfterReducedStake.sub(eyeBalanceAfterStake).toString()
+    ).to.equal("19");
+
     fateState = await dao.fateState(owner.address);
     expectedFateWeight -= 1n;
     expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
 
     finalEyeBalance = NAUGHT_POINT_ONE * BigInt(40);
-    finalAssetBalance = 3571428571435555566n ;
+    finalAssetBalance = 3571428571435555566n;
     rootEYEOfLP = 2000000000n;
 
     await dao.setEYEBasedAssetStake(
@@ -328,10 +355,18 @@ describe("DAO staking", function () {
       daiEYESLP.address
     );
 
+    const daiEYESLPBalanceAfterReducedStake = await daiEYESLP.balanceOf(
+      owner.address
+    );
+    expect(
+      daiEYESLPBalanceAfterReducedStake
+        .sub(balanceOfDaiEYESLPAftertake)
+        .toString()
+    ).to.equal('1428571428564444434');
+
     expectedFateWeight = 9n + rootEYEOfLP * 2n;
     fateState = await dao.fateState(owner.address);
     expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
-
   });
 
   it("burn eye gives 10x fate", async function () {
