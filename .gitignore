@@ -117,3 +117,5 @@ reference
 TODO.txt
 
 build/
+demo*
+usageReadme.txt

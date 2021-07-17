@@ -238,11 +238,6 @@ contract LimboDAO is Ownable {
             address(currentProposalState.proposal) == address(0),
             "LimboDAO: active proposal."
         );
-        // console.log(
-        //     "fateBalance: %s, required:  %s",
-        //     fateState[proposer].fateBalance,
-        //     proposalConfig.requiredFateStake * 2
-        // );
 
         fateState[proposer].fateBalance =
             fateState[proposer].fateBalance -
