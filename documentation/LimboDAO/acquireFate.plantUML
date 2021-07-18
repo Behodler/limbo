@@ -1,4 +1,4 @@
-@startuml
+@startuml aquire fate
 start
 :desireFate;
 if(permanence) then (limboDAO.burnAsset())

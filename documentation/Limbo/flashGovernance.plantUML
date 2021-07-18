@@ -1,0 +1,29 @@
+@startuml
+!pragma useVerticalIf on
+start
+#CornflowerBlue:execute flash governance function
+that hasn't been approved by proposal;
+partition #ivory "transaction"{
+    if(user has enough of flash governance defined asset) then (yes)
+        if(user has flash executed this function within an flash epoch ago) then (yes)
+            #pink:revert;
+            stop
+        else (no)
+            'main sequence
+            if(any flashgov decision happened recently (epoch)) then (yes)
+                #pink:revert;
+                stop
+            else (no)
+                :set flash timeout for this user/function combo to epoch;
+                :deposit funds from user;
+                :set global last flashgov action to now;
+            endif
+        endif
+    else (no)
+        #pink:revert;
+        stop
+    endif
+    #lightgreen: execute function;
+}
+stop
+@enduml

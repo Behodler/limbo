@@ -1,4 +1,4 @@
-@startuml
+@startuml vote on proposal
 start
 #Aquamarine:limboDAO.vote(address proposal, int fate);
 note right
