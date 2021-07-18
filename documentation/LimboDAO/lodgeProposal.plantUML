@@ -1,5 +1,4 @@
 @startuml
-
 start
 :proposalFactory.lodgeProposal(address proposal);
 partition #thistle "transaction"{

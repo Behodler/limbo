@@ -1,0 +1,33 @@
+@startuml
+start
+#Aquamarine:limboDAO.vote(address proposal, int fate);
+note right
+    positive fate: yes
+    negative fate: no
+end note
+partition #Lavender "transaction"{
+    if(dao is live) then (yes)
+        if (proposal is in voting state) then (yes)
+            if(less than 1 hour remaining)
+                if(voting period is over) then (yes)
+                    #pink:revert;
+                    stop
+                else if(vote flips direction of proposal) then (yes)
+                    #blue: add 2 hours to deadline;
+                else (no)
+
+                endif
+            endif 
+            #cyan:reduce user fate balance by\n absolute value of fate (revert if overflow);
+            #lightgreen:adjust proposal vote by fate;
+        else (no)
+            #pink:revert;
+            stop
+        endif
+    else (no)
+        #pink:revert;
+        stop
+    endif
+}
+stop
+@enduml

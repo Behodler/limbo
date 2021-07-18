@@ -59,7 +59,7 @@ contract LimboDAO is Ownable {
 
     using TransferHelper for address;
     uint256 constant ONE = 1 ether;
-    uint precision = 1e9;
+    uint256 precision = 1e9;
 
     struct DomainConfig {
         address limbo;
@@ -187,7 +187,7 @@ contract LimboDAO is Ownable {
         address sushiFactory,
         address uniFactory,
         address flashGoverner,
-        uint precisionOrderOfMagnitude,
+        uint256 precisionOrderOfMagnitude,
         address[] memory sushiLPs,
         address[] memory uniLPs
     ) public onlyOwner {
@@ -265,19 +265,19 @@ contract LimboDAO is Ownable {
             proposalConfig.votingDuration - 1 hours
         ) {
             int256 currentFate = currentProposalState.fate;
-            //The following if statement checks if the vote is flipped by fate
+            //check if voting has ended
             if (
+                block.timestamp - currentProposalState.start >
+                proposalConfig.votingDuration
+            ) {
+                revert("LimboDAO: voting for current proposal has ended.");
+            } else if (  //The following if statement checks if the vote is flipped by fate
                 fate * currentFate < 0 && //sign different
                 (fate + currentFate) * fate > 0 //fate flipped current fate onto the same side of zero as fate
             ) {
                 currentProposalState.start =
                     currentProposalState.start +
                     2 hours;
-            } else if (
-                block.timestamp - currentProposalState.start >
-                proposalConfig.votingDuration
-            ) {
-                revert("LimboDAO: voting for current proposal has ended.");
             }
         }
         uint256 cost = fate > 0 ? uint256(fate) : uint256(-fate);
@@ -351,8 +351,9 @@ contract LimboDAO is Ownable {
             require(actualEyeBalance > 0, "LimboDAO: No EYE");
             uint256 totalSupply = IERC20(asset).totalSupply();
             uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
-            uint256 impliedEye = (eyePerUnit * finalAssetBalance) / (ONE*precision);
-            finalEYEBalance/=precision;
+            uint256 impliedEye = (eyePerUnit * finalAssetBalance) /
+                (ONE * precision);
+            finalEYEBalance /= precision;
             require(
                 finalEYEBalance == impliedEye, //precision cap
                 "LimboDAO: stake invariant check 2."
