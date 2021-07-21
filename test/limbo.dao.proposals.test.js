@@ -465,8 +465,10 @@ describe("DAO Proposals", function () {
     //47*60*60+60  =169260
     await advanceTime(169260);
 
-    const timeRemainingBeforeSwingVote = await dao.timeRemainingOnProposal();
-    expect(timeRemainingBeforeSwingVote.toString()).to.equal("3536");
+    const timeRemainingBeforeSwingVote = (await dao.timeRemainingOnProposal()).toNumber();
+    expect(timeRemainingBeforeSwingVote).to.be.greaterThan(3534);
+    expect(timeRemainingBeforeSwingVote).to.be.lessThan(3537);
+    
 
     await dao
       .connect(secondPerson)

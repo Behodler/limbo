@@ -18,12 +18,14 @@ partition #LightGrey "transaction"{
             'main sequence
             :transfer amount from user to limbo;
             if(user has accumulated rewards previously on this token) then (yes)
+                :transfer accumulated rewards to user;
+            else(no)
+
             endif
-            :note -> need to review if the rule that only allows claiming reward with no exit penalty is necessary.
-            Also refactor? ;
             if (new balance of token on limbo > migration threshold) then (yes)
                 :set soul state to 'waitingToCross';
                 :set stakingEndTimeStamp to now;
+            else (no)
             endif
 
         else (no)

@@ -530,10 +530,12 @@ describe("Limbo", function () {
     await this.limbo.claimBonus(this.aave.address, 0);
 
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
-    console.log((await this.flan.balanceOf(owner.address)).toString());
-    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
-      "440010199559" //crossing bonus * staked tokens.
-    );
+    const lowerBound = "440010199559";
+    const upperBound = "440030199559";
+    const change = flanBalanceAfter.sub(flanBalanceBefore);
+    const gtLB = change.gte(lowerBound);
+    const ltUP = change.lte(upperBound);
+    expect(gtLB && ltUP).to.be.true;
   });
 
   it("perpetual pools have no upper limit", async function () {

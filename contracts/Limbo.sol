@@ -389,6 +389,7 @@ contract Limbo is Governable {
             uint256 pending = ((user.stakedAmount *
                 soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
             if (pending > 0) {
+                pending -= ((uint256(soul.exitPenalty)) * pending) / myriad; //staking more on an exitPenalty soul is like unstaking and restaking logcically. Without this incentive, users can game the system by staking more than they need.
                 Flan.safeTransfer(msg.sender, pending);
             }
 
