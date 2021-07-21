@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-abstract contract UniswapHelperLike {
+abstract contract AMMHelper {
     function buyAndPoolFlan(
         uint256 divergenceTolerance,
         uint256 minQuoteWaitDuration,

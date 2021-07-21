@@ -1,0 +1,39 @@
+@startuml
+start
+#PaleTurquoise:Limbo.stake(address token, uint256 amount);
+partition #LightGrey "transaction"{
+    if(limbo is enabled) then(yes)
+        partition #MistyRose "update soul"{
+            if(soul is initialized) then (yes)
+                if(total staked balance of soul>0) then(yes)
+                    :mint flan => duration*flanPerSecond*relativeAllocPoints;
+                endif
+                :update reward update timestamp for soul;
+            else (no)
+                #lightpink:revert;
+                stop
+            endif
+        }
+        if(soul is in staking state) then (yes)
+            'main sequence
+            :transfer amount from user to limbo;
+            if(user has accumulated rewards previously on this token) then (yes)
+            endif
+            :note -> need to review if the rule that only allows claiming reward with no exit penalty is necessary.
+            Also refactor? ;
+            if (new balance of token on limbo > migration threshold) then (yes)
+                :set soul state to 'waitingToCross';
+                :set stakingEndTimeStamp to now;
+            endif
+
+        else (no)
+            #lightpink:revert;
+            stop
+        endif
+    else (no)
+        #lightpink:revert;
+        stop
+    endif
+}
+stop
+@enduml

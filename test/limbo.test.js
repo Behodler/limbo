@@ -179,7 +179,9 @@ describe("Limbo", function () {
       10000000,
       10000,
       10,
-      32
+      32,
+      0,
+      0
     );
 
     toggleWhiteList = toggleWhiteListFactory(
@@ -260,7 +262,9 @@ describe("Limbo", function () {
       10000000,
       10000,
       10,
-      44
+      44,
+      0,
+      0
     );
 
     //governanceApproved:
@@ -307,7 +311,9 @@ describe("Limbo", function () {
         10000000,
         10000,
         10,
-        3
+        3,
+        0,
+        0
       )
     ).to.be.revertedWith("Limbo: governance action failed.");
 
@@ -361,6 +367,11 @@ describe("Limbo", function () {
 
     //stake enough tokens to cross threshold
     await this.limbo.stake(this.aave.address, "9990001");
+    const flanImmediatelyAfterSecondStake = (
+      await this.flan.balanceOf(owner.address)
+    ).toString();
+    expect(flanImmediatelyAfterSecondStake).to.equal("900010000000");
+
     console.log((await this.flan.balanceOf(owner.address)).toString());
     //assert soul state change
     const stats = await this.soulReader.SoulStats(this.aave.address);
@@ -371,9 +382,9 @@ describe("Limbo", function () {
     await this.limbo.claimReward(this.aave.address, 0);
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     console.log((await this.flan.balanceOf(owner.address)).toString());
-    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
-      "9999999"
-    );
+    expect(
+      flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()
+    ).to.equal("0");
   });
 
   it("old souls can be bonus claimed from (DELTA = 0)", async function () {
@@ -410,7 +421,7 @@ describe("Limbo", function () {
 
     //stake enough tokens to cross threshold
     await this.limbo.stake(this.aave.address, "9990001");
-    console.log((await this.flan.balanceOf(owner.address)).toString());
+
     //assert soul state change
     const stats = await this.soulReader.SoulStats(this.aave.address);
     expect(stats[0].toString()).to.equal("2");
@@ -422,7 +433,7 @@ describe("Limbo", function () {
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     console.log((await this.flan.balanceOf(owner.address)).toString());
     expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
-      "210" //crossing bonus * staked tokens.
+      "900010000210" //crossing bonus * staked tokens.
     );
   });
 
@@ -471,7 +482,7 @@ describe("Limbo", function () {
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     console.log((await this.flan.balanceOf(owner.address)).toString());
     expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
-      "9000710" //crossing bonus * staked tokens.
+      "900019000710" //crossing bonus * staked tokens.
     );
   });
 
@@ -521,7 +532,7 @@ describe("Limbo", function () {
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     console.log((await this.flan.balanceOf(owner.address)).toString());
     expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
-      "199559" //crossing bonus * staked tokens.
+      "440010199559" //crossing bonus * staked tokens.
     );
   });
 
@@ -1080,6 +1091,9 @@ describe("Limbo", function () {
       flanBeforeZeroPenaltyStake
     );
 
+    const zeroPenaltyRewardsLowerBound = zeroPenaltyRewards.mul(9).div(10);
+    const zeroPenaltyRewardsUpperBound = zeroPenaltyRewards.mul(10).div(9);
+
     const flanBeforeQuarterRewardStake = await this.flan.balanceOf(
       owner.address
     );
@@ -1108,9 +1122,10 @@ describe("Limbo", function () {
       flanBeforeQuarterRewardStake
     );
 
-    expect(quarterRewards.mul(4).toString()).to.equal(
-      zeroPenaltyRewards.toString()
-    );
+    const isAbove = quarterRewards.mul(4).gte(zeroPenaltyRewardsLowerBound);
+    const isBelow = quarterRewards.mul(4).lte(zeroPenaltyRewardsUpperBound);
+    expect(isAbove).to.be.true;
+    expect(isBelow).to.be.true;
   });
 
   it("claims disabled on exitPenalty>0", async function () {
@@ -1354,7 +1369,9 @@ describe("Limbo", function () {
       6756,
       1000,
       20,
-      105
+      105,
+      0,
+      0
     );
 
     const crossingConfig = await this.limbo.crossingConfig();
@@ -1414,7 +1431,9 @@ describe("Limbo", function () {
       6756,
       1000,
       20,
-      105
+      105,
+      0,
+      0
     );
 
     const crossingConfig = await this.limbo.crossingConfig();
@@ -1459,7 +1478,9 @@ describe("Limbo", function () {
       6756,
       1000,
       20,
-      105
+      105,
+      0,
+      0
     );
 
     const crossingConfig = await this.limbo.crossingConfig();
@@ -1509,7 +1530,9 @@ describe("Limbo", function () {
       6756,
       1000,
       20,
-      105
+      105,
+      0,
+      11
     );
 
     const crossingConfig = await this.limbo.crossingConfig();
@@ -1608,38 +1631,41 @@ describe("Limbo", function () {
   });
 
   it("flan burn fee on transfer proposal", async function () {
-    const feechangeProposalFactory = await ethers.getContractFactory('AdjustFlanFeeOnTransferProposal')
-    const feechangeProposal = await feechangeProposalFactory.deploy(this.limboDAO.address,"changer")
+    const feechangeProposalFactory = await ethers.getContractFactory(
+      "AdjustFlanFeeOnTransferProposal"
+    );
+    const feechangeProposal = await feechangeProposalFactory.deploy(
+      this.limboDAO.address,
+      "changer"
+    );
 
-    await feechangeProposal.parameterize(this.flan.address,3)
+    await feechangeProposal.parameterize(this.flan.address, 3);
 
-    await this.flan.mint(owner.address,100)
+    await this.flan.mint(owner.address, 100);
 
     //transfer flan to second and assert 100 arrives
-    await this.flan.transfer(secondPerson.address,100)
-    expect(await this.flan.balanceOf(secondPerson.address)).to.equal(100)
+    await this.flan.transfer(secondPerson.address, 100);
+    expect(await this.flan.balanceOf(secondPerson.address)).to.equal(100);
 
     //execute proposal
-    await this.eye.mint('100000000000000000000')
-    await this.eye.approve(this.limboDAO.address,'100000000000000000000')
-    await this.limboDAO.burnAsset(this.eye.address,'100000000000000000000')
-    await toggleWhiteList(feechangeProposal.address)
+    await this.eye.mint("100000000000000000000");
+    await this.eye.approve(this.limboDAO.address, "100000000000000000000");
+    await this.limboDAO.burnAsset(this.eye.address, "100000000000000000000");
+    await toggleWhiteList(feechangeProposal.address);
 
-    await this.proposalFactory.lodgeProposal(feechangeProposal.address)
-    await this.limboDAO.vote(feechangeProposal.address,1000)
+    await this.proposalFactory.lodgeProposal(feechangeProposal.address);
+    await this.limboDAO.vote(feechangeProposal.address, 1000);
 
-    await advanceTime(1000000000)
+    await advanceTime(1000000000);
 
-    await this.limboDAO.executeCurrentProposal()
+    await this.limboDAO.executeCurrentProposal();
     //transfer flan back to owner and assert only 97 arrive
-    const totalSupplyBefore = await this.flan.totalSupply()
-    await this.flan.connect(secondPerson).transfer(owner.address,100)
-    expect(await this.flan.balanceOf(owner.address)).to.equal(97)
-
+    const totalSupplyBefore = await this.flan.totalSupply();
+    await this.flan.connect(secondPerson).transfer(owner.address, 100);
+    expect(await this.flan.balanceOf(owner.address)).to.equal(97);
 
     //assert flan supply fallen by 3
-    const totalSupplyAfter = await this.flan.totalSupply()
-    expect(totalSupplyBefore.sub(totalSupplyAfter)).to.equal(3)
+    const totalSupplyAfter = await this.flan.totalSupply();
+    expect(totalSupplyBefore.sub(totalSupplyAfter)).to.equal(3);
   });
-
 });

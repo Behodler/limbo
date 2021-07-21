@@ -75,6 +75,7 @@ contract UniswapHelper is Governable {
         return ((reserve1 * EXA) / reserve2);
     }
 
+    //the purpose of the divergence code is to bring the robustness of a good oracle without requiring an oracle
     function buyAndPoolFlan(
         uint256 divergenceTolerance,
         uint256 minQuoteWaitDuration,
