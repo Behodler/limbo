@@ -1,8 +1,11 @@
 @startuml
+!define yoghurt #eeb0ff
 start
+:Limbo.claimBonus(address token, uint256 index);
+partition yoghurt "transaction"{
 if(soul is either crossed over or waiting to cross) then (yes)
     if(user has claimed bonus for this soul) then (yes)
-        #pink:revert;
+        #lightpink:revert;
         stop
     else
         'main sequence
@@ -16,15 +19,16 @@ if(soul is either crossed over or waiting to cross) then (yes)
             initialCrossingBonus: the base bonus per token.
         end note
         if(finalFlanPerToken<0) then (yes)
-            #pink:revert;
+            #lightpink:revert;
             stop
         else
             :pay bonus;
         endif
     endif
 else (no)
-    #pink:revert;
+    #lightpink:revert;
     stop
 endif
+}
 stop
 @enduml

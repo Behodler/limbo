@@ -15,11 +15,11 @@ partition yoghurt "transaction"{
                 partition #LightSkyBlue "Uniswap helper"{
                     :get latest spot price of\nflan in terms of SCX from pair;
                     if (price has diverged significantly since last quote) then (yes)
-                        #pink:revert;
+                        #lightpink:revert;
                         stop
                     else (no)
                         if(price quote was acquired too recently) then (yes)
-                            #pink:revert;
+                            #lightpink:revert;
                             stop
                         else (no)
                             :get SCX transfer free;
@@ -33,15 +33,15 @@ partition yoghurt "transaction"{
                 :reward caller of migrate function with new flan to compensate for gas;
                 :set soul state to crossedOver;
             else  (no)
-                #pink:revert;
+                #lightpink:revert;
                 stop
             endif
         else (no)
-            #pink:revert;
+            #lightpink:revert;
             stop
         endif
     else (no)
-        #pink:revert;
+        #lightpink:revert;
         stop
     endif
 }

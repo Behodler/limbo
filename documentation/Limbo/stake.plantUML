@@ -15,7 +15,6 @@ partition #LightGrey "transaction"{
             endif
         }
         if(soul is in staking state) then (yes)
-            'main sequence
             :transfer amount from user to limbo;
             if(user has accumulated rewards previously on this token) then (yes)
                 :transfer accumulated rewards to user;

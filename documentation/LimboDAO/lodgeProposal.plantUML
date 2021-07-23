@@ -5,18 +5,18 @@ partition #thistle "transaction"{
 if(proposal has\n been whitelisted) then (yes)
     #lightblue:LimboDAO.MakeProposal(address proposal);
     if(existing proposal being voted on) then (yes)
-        #pink:revert;
+        #lightpink:revert;
         stop
     else
         if(fate balance >= 2*requiredProposalFate) then (yes)
             #lightgreen:list proposal for vote\n(fate holders can now vote on proposal);
         else (no)
-            #pink:revert;
+            #lightpink:revert;
             stop
         endif
     endif
 else (no)
-    #pink:revert;
+    #lightpink:revert;
     stop
 endif
 }

@@ -1,0 +1,54 @@
+@startuml
+!define yoghurt #eeb0ff
+start
+#PaleTurquoise:Limbo.unstake(address token, uint256 amount);
+partition yoghurt "transaction"{
+if(protocol is enabled) then (yes)
+    partition #MistyRose "update soul"{
+        if(soul is initialized) then (yes)
+            if(total staked balance of soul>0) then(yes)
+                :mint flan => duration*flanPerSecond*relativeAllocPoints;
+            endif
+            :update reward update timestamp for soul;
+        else (no)
+            #lightpink:revert;
+            stop
+        endif
+    }
+    if(soul is in staking state) then (yes)
+        if(exitPenalty<10000) then(yes)
+            if(stakedamount for user >= amount) then(yes)
+                if(pending flan >0) then(yes)
+                :reduce pending flan by exit penalty;
+                :transfer remaining pending flan to user;
+                :reduce staked amount by amount;
+                :send amount to user (of staked token);
+                :update reward debt by pending; 
+                note right
+                    warning: changing penalty while souls 
+                    are staking could have strange effects
+                    on rewards
+                end note
+                else
+                    #lightpink:revert;
+                    stop
+                endif
+            else
+                #lightpink:revert;
+                stop
+            endif
+        else (no)
+            #lightpink:revert;
+            stop
+        endif
+    else (no)
+        #lightpink:revert;
+        stop
+    endif
+else (no)
+    #lightpink:revert;
+    stop
+endif
+}
+stop
+@enduml

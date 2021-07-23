@@ -10,7 +10,7 @@ partition #Lavender "transaction"{
         if (proposal is in voting state) then (yes)
             if(less than 1 hour remaining)
                 if(voting period is over) then (yes)
-                    #pink:revert;
+                    #lightpink:revert;
                     stop
                 else if(vote flips direction of proposal) then (yes)
                     #blue: add 2 hours to deadline;
@@ -21,11 +21,11 @@ partition #Lavender "transaction"{
             #cyan:reduce user fate balance by\n absolute value of fate (revert if overflow);
             #lightgreen:adjust proposal vote by fate;
         else (no)
-            #pink:revert;
+            #lightpink:revert;
             stop
         endif
     else (no)
-        #pink:revert;
+        #lightpink:revert;
         stop
     endif
 }

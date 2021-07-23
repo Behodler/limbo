@@ -1,5 +1,8 @@
 @startuml
+!define yoghurt #eeb0ff
 start
+:Limbo.claimReward(address token, uint256 index);
+partition yoghurt "transaction"{
 if(limbo enabled) then (yes)
     partition #MistyRose "update soul"{
         if(soul is initialized) then (yes)
@@ -26,8 +29,9 @@ if(limbo enabled) then (yes)
         endif
     endif
 else (no)
-    #pink:revert;
+    #lightpink:revert;
     stop
 endif
+}
 stop
 @enduml

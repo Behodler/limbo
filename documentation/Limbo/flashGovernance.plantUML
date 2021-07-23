@@ -6,12 +6,12 @@ that hasn't been approved by proposal;
 partition #ivory "transaction"{
     if(user has enough of flash governance defined asset) then (yes)
         if(user has flash executed this function within an flash epoch ago) then (yes)
-            #pink:revert;
+            #lightpink:revert;
             stop
         else (no)
             'main sequence
             if(any flashgov decision happened recently (epoch)) then (yes)
-                #pink:revert;
+                #lightpink:revert;
                 stop
             else (no)
                 :set flash timeout for this user/function combo to epoch;
@@ -20,7 +20,7 @@ partition #ivory "transaction"{
             endif
         endif
     else (no)
-        #pink:revert;
+        #lightpink:revert;
         stop
     endif
     #lightgreen: execute function;
