@@ -19,6 +19,10 @@ if(limbo enabled) then (yes)
         if(pending reward >0) then (yes)
             :transfer flan to msg.sender;
             :incremement reward debt by pending;
+            note right
+                Reward debt is a concept borrowed from Sushi's Masterchef.
+                It's a tally of how much you've been rewarded so far.
+            end note
         endif
     endif
 else (no)

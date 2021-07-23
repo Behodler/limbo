@@ -1,0 +1,30 @@
+@startuml
+start
+if(soul is either crossed over or waiting to cross) then (yes)
+    if(user has claimed bonus for this soul) then (yes)
+        #pink:revert;
+        stop
+    else
+        'main sequence
+        partition #ffd1dc "reward parameters"{
+            #DDDDDD:totalStakingDuration =  total duration that soul has been in staking state;
+            #DDDDDD:accumulatedFlanPerToken = totalStakingDuration * crossingBonusDelta;
+            #DDDDDD:finalFlanPerToken = accumulatedFlanPerToken + initialCrossingBonus;
+        }
+        note left
+            crossingBonusDelta: During staking, final bonus per token change per second.
+            initialCrossingBonus: the base bonus per token.
+        end note
+        if(finalFlanPerToken<0) then (yes)
+            #pink:revert;
+            stop
+        else
+            :pay bonus;
+        endif
+    endif
+else (no)
+    #pink:revert;
+    stop
+endif
+stop
+@enduml
