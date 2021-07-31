@@ -23,38 +23,37 @@ contract SoulReader is Governable {
         )
     {
         uint256 latestIndex = limbo.latestIndex(token);
-        (uint256 allocPoints, , , , , uint256 state, ) = limbo.souls(
+        (, , , , uint256 state, , uint256 fps) = limbo.souls(
             token,
             latestIndex
         );
         uint256 stakeBalance = IERC20(token).balanceOf(address(limbo));
-        return (state, stakeBalance, allocPoints);
+        return (state, stakeBalance, fps);
     }
 
     function CrossingParameters(address token)
         public
         view
         returns (
-            uint256, //allocPOint
             uint16, //exitPenalty
             uint256, //initialCrossingbonus
-            int256 //bonusDelta
+            int256, //bonusDelta,
+            uint256 //fps
         )
     {
         uint256 latestIndex = limbo.latestIndex(token);
-        (uint256 allocPoints, , , , , , uint16 exitPenalty) = limbo.souls(
+        (, , , , , uint16 exitPenalty, uint256 flanPerSecond) = limbo.souls(
             token,
             latestIndex
         );
-  
 
         (, , int256 crossingBonusDelta, uint256 initialCrossingBonus, ) = limbo
-        .tokenCrossingParameters(token, latestIndex);
+            .tokenCrossingParameters(token, latestIndex);
         return (
-            allocPoints,
             exitPenalty,
             initialCrossingBonus,
-            crossingBonusDelta
+            crossingBonusDelta,
+            flanPerSecond
         );
     }
 }

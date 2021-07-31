@@ -215,7 +215,6 @@ describe("DAO staking", function () {
     expect(cloutAfter[1].toString()).to.equal("100");
   });
 
-  //TODO:add unstaking test
   it("Staking Eye and wait increases fate correctly", async function () {
     await dao.makeLive();
 
@@ -243,7 +242,6 @@ describe("DAO staking", function () {
     expect(fateState[1].toString()).to.equal("148");
   });
 
-  //TODO:add unstaking test
   it("Staking LP set growth to 2 root eye balance", async function () {
     await dao.makeLive();
     const finalEyeBalance = NAUGHT_POINT_ONE * BigInt(56);

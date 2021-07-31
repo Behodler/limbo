@@ -25,4 +25,6 @@ abstract contract BehodlerLike {
         external
         virtual
         returns (bool);
+
+    function totalSupply () external virtual returns (uint);
 }

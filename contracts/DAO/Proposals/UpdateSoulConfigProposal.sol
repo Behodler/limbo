@@ -6,12 +6,12 @@ import "../../facades/LimboLike.sol";
 contract UpdateSoulConfigProposal is Proposal {
     struct Parameters {
         address token;
-        uint256 allocPoint;
         uint256 crossingThreshold;
         uint256 soulType;
         uint256 state;
         uint16 exitPenalty;
         uint256 index;
+        uint256 fps;
     }
     Parameters params;
     LimboLike limbo;
@@ -26,31 +26,31 @@ contract UpdateSoulConfigProposal is Proposal {
 
     function parameterize(
         address token,
-        uint256 allocPoint,
         uint256 crossingThreshold,
         uint256 soulType,
         uint256 state,
         uint16 exitPenalty,
-        uint256 index
+        uint256 index,
+        uint256 fps
     ) public notCurrent {
         params.token = token;
-        params.allocPoint = allocPoint;
         params.crossingThreshold = crossingThreshold;
         params.soulType = soulType;
         params.state = state;
         params.exitPenalty = exitPenalty;
         params.index = index;
+        params.fps = fps;
     }
 
     function execute() internal override returns (bool) {
         limbo.configureSoul(
             params.token,
-            params.allocPoint,
             params.crossingThreshold,
             params.soulType,
             params.exitPenalty,
             params.state,
-            params.index
+            params.index,
+            params.fps
         );
 
         return true;

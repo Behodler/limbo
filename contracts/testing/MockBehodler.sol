@@ -5,19 +5,23 @@ import "../facades/BehodlerLike.sol";
 
 contract MockBehodler is ERC677 {
     address addTokenPower;
+    uint256 priceMultiplier = 200;
+
+    function setPriceMultiplier(uint256 _priceMultiplier) public {
+        priceMultiplier = _priceMultiplier;
+    }
 
     function withdrawLiquidityFindSCX(
         address outputToken,
         uint256 tokensToRelease,
         uint256 scx,
         uint256 passes
-    ) external view returns (uint256){
-        return 200;
+    ) external view returns (uint256) {
+        return priceMultiplier * scx;
     }
 
-
-    function mintTo(address recipient, uint amount ) public {
-          _mint(recipient, amount);
+    function mintTo(address recipient, uint256 amount) public {
+        _mint(recipient, amount);
     }
 
     function mint(uint256 amount) public {
@@ -36,7 +40,7 @@ contract MockBehodler is ERC677 {
         _mint(msg.sender, 100 ether);
         addTokenPower = _addTokenPower;
     }
-    
+
     address MickyMouseToken = 0xAa645185F79506175917Ae2Fdd3128E4711D4065;
 
     function config()

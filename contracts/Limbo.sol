@@ -4,20 +4,20 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
 import "./facades/FlanLike.sol";
 import "./facades/UniPairLike.sol";
 import "./facades/MigratorLike.sol";
-import "./DAO/Governable.sol";
 import "./facades/AMMHelper.sol";
 import "./facades/AngbandLike.sol";
 import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
-import "hardhat/console.sol";
+import "./DAO/Governable.sol";
+
 /*
-LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from both
-Masterchef.
+LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
 To give a high level overview, each token listed on Limbo is hoping to be listed on Behodler. In order to be listed, it must meet a minimum threshold of liquidity.
 This creates a sharp distinction between the lifecycle of a listed token on Limbo vs Onsen which is why we don't just fork and run Masterchef. In particular:
 1. By definition, tokens listed on Limbo are temporary visitors to the dapp, as the name Limbo implies. An array of tokens is therefore not sustainable
@@ -55,19 +55,15 @@ Can claim rewards. Can't unstake.
 4. CrossedOver
 Injected into Behodler
 
-Think about reverting states and what that means.
-
-
 Flash governance:
 Since there might be many souls staking, we don't want to have to go through long to confirm proposals.
 Instead, we want to have the opportunity to flash a governance action quickly. What we can do is require
 a stake of EYE. Then the staker can trigger some governance unilaterally but their EYE remains locked for a few days.
-The community can then decide if their governance action was in accord with Snapshot.
+The community can then decide if their governance action was in accord with the wellbeing of Limbo.
 If it isn't, they can slash the deposit by betwen 1 and 100%. Flash gov can only move a variable some percentage per day.
 Eg. suppose we vote on snapshot to raise the mimimum soul for Sushi to 1200 Sushi from 1180, 1.69%.
 We have s maximum of 4% per day. So some flash staker comes along and moves it 3%. They are now 
-elligible to be slashed. 
-
+elligible to be slashed. If they try to move it 5%, the operations reverts.
 */
 enum SoulState {
     calibration,
@@ -105,7 +101,7 @@ contract Limbo is Governable {
     using SafeERC20 for IERC20;
     using SafeERC20 for FlanLike;
 
-    event SoulUpdated(address soul, uint256 allocPoint);
+    event SoulUpdated(address soul, uint256 fps);
     event Staked(address staker, address soul, uint256 amount);
     event Unstaked(address staker, address soul, uint256 amount);
     event TokenListed(address token, uint256 amount, uint256 scxfln_LP_minted);
@@ -116,7 +112,7 @@ contract Limbo is Governable {
         uint256 index,
         uint256 amount
     );
-    event YourSoulIsMine(address token, address proposal);
+
     event BonusPaid(
         address token,
         uint256 index,
@@ -125,13 +121,13 @@ contract Limbo is Governable {
     );
 
     struct Soul {
-        uint256 allocPoint;
         uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.
         uint256 accumulatedFlanPerShare;
         uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler
         SoulType soulType;
         SoulState state;
         uint16 exitPenalty; // % between 0 and 10000, set to 10000 or more for no unstaking
+        uint256 flanPerSecond; // fps: we use a helper function to convert min APY into fps
     }
 
     struct CrossingParameters {
@@ -146,14 +142,11 @@ contract Limbo is Governable {
         address behodler;
         uint256 SCX_fee;
         uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
-        uint256 flanQuoteDivergenceTolerance;
-        uint256 minQuoteWaitDuration;
         uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
         address morgothPower;
         address angband;
         address ammHelper;
-        uint8 marginalPricePrecision; //binary search max steps parameter used by behodler to estimate tokens required to produce a given quantity of SCX
-        uint8 rectangleOfFairnessInflationFactor; //0-100: if the community finds the requirement to be too strict, they can inflate how much SCX to hold back
+        uint16 rectangleOfFairnessInflationFactor; //0-100: if the community finds the requirement to be too strict, they can inflate how much SCX to hold back
     }
 
     struct User {
@@ -164,11 +157,10 @@ contract Limbo is Governable {
 
     uint256 constant TERA = 1E12;
     uint256 constant myriad = 1e4;
-    uint256 constant SCX_calc = TERA * 10000;
+    uint256 constant SCX_calc = TERA * 10000 * (1 ether); //112 bits added, still leaves plenty room to spare
+    uint256 constant RectangleOfFairness = 28 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 28 is the result of scaling factors on Behodler.
     bool protocolEnabled = true;
-    uint256 public flanPerSecond;
     CrossingConfig public crossingConfig;
-    uint256 public totalAllocationPoints;
     mapping(address => mapping(uint256 => Soul)) public souls;
     mapping(address => uint256) public latestIndex;
     mapping(address => mapping(address => mapping(uint256 => User)))
@@ -178,9 +170,23 @@ contract Limbo is Governable {
 
     FlanLike Flan;
 
-    modifier enabled {
+    modifier enabled() {
         require(protocolEnabled, "EF");
         _;
+    }
+
+    function attemptToTargetAPY(
+        address token,
+        uint256 desiredAPY,
+        uint256 daiThreshold
+    ) public governanceApproved {
+        Soul storage soul = currentSoul(token);
+        uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(
+            desiredAPY,
+            daiThreshold
+        );
+        flashGoverner.enforceTolerance(soul.flanPerSecond, fps);
+        soul.flanPerSecond = fps;
     }
 
     function updateSoul(address token) public {
@@ -194,17 +200,13 @@ contract Limbo is Governable {
         uint256 finalTimeStamp = block.timestamp;
         if (soul.state != SoulState.staking) {
             finalTimeStamp = tokenCrossingParameters[token][latestIndex[token]]
-            .stakingEndTimestamp;
+                .stakingEndTimestamp;
         }
         uint256 balance = IERC20(token).balanceOf(address(this));
 
         if (balance > 0) {
-            uint256 accruedFlan = (finalTimeStamp - soul.lastRewardTimestamp) *
-                flanPerSecond;
-            uint256 flanReward = (accruedFlan * soul.allocPoint) /
-                totalAllocationPoints;
-
-            Flan.mint(address(this), flanReward);
+            uint256 flanReward = (finalTimeStamp - soul.lastRewardTimestamp) *
+                soul.flanPerSecond;
 
             soul.accumulatedFlanPerShare =
                 soul.accumulatedFlanPerShare +
@@ -213,14 +215,8 @@ contract Limbo is Governable {
         soul.lastRewardTimestamp = finalTimeStamp;
     }
 
-    constructor(
-        address flan,
-        uint256 _flanPerSecond,
-        address limboDAO
-    ) Governable(limboDAO) {
+    constructor(address flan, address limboDAO) Governable(limboDAO) {
         Flan = FlanLike(flan);
-        flanPerSecond = _flanPerSecond;
-        crossingConfig.marginalPricePrecision = 8;
     }
 
     function configureCrossingConfig(
@@ -230,26 +226,17 @@ contract Limbo is Governable {
         address morgothPower,
         uint256 migrationInvocationReward,
         uint256 crossingMigrationDelay,
-        uint256 minQuoteWaitDuration,
-        uint256 flanQuoteDivergenceTolerance,
-        uint8 marginalPricePrecision, //0 = leave unchanged,
-        uint8 rectInflationFactor //0 to 100
+        uint16 rectInflationFactor //0 to 100
     ) public onlySuccessfulProposal {
         crossingConfig.migrationInvocationReward =
             migrationInvocationReward *
             (1 ether);
         crossingConfig.behodler = behodler;
         crossingConfig.crossingMigrationDelay = crossingMigrationDelay;
-        crossingConfig.minQuoteWaitDuration = minQuoteWaitDuration;
         crossingConfig.angband = angband;
         crossingConfig.ammHelper = ammHelper;
         crossingConfig.morgothPower = morgothPower;
-        crossingConfig
-        .flanQuoteDivergenceTolerance = flanQuoteDivergenceTolerance;
-        crossingConfig.marginalPricePrecision = marginalPricePrecision == 0
-            ? crossingConfig.marginalPricePrecision
-            : marginalPricePrecision;
-        require(rectInflationFactor <= 100, "E6");
+        require(rectInflationFactor <= 10000, "E6");
         crossingConfig.rectangleOfFairnessInflationFactor = rectInflationFactor;
     }
 
@@ -263,19 +250,16 @@ contract Limbo is Governable {
 
     function adjustSoul(
         address token,
-        uint256 allocPoint,
         uint16 exitPenalty,
         uint256 initialCrossingBonus,
-        int256 crossingBonusDelta
+        int256 crossingBonusDelta,
+        uint256 fps
     ) public governanceApproved {
         Soul storage soul = currentSoul(token);
-        flashGoverner.enforceTolerance(soul.allocPoint, allocPoint);
         flashGoverner.enforceTolerance(soul.exitPenalty, exitPenalty);
-
-        totalAllocationPoints = totalAllocationPoints - soul.allocPoint;
-        totalAllocationPoints = totalAllocationPoints + allocPoint;
-        soul.allocPoint = allocPoint;
+        flashGoverner.enforceTolerance(soul.flanPerSecond, fps);
         soul.exitPenalty = exitPenalty;
+        soul.flanPerSecond = fps;
 
         CrossingParameters storage params = tokenCrossingParameters[token][
             latestIndex[token]
@@ -308,35 +292,32 @@ contract Limbo is Governable {
      */
     function configureSoul(
         address token,
-        uint256 allocPoint,
         uint256 crossingThreshold,
         uint256 soulType,
         uint16 exitPenalty,
         uint256 state,
-        uint256 index
+        uint256 index,
+        uint256 fps
     ) public onlySuccessfulProposal {
         {
             Soul storage soul = currentSoul(token);
-
-            totalAllocationPoints = totalAllocationPoints - soul.allocPoint;
-            totalAllocationPoints = totalAllocationPoints + allocPoint;
             latestIndex[token] = index > latestIndex[token]
                 ? latestIndex[token] + 1
                 : latestIndex[token];
 
             soul = currentSoul(token);
-            soul.allocPoint = allocPoint;
             soul.crossingThreshold = crossingThreshold;
+            soul.flanPerSecond = fps;
             soul.state = SoulState(state);
 
             if (SoulState(state) == SoulState.staking) {
                 tokenCrossingParameters[token][latestIndex[token]]
-                .stakingBeginsTimestamp = block.timestamp;
+                    .stakingBeginsTimestamp = block.timestamp;
             }
             soul.soulType = SoulType(soulType);
             soul.exitPenalty = exitPenalty;
         }
-        emit SoulUpdated(token, allocPoint);
+        emit SoulUpdated(token, fps);
     }
 
     function configureCrossingParameters(
@@ -359,9 +340,9 @@ contract Limbo is Governable {
         );
 
         tokenCrossingParameters[token][latestIndex[token]]
-        .initialCrossingBonus = initialCrossingBonus;
+            .initialCrossingBonus = initialCrossingBonus;
         tokenCrossingParameters[token][latestIndex[token]]
-        .crossingBonusDelta = crossingBonusDelta;
+            .crossingBonusDelta = crossingBonusDelta;
         tokenCrossingParameters[token][latestIndex[token]].burnable = burnable;
 
         Soul storage soul = currentSoul(token);
@@ -370,11 +351,6 @@ contract Limbo is Governable {
             soul.crossingThreshold
         );
         currentSoul(token).crossingThreshold = crossingThreshold;
-    }
-
-    function governanceShutdown(address token) public onlySuccessfulProposal {
-        currentSoul(token).soulType = SoulType.uninitialized;
-        emit YourSoulIsMine(token, msg.sender);
     }
 
     function stake(address token, uint256 amount) public enabled {
@@ -390,19 +366,20 @@ contract Limbo is Governable {
                 soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
             if (pending > 0) {
                 pending -= ((uint256(soul.exitPenalty)) * pending) / myriad; //staking more on an exitPenalty soul is like unstaking and restaking logcically. Without this incentive, users can game the system by staking more than they need.
-                Flan.safeTransfer(msg.sender, pending);
+                Flan.mint(msg.sender, pending);
             }
 
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
             user.stakedAmount = user.stakedAmount + amount;
             uint256 newBalance = IERC20(token).balanceOf(address(this));
+          
             if (
                 soul.soulType == SoulType.threshold &&
                 newBalance > soul.crossingThreshold
             ) {
                 soul.state = SoulState.waitingToCross;
                 tokenCrossingParameters[token][latestIndex[token]]
-                .stakingEndTimestamp = block.timestamp;
+                    .stakingEndTimestamp = block.timestamp;
             }
         }
 
@@ -427,7 +404,7 @@ contract Limbo is Governable {
 
         if (pending > 0) {
             pending -= ((uint256(soul.exitPenalty)) * pending) / myriad;
-            Flan.safeTransfer(msg.sender, pending);
+            Flan.mint(msg.sender, pending);
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;
                 IERC20(token).safeTransfer(address(msg.sender), amount);
@@ -449,7 +426,7 @@ contract Limbo is Governable {
             TERA) - user.rewardDebt;
 
         if (pending > 0) {
-            Flan.safeTransfer(msg.sender, pending);
+            Flan.mint(msg.sender, pending);
             user.rewardDebt =
                 (user.stakedAmount * soul.accumulatedFlanPerShare) /
                 TERA;
@@ -496,7 +473,9 @@ contract Limbo is Governable {
         emit BonusPaid(token, index, msg.sender, flanBonus);
     }
 
-    // We don't want airdrops or pooltogether winnings to be stuck in Limbo (pun?)
+    //TODO replace with auto buy of flan. Tries direct path and fails if pair doesn't exist. encourages the creation of pairs.
+    //reward user for calling with percentage. require no active or waiting souls for withdrawal
+    // We don't want airdrops or pooltogether winnings to be stuck in Limbo
     function withdrawERC20(address token, address destination)
         public
         onlySuccessfulProposal
@@ -519,16 +498,16 @@ contract Limbo is Governable {
         require(
             block.timestamp -
                 tokenCrossingParameters[token][latestIndex[token]]
-                .stakingEndTimestamp >
+                    .stakingEndTimestamp >
                 crossingConfig.crossingMigrationDelay,
             "EC"
         );
 
         LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower)
             .parameterize(
-            token,
-            tokenCrossingParameters[token][latestIndex[token]].burnable
-        );
+                token,
+                tokenCrossingParameters[token][latestIndex[token]].burnable
+            );
 
         //invoke Angband execute on power that migrates token type to Behodler
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
@@ -545,31 +524,26 @@ contract Limbo is Governable {
             address(this)
         );
 
-        uint256 tokensToRelease = BehodlerLike(crossingConfig.behodler)
-        .withdrawLiquidityFindSCX(token, 1000, 10000, 8); // crossingConfig.marginalPricePrecision);
-        uint256 marginalPrice = SCX_calc / tokensToRelease; //point price estimate for MP
+        uint256 adjustedRectangle = ((
+            crossingConfig.rectangleOfFairnessInflationFactor
+        ) * RectangleOfFairness) / 100;
 
-        uint256 rectangleOfFairness = (marginalPrice *
-            tokenBalance *
-            (100 + crossingConfig.rectangleOfFairnessInflationFactor)) /
-            (SCX_calc * 100);
-        rectangleOfFairness = rectangleOfFairness > scxMinted
-            ? scxMinted
-            : rectangleOfFairness;
+        //for top up or exotic high value migrations.
+        if (scxMinted <= adjustedRectangle) {
+            adjustedRectangle = scxMinted / 2;
+        }
 
         //burn SCX - rectangle
-        uint256 excessSCX = scxMinted - rectangleOfFairness;
+        uint256 excessSCX = scxMinted - adjustedRectangle;
         require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
 
         //use remaining scx to buy flan and pool it on an external AMM
         IERC20(crossingConfig.behodler).transfer(
             crossingConfig.ammHelper,
-            rectangleOfFairness
+            adjustedRectangle
         );
-        uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).buyAndPoolFlan(
-            crossingConfig.flanQuoteDivergenceTolerance,
-            crossingConfig.minQuoteWaitDuration,
-            rectangleOfFairness
+        uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).priceTiltFlan(
+            adjustedRectangle
         );
 
         emit TokenListed(token, tokenBalance, lpMinted);

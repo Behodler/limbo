@@ -25,7 +25,7 @@
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.4",
-    "hardhat": "2.4.1"
+    "hardhat": "^2.5.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.1.0",

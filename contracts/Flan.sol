@@ -5,12 +5,23 @@ import "../contracts/DAO/Governable.sol";
 
 contract Flan is ERC677("Flan", "FLN"), Governable {
     event burnOnTransferFeeAdjusted(uint8 oldFee, uint8 newFee);
-    mapping(address => uint256) public mintAllowance; //uint(-1) == whitelist
-    uint8 public burnOnTransferFee = 0; //% between 1 and 100
+    mapping(address => uint256) public mintAllowance; //type(uint).max == whitelist
+
+    uint8 public burnOnTransferFee = 0; //% between 1 and 100, recipient pays
 
     constructor(address dao) Governable(dao) {}
 
     function setBurnOnTransferFee(uint8 fee) public onlySuccessfulProposal {
+        _setBurnOnTransferFee(fee);
+    }
+
+    function incrementBurnOnTransferFee(int8 change) public governanceApproved {
+        uint8 newFee = uint8(int8(burnOnTransferFee) + change);
+        flashGoverner.enforceTolerance(newFee, burnOnTransferFee);
+        _setBurnOnTransferFee(newFee);
+    }
+
+    function _setBurnOnTransferFee(uint8 fee) internal {
         uint8 priorFee = burnOnTransferFee;
         burnOnTransferFee = fee > 100 ? 100 : fee;
         emit burnOnTransferFeeAdjusted(priorFee, burnOnTransferFee);
@@ -31,7 +42,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     }
 
     function mint(address recipient, uint256 amount) public returns (bool) {
-        uint256 allowance = mintAllowance[_msgSender()]; 
+        uint256 allowance = mintAllowance[_msgSender()];
         require(
             _msgSender() == owner() || allowance >= amount,
             "Flan: Mint allowance exceeded"
@@ -68,10 +79,8 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        uint256 fee = 0;
-        if (burnOnTransferFee > 0) {
-            fee = (burnOnTransferFee * amount) / 100;
-        }
+        uint256 fee = (burnOnTransferFee * amount) / 100;
+
         _totalSupply = _totalSupply - fee;
         uint256 senderBalance = _balances[sender];
         require(
@@ -79,7 +88,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
             "ERC20: transfer amount exceeds balance"
         );
         _balances[sender] = senderBalance - amount;
-        _balances[recipient] += amount - burnOnTransferFee;
+        _balances[recipient] += amount - fee;
 
         emit Transfer(sender, recipient, amount);
     }

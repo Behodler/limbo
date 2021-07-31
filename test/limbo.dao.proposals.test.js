@@ -215,7 +215,7 @@ describe("DAO Proposals", function () {
   };
   const ONE = BigInt("1000000000000000000");
   const NAUGHT_POINT_ONE = ONE / 10n;
-  
+
   it("Insufficient fate to lodge rejected", async function () {
     await expect(
       proposalFactory.lodgeProposal(updateProposalConfigProposal.address)
@@ -337,7 +337,6 @@ describe("DAO Proposals", function () {
     );
   });
 
-  
   it("voting no on current proposal makes it unexecutable.", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
@@ -373,7 +372,7 @@ describe("DAO Proposals", function () {
     await advanceTime(259200);
     const fateBeforeExecute = (await dao.fateState(owner.address))[1];
     const configBefore = await dao.proposalConfig();
- 
+
     await dao.executeCurrentProposal();
     const fateAfterExecute = (await dao.fateState(owner.address))[1];
     await expect(fateBeforeExecute).to.equal(fateBeforeExecute);
@@ -465,10 +464,11 @@ describe("DAO Proposals", function () {
     //47*60*60+60  =169260
     await advanceTime(169260);
 
-    const timeRemainingBeforeSwingVote = (await dao.timeRemainingOnProposal()).toNumber();
+    const timeRemainingBeforeSwingVote = (
+      await dao.timeRemainingOnProposal()
+    ).toNumber();
     expect(timeRemainingBeforeSwingVote).to.be.greaterThan(3534);
     expect(timeRemainingBeforeSwingVote).to.be.lessThan(3537);
-    
 
     await dao
       .connect(secondPerson)
@@ -497,5 +497,8 @@ describe("DAO Proposals", function () {
         .vote(updateProposalConfigProposal.address, "100")
     ).to.be.revertedWith("LimboDAO: voting for current proposal has ended.");
   });
-  
+
+  it("proposal that initiates multiple souls at once", async function () {
+    throw "TODO: unimplemented test";
+  });
 });

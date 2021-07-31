@@ -9,13 +9,13 @@ abstract contract LimboLike {
         view
         virtual
         returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            uint16
+            uint256, //lastRewardTimeStamp
+            uint256,//accumulatedFlanPerShare
+            uint256,//crossingThreshold
+            uint256,//soulType
+            uint256,//state
+            uint16,//exitPenalty
+            uint256//flanPerSecond
         );
 
     function tokenCrossingParameters(address, uint256)
@@ -31,15 +31,14 @@ abstract contract LimboLike {
         );
 
     function configureSoul(
-         address token,
-        uint256 allocPoint,
+        address token,
         uint256 crossingThreshold,
         uint256 soulType,
         uint16 exitPenalty,
-        uint state,
-        uint256 index
+        uint256 state,
+        uint256 index,
+        uint256 fps
     ) public virtual;
 
-      function withdrawERC20(address token, address destination)
-        public virtual;
+    function withdrawERC20(address token, address destination) public virtual;
 }
