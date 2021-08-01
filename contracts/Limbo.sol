@@ -372,7 +372,7 @@ contract Limbo is Governable {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
             user.stakedAmount = user.stakedAmount + amount;
             uint256 newBalance = IERC20(token).balanceOf(address(this));
-          
+
             if (
                 soul.soulType == SoulType.threshold &&
                 newBalance > soul.crossingThreshold
@@ -472,17 +472,21 @@ contract Limbo is Governable {
 
         emit BonusPaid(token, index, msg.sender, flanBonus);
     }
-
-    //TODO replace with auto buy of flan. Tries direct path and fails if pair doesn't exist. encourages the creation of pairs.
+    
     //reward user for calling with percentage. require no active or waiting souls for withdrawal
     // We don't want airdrops or pooltogether winnings to be stuck in Limbo
-    function withdrawERC20(address token, address destination)
+    function claimSecondaryRewards(address token)
         public
         onlySuccessfulProposal
     {
         require(currentSoul(token).soulType == SoulType.uninitialized, "E7");
         uint256 balance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(destination, balance);
+        IERC20(token).transfer(crossingConfig.ammHelper,balance);
+        AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(
+            token,
+            balance,
+            msg.sender
+        );
     }
 
     function currentSoul(address token) internal view returns (Soul storage) {

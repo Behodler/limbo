@@ -3,9 +3,10 @@ pragma solidity ^0.8.0;
 import "./facades/UniPairLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "./ERC677/ERC20Burnable.sol";
 import "./facades/FlanLike.sol";
+import "./testing/realUniswap/interfaces/IUniswapV2Factory.sol";
 
 contract BlackHole {}
 
@@ -32,6 +33,7 @@ contract UniswapHelper is Governable {
         address DAI;
         uint256 behodlerActiveBondingCurves;
         uint8 precision;
+        IUniswapV2Factory factory;
     }
 
     UniVARS VARS;
@@ -50,17 +52,17 @@ contract UniswapHelper is Governable {
     this is a cost worth bearing.
     */
 
-    modifier ensurePriceStability {
+    modifier ensurePriceStability() {
         _ensurePriceStability();
         _;
     }
 
-    modifier incrementBondingCurves {
+    modifier incrementBondingCurves() {
         _;
         VARS.behodlerActiveBondingCurves++;
     }
 
-    modifier onlyLimbo {
+    modifier onlyLimbo() {
         require(msg.sender == limbo);
         _;
     }
@@ -69,9 +71,21 @@ contract UniswapHelper is Governable {
         return VARS.blackHole;
     }
 
+    function setFactory(address factory) public {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        require(id != 1, "Uniswap factory hardcoded on mainnet");
+        VARS.factory = IUniswapV2Factory(factory);
+    }
+
     constructor(address _limbo, address limboDAO) Governable(limboDAO) {
         limbo = _limbo;
         VARS.blackHole = address(new BlackHole());
+        VARS.factory = IUniswapV2Factory(
+            address(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f)
+        );
     }
 
     struct FlanQuote {
@@ -104,7 +118,7 @@ contract UniswapHelper is Governable {
         VARS.minQuoteWaitDuration = minQuoteWaitDuration;
         VARS.DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         VARS.behodlerActiveBondingCurves = behodlerActiveBondingCurves;
-        VARS.precision = precision ==0? precision:precision;
+        VARS.precision = precision == 0 ? precision : precision;
     }
 
     //First punch this and then wait a c
@@ -130,8 +144,8 @@ contract UniswapHelper is Governable {
     {
         //need order to b,e SCX per flan
         (uint256 reserve1, uint256 reserve2, ) = VARS
-        .Flan_SCX_tokenPair
-        .getReserves();
+            .Flan_SCX_tokenPair
+            .getReserves();
         //Flan per SCX
         if (VARS.flan < VARS.behodler) {
             fln_scx = ((reserve1 * EXA) / reserve2);
@@ -140,7 +154,7 @@ contract UniswapHelper is Governable {
         }
 
         uint256 daiToRelease = BehodlerLike(VARS.behodler)
-        .withdrawLiquidityFindSCX(VARS.DAI, 10000, 1 ether, VARS.precision);
+            .withdrawLiquidityFindSCX(VARS.DAI, 10000, 1 ether, VARS.precision);
         dai_scx = (daiToRelease * EXA) / (1 ether);
 
         daiBalanceOnBehodler = IERC20(VARS.DAI).balanceOf(VARS.behodler);
@@ -164,8 +178,10 @@ contract UniswapHelper is Governable {
         uint256 finalSCXBalanceOnLP = rectangleOfFairness +
             IERC20(VARS.behodler).balanceOf(address(VARS.Flan_SCX_tokenPair));
 
-        uint ratioOfPrices = latestFlanQuotes[0].DaiScxSpotPrice/LP_price_synthetic;
-        uint ExpectedFinalFlanBal = (finalSCXBalanceOnLP*ratioOfPrices)/EXA;
+        uint256 ratioOfPrices = latestFlanQuotes[0].DaiScxSpotPrice /
+            LP_price_synthetic;
+        uint256 ExpectedFinalFlanBal = (finalSCXBalanceOnLP * ratioOfPrices) /
+            EXA;
         //uint256 ExpectedFinalFlanBal = (SCX_Bal_dai) / (LP_price_synthetic);
         // uint256 ExpectedFinalFlanBal = SCX_Bal_dai / LP_price_synthetic;
         uint256 FLN_Bal = IERC20(VARS.flan).balanceOf(
@@ -183,6 +199,8 @@ contract UniswapHelper is Governable {
         FlanLike(VARS.flan).mint(address(VARS.Flan_SCX_tokenPair), flanToMint);
         lpMinted = VARS.Flan_SCX_tokenPair.mint(VARS.blackHole);
     }
+
+    uint256 constant year = (1 days * 365);
 
     /* 
     Cnvert the AVB on Behodler from Dai into Flan
@@ -205,7 +223,38 @@ contract UniswapHelper is Governable {
 
         //The average value of a bonding curve on behodler expressed in Flan *1e4
         uint256 AVB_flan = threshold / DAIPerFlan;
-        fps = (AVB_flan * minAPY) / 1e12;
+        fps = (AVB_flan * minAPY) / (1e16 * year);
+    }
+
+    function buyFlanAndBurn(
+        address inputToken,
+        uint256 amount,
+        address recipient
+    ) public {
+        address pair = VARS.factory.getPair(inputToken, VARS.flan);
+
+        uint256 flanBalance = IERC20(VARS.flan).balanceOf(pair);
+        uint256 inputBalance = IERC20(inputToken).balanceOf(pair);
+
+        uint256 amountOut = getAmountOut(amount, inputBalance, flanBalance);
+        uint256 amount0Out = inputToken < VARS.flan ? 0 : amountOut;
+        uint256 amount1Out = inputToken < VARS.flan ? amountOut : 0;
+        IERC20(inputToken).transfer(pair, amount);
+        UniPairLike(pair).swap(amount0Out, amount1Out, address(this), "");
+        uint256 reward = (amountOut / 100);
+        ERC20Burnable(VARS.flan).transfer(recipient, reward);
+        ERC20Burnable(VARS.flan).burn(amountOut - reward);
+    }
+
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) internal pure returns (uint256 amountOut) {
+        uint256 amountInWithFee = amountIn * 997;
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = reserveIn * 1000 + amountInWithFee;
+        amountOut = numerator / denominator;
     }
 
     //the purpose of the divergence code is to bring the robustness of a good oracle without requiring an oracle
@@ -235,6 +284,13 @@ contract UniswapHelper is Governable {
             : (localFlanQuotes[1].DaiBalanceOnBehodler * 100) /
                 localFlanQuotes[0].DaiBalanceOnBehodler;
 
+        console.log("divergenceTolerance %s", VARS.divergenceTolerance);
+        console.log(
+            "flanSCXDivergence: %s, daiSCXSpotPriceDivergence: %s,daiBalanceDivergence: %s ",
+            flanSCXDivergence,
+            daiSCXSpotPriceDivergence,
+            daiBalanceDivergence
+        );
         require(
             flanSCXDivergence < VARS.divergenceTolerance &&
                 daiSCXSpotPriceDivergence < VARS.divergenceTolerance &&

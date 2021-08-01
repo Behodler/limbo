@@ -36,4 +36,8 @@ contract MockMigrationUniPair is UniPairLike, ERC20Burnable {
         _mint(to, val);
         return val;
     }
+
+    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external override {
+
+    }
 }

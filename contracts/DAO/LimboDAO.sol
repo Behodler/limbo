@@ -136,7 +136,6 @@ contract LimboDAO is Ownable {
     }
 
     modifier updateCurrentProposal {
-        //console.log('update');
         incrementFateFor(_msgSender());
         if (address(currentProposalState.proposal) != address(0)) {
             uint256 durationSinceStart = block.timestamp -
@@ -150,10 +149,7 @@ contract LimboDAO is Ownable {
                     currentProposalState.proposal.orchestrateExecute();
                     fateState[currentProposalState.proposer]
                     .fateBalance += proposalConfig.requiredFateStake;
-                    //  console.log("accepted");
-                    //  console.log("current proposer %s",currentProposalState.proposer);
                 } else {
-                    // console.log("rejected");
                     currentProposalState.decision = ProposalDecision.rejected;
                 }
                 emit proposalExecuted(

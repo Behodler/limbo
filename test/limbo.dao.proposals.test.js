@@ -497,8 +497,4 @@ describe("DAO Proposals", function () {
         .vote(updateProposalConfigProposal.address, "100")
     ).to.be.revertedWith("LimboDAO: voting for current proposal has ended.");
   });
-
-  it("proposal that initiates multiple souls at once", async function () {
-    throw "TODO: unimplemented test";
-  });
 });
