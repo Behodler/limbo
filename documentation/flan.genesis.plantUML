@@ -2,39 +2,45 @@
 !define yoghurt #eeb0ff
 start
 :deploy genesisContract;
+:Morgoth assign ADD_TOKEN_TO_BEHODLER to minion;
+:Morgoth bond minion to genesisContract;
 :flan.whiteListMinting(genesisContract.address,true);
-:LP = create tokenPair on either Univ2 or Sushi for FLN/SCX;
-:power = instantiate morgoth.addTokenToBehodlerPowerInvoker(LP.address, genesisContract.address);
-:angband.authorize(addTokenToBehodlerPowerInvoker);
-:genesisContract.setDesiredPriceInDai(uint price);
-partition #LightSlateGrey "external contract calls"{
-    :behodlerDAIBalance = DAI.balanceOf(beholder);
-    :flanToMint = behodlerDAIBalance/price;
-    :flan.mint(2*flanToMint);
-    :angband.execute(power);
-    partition #ff6961 "addTokenToBehodler power"{
-        :Lachesis.measure(Flan.address,burnable:false);
-        note left
-            Although Flan can burn, 
-            this would preclude pyrotoken wrapping.
-            If we want burning on trade, 
-            we can turn it on via a governance proposal.
-            This gives us the best of both worlds.
-            If we list PyroFLN/SCX on Limbo as a perpetual soul,
-            we'll get automining and 
-            increased liquidity for FLN.
-        end note
-        :Lachesis.measure(LP.address, burnable:false);
-        :Lachesis.updateBehodler(Flan.address);
-        :Lachesis.updateBehodler(LP.address);
-        :LiquidityReceiver.registerPyroToken(Flan.address);
-        :LiquidityReceiver.registerPyroToken(LP.address);
-        :SCX_gen = behodler.addLiquidity(flanAddress, flanToMint);
-        :transfer flanToMint to LP;
-        :transfer SCX_gen to LP;
-        :lp = LP.mint();
-        :SCX_lpADD = Behodler.addLiquidity(LP.address, lp);
-        :burn SCX_lpADD;
+:genesisContract.letThereBeFlan(uint initialDaiPrice);
+partition #LightCyan "Transaction"{
+    :LP = create tokenPair on either Univ2 or Sushi for FLN/SCX;
+    :power = instantiate morgoth.AddTokenAndLPToBehodlerRegisterPyroTokens(LP.address, Flan.address);
+    :angband.authorize(power);
+    :setDesiredPriceInDai(uint price);
+    partition #LightSlateGrey "external contract calls"{
+        :behodlerDAIBalance = DAI.balanceOf(beholder);
+        :flanToDaiRatio = behodlerDAIBalance/price;
+        :flan.mint(4*flanToDaiRatio);
+        :angband.execute(power);
+        partition #ff6961 "addTokenToBehodler power"{
+            :Lachesis.measure(Flan.address,burnable:false);
+            note left
+                Although Flan can burn,
+                this would preclude pyrotoken wrapping.
+                If we want burning on trade,
+                we can turn it on via a governance proposal.
+                This gives us the best of both worlds.
+                If we list Pyro(FLN/SCX) on Limbo as a perpetual soul,
+                we'll get automining and
+                increased liquidity for FLN.
+            end note
+            :Lachesis.measure(LP.address, burnable:false);
+            :Lachesis.updateBehodler(Flan.address);
+            :Lachesis.updateBehodler(LP.address);
+            :LiquidityReceiver.registerPyroToken(Flan.address);
+            :LiquidityReceiver.registerPyroToken(LP.address);
+            :SCX_gen = behodler.addLiquidity(flanAddress, flanToDaiRatio);
+            :transfer remaining flan to LP;
+            :transfer 75 SCX to LP;
+            :lp = LP.mint();
+            :SCX_lpADD = Behodler.addLiquidity(LP.address, 1/3*lp);
+            :permanently lock remaining lp;
+            :burn SCX_lpADD;
+        }
     }
 }
 stop
