@@ -1,0 +1,28 @@
+@startuml
+!define yoghurt #eeb0ff
+!define bluegrey #b2c0ed
+start
+:Limbo.claimSecondaryRewards(address token);
+partition yoghurt "transaction"{
+    if(state is calibration or crossed over) then (yes)
+        :get balance of token on Limbo;
+        :AMMHelper.buyFlanAndBurn();
+        partition #LightGreen "UniswapHelper"{
+            :retrieve pair on Uniswap for token/Flan;
+            if(pair doesn't exist) then (yes)
+                #lightpink:revert;
+                stop
+            else
+
+                :swap token for flan using Uniswap;
+                :send 1% to caller;
+                :burn rest;
+            endif
+        }
+    else
+        #lightpink:revert;
+        stop
+    endif
+}
+stop
+@enduml

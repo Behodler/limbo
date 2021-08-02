@@ -9,24 +9,30 @@ partition yoghurt "transaction"{
             if(soul has been waiting to migrate for minimum required wait) then (yes)
                 bluegrey:prepare morgoth migration power invoker;
                 bluegrey:execute migration -> collect generated SCX;
-                :calculate marginal price of SCX;
-                :calculate rectangle of fairness;
-                :burn excess SCX and transfer to AMM helper;
+                :adjust rectangle of fairness according to the will of the community;
+                if(rectangle > scx minted) then (yes)
+                    :set rectangle to half scx minted;
+                endif
+                :burn SCX - rectangle and transfer to AMM helper;
+                :AmmHelper.priceTiltFlan();
                 partition #LightSkyBlue "Uniswap helper"{
-                    :get latest spot price of\nflan in terms of SCX from pair;
-                    if (price has diverged significantly since last quote) then (yes)
+                    if(latest price stamps have not been taken) then (yes)
                         #lightpink:revert;
                         stop
-                    else (no)
-                        if(price quote was acquired too recently) then (yes)
+                    else
+                        if(caller is not limbo) then (yes)
                             #lightpink:revert;
                             stop
-                        else (no)
-                            :get SCX transfer free;
-                            :calculate expected flan given SCX quantity (adjust for fee);
-                            :swap SCX for flan with outputDestination being SCX/Flan pair;
-                            :send remaining SCX to SCX/Flan pair; 
-                            :mint LP tokens and send them to blackhole contract;
+                        else
+                            :incrementBondingCurveCount;
+                            :LP_syntheticPrice = (latestDaiBalanceOnBehodler*Num_BondingCurves)/Scarcity_totalSupply;
+                            :finalSCXBalance = rectange + existingBalanceOn LP;
+                            :R = ratio of Dai spot price in SCX to LP_syntheticPrice;
+                            :FinalFlanBal on Uni = finalSCXBalance * R;
+                            :flanToMint = FinalFan - currentFlanBalance;
+                            :mint flanToMint and send to LP;
+                            :Send rectangle SCX to LP;
+                            :Mint new LP tokens;
                         endif
                     endif
                 }

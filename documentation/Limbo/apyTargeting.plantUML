@@ -1,0 +1,30 @@
+@startuml
+!define yoghurt #eeb0ff
+!define bluegrey #b2c0ed
+start
+:limbo.attemptToTargetAPY(token, desiredAPY, threshold);
+partition yoghurt "transaction"{
+    if(successful proposal OR flashgovernance approved) then (yes)
+        if(soul is not threshold) then (yes)
+            #lightpink:revert;
+            stop
+        else
+            :fps = AMMHelper.minAPY_to_FPS(desiredAPY, threshold);
+            partition #LightGreen "UniswapHelper"{
+                if(threshold ==0) then (yes)
+                    :threshold = DaiBalanceOnBehodler;
+                endif
+                :DaiPerFlan = DaiSCXSpotPrice /FlanSCXSpotPrice;
+                :AVB in Flan = threshold/DaiPerFlan;
+                :fps = (ABV in Flan * minAPY)/(seconds in year);
+            }
+            :flashgovernance don't allow large adjustments;
+            :set fps on soul;
+        endif
+    else (no)
+        #lightpink:revert;
+        stop
+    endif
+}
+stop
+@enduml

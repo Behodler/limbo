@@ -38,6 +38,7 @@ contract UniswapHelper is Governable {
 
     UniVARS VARS;
     uint256 constant EXA = 1e18;
+    uint256 constant year = (1 days * 365);
 
     /*
     instead of relying on oracles, we simply require snapshots of important 
@@ -199,8 +200,6 @@ contract UniswapHelper is Governable {
         FlanLike(VARS.flan).mint(address(VARS.Flan_SCX_tokenPair), flanToMint);
         lpMinted = VARS.Flan_SCX_tokenPair.mint(VARS.blackHole);
     }
-
-    uint256 constant year = (1 days * 365);
 
     /* 
     Cnvert the AVB on Behodler from Dai into Flan

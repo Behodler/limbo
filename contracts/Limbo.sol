@@ -96,6 +96,7 @@ Error string legend:
  Protocol disabled                              EF
  Reserve divergence tolerance exceeded          EG
  not enough time between reserve stamps         EH
+ Minimum APY only applicable to threshold souls EI
 */
 contract Limbo is Governable {
     using SafeERC20 for IERC20;
@@ -181,6 +182,7 @@ contract Limbo is Governable {
         uint256 daiThreshold
     ) public governanceApproved {
         Soul storage soul = currentSoul(token);
+        require(soul.soulType == SoulType.threshold, "EI");
         uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(
             desiredAPY,
             daiThreshold
@@ -477,9 +479,9 @@ contract Limbo is Governable {
     // We don't want airdrops or pooltogether winnings to be stuck in Limbo
     function claimSecondaryRewards(address token)
         public
-        onlySuccessfulProposal
     {
-        require(currentSoul(token).soulType == SoulType.uninitialized, "E7");
+        SoulState state = currentSoul(token).state;
+        require(state == SoulState.calibration||state ==  SoulState.crossedOver, "E7");
         uint256 balance = IERC20(token).balanceOf(address(this));
         IERC20(token).transfer(crossingConfig.ammHelper,balance);
         AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(
@@ -523,7 +525,6 @@ contract Limbo is Governable {
             address(crossingConfig.morgothPower)
         );
 
-        //get marginal SCX price and calculate rectangle of fairness
         uint256 scxMinted = IERC20(address(crossingConfig.behodler)).balanceOf(
             address(this)
         );
