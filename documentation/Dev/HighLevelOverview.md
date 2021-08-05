@@ -34,15 +34,22 @@ When a threshold soul is migrated, a migration bonus in Flan is calculated that 
 
 # Contract topology
 **Proposals** are standalone contracts that inherit the proposal base contract which can be invoked generically via an invoke function, following the command pattern.
+
 **Proposal Factory** controls the whitelisting of valid proposals. The whitelisting feature itself can be controlled by a special whitelist proposal contract which is auto whitelisted on deploy. In this way, the DAO bootstraps itself with the only valid proposal it needs: the one that determines whether a proposal is valid or not. This immediately frees the DAO from enduring a period of centralization.
 To lodge a proposal with LimboDAO, users would pass a whitelisted contract to the lodgeProposal function.
 Note that proposals are intended to be recycled with new parameters, not reinstantiated each time since the whitelisting process would slow things down too much. 
+
 **FlashGovernanceArbiter** handles all flash governance housekeeping logic and is itself governed by LimboDAO.
+
 **Governable** is a base class that all governable contracts must inherit in order to be subject to the authority of LimboDAO.
+
 **Flan** is a governable token that is used for rewarding souls on Limbo. Flan has a whitelisting mint feature and is burnable. Through governance, a burn on transfer functionality can be enabled. Flan implements the ERC677 token standard, a compliant extension of ERC20.
+
 **Limbo** is governable and provides an interface for staking/unstaking and migrating tokens to Behodler. Limbo is whitelisted to mint Flan.
+
 **UniswapHelper** As part of the migration, Limbo interacts with an external AMM in order to influence the price external to Behodler. Currently the supported external AMMs are Uniswap V2 and Sushiswap CFMM.
 When a staked token earns a protocol token, an airdrop or any other ancillary rewards they accumulate in Limbo, UniswapHelper is used to buy and burn Flan using the protocol reward token.
+
 **Soul reader** is just a helper contract to make front end work easier.
 
 # Breakdown of precise functionality
