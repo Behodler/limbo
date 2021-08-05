@@ -39,6 +39,8 @@ When a threshold soul is migrated, a migration bonus in Flan is calculated that 
 To lodge a proposal with LimboDAO, users would pass a whitelisted contract to the lodgeProposal function.
 Note that proposals are intended to be recycled with new parameters, not reinstantiated each time since the whitelisting process would slow things down too much. 
 
+**LimboDAO** handles voting and executing of proposals and fate growth. LimboDAO has control over FlashGovernanceArbiter as well.
+
 **FlashGovernanceArbiter** handles all flash governance housekeeping logic and is itself governed by LimboDAO.
 
 **Governable** is a base class that all governable contracts must inherit in order to be subject to the authority of LimboDAO.
