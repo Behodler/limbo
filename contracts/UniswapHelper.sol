@@ -14,16 +14,6 @@ contract UniswapHelper is Governable {
     address limbo;
 
     struct UniVARS {
-        address token0;
-        address token1;
-        address inputToken;
-        address outputToken;
-        uint256 reserveA;
-        uint256 reserveB;
-        uint256 expectedOutputToken;
-        uint256 amountIn;
-        address[] path;
-        uint256 transferFee;
         UniPairLike Flan_SCX_tokenPair;
         address behodler;
         address blackHole;
@@ -32,9 +22,17 @@ contract UniswapHelper is Governable {
         uint256 minQuoteWaitDuration;
         address DAI;
         uint256 behodlerActiveBondingCurves;
-        uint8 precision;
+        uint8 precision; // behodler uses a binary search. The higher this number, the more precise
         IUniswapV2Factory factory;
     }
+
+    struct FlanQuote {
+        uint256 FlanScxExaRatio;
+        uint256 DaiScxSpotPrice;
+        uint256 DaiBalanceOnBehodler;
+        uint256 blockProduced;
+    }
+    FlanQuote[2] public latestFlanQuotes; //0 is latest
 
     UniVARS VARS;
     uint256 constant EXA = 1e18;
@@ -68,36 +66,26 @@ contract UniswapHelper is Governable {
         _;
     }
 
-    function blackHole() public view returns (address) {
-        return VARS.blackHole;
-    }
-
-    function setFactory(address factory) public {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        require(id != 1, "Uniswap factory hardcoded on mainnet");
-        VARS.factory = IUniswapV2Factory(factory);
-    }
-
     constructor(address _limbo, address limboDAO) Governable(limboDAO) {
         limbo = _limbo;
         VARS.blackHole = address(new BlackHole());
         VARS.factory = IUniswapV2Factory(
             address(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f)
         );
+        VARS.DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     }
 
-    struct FlanQuote {
-        uint256 FlanScxExaRatio;
-        uint256 DaiScxSpotPrice;
-        uint256 DaiBalanceOnBehodler;
-        uint256 blockProduced;
+    function blackHole() public view returns (address) {
+        return VARS.blackHole;
     }
-    FlanQuote[2] public latestFlanQuotes; //0 is latest
 
-    function setDAI(address dai) public onlySuccessfulProposal {
+    function setFactory(address factory) public {
+        require(block.chainid != 1, "Uniswap factory hardcoded on mainnet");
+        VARS.factory = IUniswapV2Factory(factory);
+    }
+
+    function setDAI(address dai) public {
+        require(block.chainid != 1, "Uniswap factory hardcoded on mainnet");
         VARS.DAI = dai;
     }
 
@@ -143,7 +131,7 @@ contract UniswapHelper is Governable {
             uint256 daiBalanceOnBehodler
         )
     {
-        //need order to b,e SCX per flan
+        //need order to be SCX per flan
         (uint256 reserve1, uint256 reserve2, ) = VARS
             .Flan_SCX_tokenPair
             .getReserves();

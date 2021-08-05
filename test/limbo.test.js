@@ -250,7 +250,6 @@ describe("Limbo", function () {
     //withdrawERC20
     console.log(`secondPerson: ${secondPerson.address}`);
 
-
     await this.limbo.configureCrossingConfig(
       this.mockBehodler.address,
       this.mockAngband.address,
@@ -1735,6 +1734,102 @@ describe("Limbo", function () {
     //assert flan supply fallen by 3
     const totalSupplyAfter = await this.flan.totalSupply();
     expect(totalSupplyBefore.sub(totalSupplyAfter)).to.equal(3);
+  });
+
+  it("attemptToTargetAPY for non threshold soul fails", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      10000000,
+      2,
+      0,
+      1,
+      0,
+      10000000
+    );
+
+    //create real behodler
+    const AddressBalanceCheckLib = await ethers.getContractFactory(
+      "AddressBalanceCheck"
+    );
+    const addressBalanceCheckLibAddress = (
+      await AddressBalanceCheckLib.deploy()
+    ).address;
+    const RealBehodlerFactory = await ethers.getContractFactory(
+      "BehodlerLite",
+      {
+        libraries: {
+          AddressBalanceCheck: addressBalanceCheckLibAddress,
+        },
+      }
+    );
+    const realBehodler = await RealBehodlerFactory.deploy();
+
+    //add dai to real behodler
+    await this.dai.mint("5000000000000000000000000");
+    await this.dai.approve(realBehodler.address, "5000000000000000000000000");
+    await realBehodler.addLiquidity(
+      this.dai.address,
+      "5000000000000000000000000"
+    );
+
+    //create Uniswap pair for Flan/SCX
+    const RealUniswapFactoryFactory = await ethers.getContractFactory(
+      "RealUniswapV2Factory"
+    );
+    const RealUniswapPairFactory = await ethers.getContractFactory(
+      "RealUniswapV2Pair"
+    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
+      owner.address
+    );
+    await realUniswapFactory.createPair(
+      realBehodler.address,
+      this.flan.address
+    );
+
+    const pairAddress = await realUniswapFactory.getPair(
+      this.flan.address,
+      realBehodler.address
+    );
+    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+
+    //configure uniswapHelper
+    await this.uniswapHelper.configure(
+      this.limbo.address,
+      pairAddress,
+      realBehodler.address,
+      this.flan.address,
+      200,
+      10,
+      3,
+      20
+    );
+    await this.uniswapHelper.setDAI(this.dai.address);
+
+    //send Flan and SCX to pair and mint
+    await this.flan.mint(pairAddress, "1000000000000000000000000");
+    130000000000000000000000;
+    const scxBalance = await realBehodler.balanceOf(owner.address);
+
+    await realBehodler.transfer(pairAddress, scxBalance);
+
+    await scxFlanPair.mint(owner.address);
+
+    //run price quote, wait required time and run quote again.
+    await this.uniswapHelper.generateFLNQuote();
+
+    await advanceBlocks(11);
+
+    await this.uniswapHelper.generateFLNQuote();
+
+    //flash govern set APY
+    await expect(
+      this.limbo.attemptToTargetAPY(
+        this.aave.address,
+        1300, // 13%
+        0 //let helper figure this out
+      )
+    ).to.be.revertedWith("EI");
   });
 
   it("attemptToTargetAPY sets fps correctly, use to test multiple token migrations", async function () {

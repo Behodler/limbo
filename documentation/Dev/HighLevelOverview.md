@@ -140,6 +140,22 @@ If the prices diverge too much, the migration will fail. Both the spacing and di
 Implements ERC677 which won't be repeated here.
 ### Properties
 * mintAllowance: an allowance per address for mintable flan. Setting this to uint max will make allowance infinite
-* setBurnOnTransferFee
-## FlashGovernanceArbiter
+* **setBurnOnTransferFee: Flan is by default not a burn on transfer token but this can be turned on to underpin price**
+* **whiteListMinting: grant infinite minting power to address**
+* **increaseMintAllowance: increase mint allowance for an address**
+* mint: invokable by address with a positive mint allowance
+* safeTransfer: transfer any amount without reverting on invalid amounts. Invalid amounts are just ignored.
 
+## FlashGovernanceArbiter
+### Properties
+* flashGovernanceConfig: determines the type of asset used for flash governance, the amount required, the duration for locking and wether the asset is burnable. By default this is EYE
+* security: prevents Karen attacks and changes that are too big
+* pendingFlashDecision: For every flash decision there is an invoking user and a host contract. This records the salient info for that mapping so that security can be enforced.
+
+### Functions
+* assertGovernanceApproved: invoked by a modifier to check if the calling user either has enough of the flashgovernance asset to invoke or if the calling address is a sucessful proposal.
+* **configureFlashGovernance**
+* **configureSecurityParameters** 
+* **burnFlashGovernanceAsset: when a user abuses flash governance, the community can burn their deposit**
+* withdrawGovernanceAsset: once the dispute period has passed, an invoker of flash governance can withdraw their asset.
+* enforceToleranceInt: optional helper function to enforce a maximum % change allowable per variable.

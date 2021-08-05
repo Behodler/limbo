@@ -93,13 +93,6 @@ contract FlashGovernanceArbiter is Governable {
         public
         virtual
     {
-        console.log(
-            "asset %s, amount %s,  unlock ready %s",
-            pendingFlashDecision[targetContract][msg.sender].asset,
-            pendingFlashDecision[targetContract][msg.sender].amount,
-            pendingFlashDecision[targetContract][msg.sender].unlockTime <
-                block.timestamp
-        );
         require(
             pendingFlashDecision[targetContract][msg.sender].asset == asset &&
                 pendingFlashDecision[targetContract][msg.sender].amount > 0 &&
