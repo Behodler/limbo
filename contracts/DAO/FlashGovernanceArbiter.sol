@@ -2,9 +2,11 @@
 pragma solidity ^0.8.0;
 import "./Governable.sol";
 import "hardhat/console.sol";
+import "../facades/Burnable.sol";
 
 contract FlashGovernanceArbiter is Governable {
-    event flashDecision(address actor, address deposit_asset, uint256 amount);
+    event flashDecision(address actor, address deposit_asset, uint256 amount, address target);
+    mapping(address => bool) enforceLimitsActive;
 
     constructor(address dao) Governable(dao) {}
 
@@ -46,12 +48,15 @@ contract FlashGovernanceArbiter is Governable {
             emit flashDecision(
                 sender,
                 flashGovernanceConfig.asset,
-                flashGovernanceConfig.amount
+                flashGovernanceConfig.amount,
+                target
             );
         } else {
             revert("LIMBO: governance decision rejected.");
         }
     }
+
+    
 
     function configureFlashGovernance(
         address asset,
@@ -101,10 +106,14 @@ contract FlashGovernanceArbiter is Governable {
             "Limbo: Flashgovernance decision pending."
         );
         IERC20(pendingFlashDecision[targetContract][msg.sender].asset).transfer(
-            msg.sender,
-            pendingFlashDecision[targetContract][msg.sender].amount
-        );
+                msg.sender,
+                pendingFlashDecision[targetContract][msg.sender].amount
+            );
         delete pendingFlashDecision[targetContract][msg.sender];
+    }
+
+    function setEnforcement(bool enforce) public {
+        enforceLimitsActive[msg.sender] = enforce;
     }
 
     function enforceToleranceInt(int256 v1, int256 v2) public view {
@@ -116,7 +125,8 @@ contract FlashGovernanceArbiter is Governable {
 
     //bonus points for readability
     function enforceTolerance(uint256 v1, uint256 v2) public view {
-        if (!configured) return;
+        if (!configured ||!enforceLimitsActive[msg.sender] )
+            return;
         if (v1 > v2) {
             if (v2 == 0) require(v1 <= 1, "FE1");
             else

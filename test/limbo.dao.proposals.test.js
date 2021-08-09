@@ -105,12 +105,12 @@ describe("DAO Proposals", function () {
       [3322, 5543, 22, 112]
     );
 
-    const TransferHelperFactory = await ethers.getContractFactory(
+    this.TransferHelperFactory = await ethers.getContractFactory(
       "TransferHelper"
     );
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        TransferHelper: (await TransferHelperFactory.deploy()).address,
+        TransferHelper: (await this.TransferHelperFactory.deploy()).address,
       },
     });
 
@@ -134,23 +134,23 @@ describe("DAO Proposals", function () {
     const flashGovernanceFactory = await ethers.getContractFactory(
       "FlashGovernanceArbiter"
     );
-    const flashGovernance = await flashGovernanceFactory.deploy(dao.address);
+    this.flashGovernance = await flashGovernanceFactory.deploy(dao.address);
 
     const GovernableStubFactory = await ethers.getContractFactory(
       "GovernableStub"
     );
 
-    const limbo = await GovernableStubFactory.deploy(dao.address);
-    const flan = await GovernableStubFactory.deploy(dao.address);
+    this.limbo = await GovernableStubFactory.deploy(dao.address);
+    this.flan = await GovernableStubFactory.deploy(dao.address);
 
     await dao.seed(
-      limbo.address,
-      flan.address,
+      this.limbo.address,
+      this.flan.address,
       eye.address,
       proposalFactory.address,
       sushiSwapFactory.address,
       uniswapFactory.address,
-      flashGovernance.address,
+      this.flashGovernance.address,
       9,
       [daiEYESLP.address, linkEYESLP.address, sushiEYESLP.address],
       [daiEYEULP.address, linkEYEULP.address, sushiEYEULP.address]
@@ -496,5 +496,34 @@ describe("DAO Proposals", function () {
         .connect(secondPerson)
         .vote(updateProposalConfigProposal.address, "100")
     ).to.be.revertedWith("LimboDAO: voting for current proposal has ended.");
+  });
+
+  it("killDAO, only callable by owner, transfers ownership to new DAO", async function () {
+    this.TransferHelperFactory = await ethers.getContractFactory(
+      "TransferHelper"
+    );
+    const daoFactory = await ethers.getContractFactory("LimboDAO", {
+      libraries: {
+        TransferHelper: (await this.TransferHelperFactory.deploy()).address,
+      },
+    });
+
+    newDAO = await daoFactory.deploy();
+
+    const limboDAObefore = await this.limbo.DAO();
+    expect(limboDAObefore).to.equal(dao.address);
+
+    const flanDAObefore = await this.flan.DAO();
+    expect(flanDAObefore).to.equal(dao.address);
+
+    await expect(
+      dao.connect(secondPerson).killDAO(newDAO.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+    await dao.killDAO(newDAO.address);
+
+    const limboDAOafter = await this.limbo.DAO();
+    expect(limboDAOafter).to.equal(newDAO.address);
+    const flanDAOafter = await this.flan.DAO();
+    expect(flanDAOafter).to.equal(newDAO.address);
   });
 });

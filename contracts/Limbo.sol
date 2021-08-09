@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
@@ -159,7 +159,7 @@ contract Limbo is Governable {
     uint256 constant TERA = 1E12;
     uint256 constant myriad = 1e4;
     uint256 constant SCX_calc = TERA * 10000 * (1 ether); //112 bits added, still leaves plenty room to spare
-    uint256 constant RectangleOfFairness = 28 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 28 is the result of scaling factors on Behodler.
+    uint256 constant RectangleOfFairness = 30 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 28 is the result of scaling factors on Behodler.
     bool protocolEnabled = true;
     CrossingConfig public crossingConfig;
     mapping(address => mapping(uint256 => Soul)) public souls;
@@ -474,16 +474,17 @@ contract Limbo is Governable {
 
         emit BonusPaid(token, index, msg.sender, flanBonus);
     }
-    
+
     //reward user for calling with percentage. require no active or waiting souls for withdrawal
     // We don't want airdrops or pooltogether winnings to be stuck in Limbo
-    function claimSecondaryRewards(address token)
-        public
-    {
+    function claimSecondaryRewards(address token) public {
         SoulState state = currentSoul(token).state;
-        require(state == SoulState.calibration||state ==  SoulState.crossedOver, "E7");
+        require(
+            state == SoulState.calibration || state == SoulState.crossedOver,
+            "E7"
+        );
         uint256 balance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(crossingConfig.ammHelper,balance);
+        IERC20(token).transfer(crossingConfig.ammHelper, balance);
         AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(
             token,
             balance,
@@ -547,7 +548,7 @@ contract Limbo is Governable {
             crossingConfig.ammHelper,
             adjustedRectangle
         );
-        uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).priceTiltFlan(
+        uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(
             adjustedRectangle
         );
 

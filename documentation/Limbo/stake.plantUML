@@ -6,7 +6,7 @@ partition #LightGrey "transaction"{
         partition #MistyRose "update soul"{
             if(soul is initialized) then (yes)
                 if(total staked balance of soul>0) then(yes)
-                    :mint flan => duration*flanPerSecond*relativeAllocPoints;
+                    :mint flan => duration*flanPerSecond;
                 endif
                 :update reward update timestamp for soul;
             else (no)

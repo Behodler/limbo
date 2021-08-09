@@ -184,7 +184,7 @@ describe("DAO staking", function () {
   it("Only live staking", async function () {
     await expect(
       dao.setEYEBasedAssetStake(100, 400, 20, sushiEYEULP.address)
-    ).to.be.revertedWith("LimboDAO: DAO is not live. Wen Limbo?");
+    ).to.be.revertedWith("LimboDAO: DAO is not live.");
   });
 
   it("Staking Eye sets fate per day to root EYE ", async function () {

@@ -9,6 +9,7 @@ import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Callee.sol";
 import "hardhat/console.sol";
+
 contract RealUniswapV2Pair is UniswapV2ERC20 {
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
     event Burn(
@@ -159,6 +160,13 @@ contract RealUniswapV2Pair is UniswapV2ERC20 {
             liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
             _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
+            console.log(
+                "totalSupply %s, reserve0 %s, reserve1 %s",
+                _totalSupply,
+                _reserve0,
+                _reserve1
+            );
+            console.log("amount0 %s, amount1 %s", amount0, amount1);
             liquidity = Math.min(
                 amount0.mul(_totalSupply) / _reserve0,
                 amount1.mul(_totalSupply) / _reserve1

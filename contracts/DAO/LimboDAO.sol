@@ -108,8 +108,8 @@ contract LimboDAO is Ownable {
     ProposalState public currentProposalState;
     ProposalState public previousProposalState;
 
-    modifier isLive {
-        require(domainConfig.live, "LimboDAO: DAO is not live. Wen Limbo?");
+    modifier isLive() {
+        require(domainConfig.live, "LimboDAO: DAO is not live.");
         _;
     }
 
@@ -122,7 +122,7 @@ contract LimboDAO is Ownable {
         currentProposalState.start = 0;
     }
 
-    modifier onlySuccessfulProposal {
+    modifier onlySuccessfulProposal() {
         // console.log('onlySuccessfulProposal');
         require(successfulProposal(msg.sender), "LimboDAO: approve proposal");
         _;
@@ -135,7 +135,7 @@ contract LimboDAO is Ownable {
             proposal == address(currentProposalState.proposal);
     }
 
-    modifier updateCurrentProposal {
+    modifier updateCurrentProposal() {
         incrementFateFor(_msgSender());
         if (address(currentProposalState.proposal) != address(0)) {
             uint256 durationSinceStart = block.timestamp -
@@ -148,7 +148,7 @@ contract LimboDAO is Ownable {
                     currentProposalState.decision = ProposalDecision.approved;
                     currentProposalState.proposal.orchestrateExecute();
                     fateState[currentProposalState.proposer]
-                    .fateBalance += proposalConfig.requiredFateStake;
+                        .fateBalance += proposalConfig.requiredFateStake;
                 } else {
                     currentProposalState.decision = ProposalDecision.rejected;
                 }
@@ -162,7 +162,7 @@ contract LimboDAO is Ownable {
         _;
     }
 
-    modifier incrementFate {
+    modifier incrementFate() {
         incrementFateFor(_msgSender());
         _;
     }
@@ -200,7 +200,7 @@ contract LimboDAO is Ownable {
             if (IERC20(eye).balanceOf(sushiLPs[i]) > 1000)
                 assetApproved[sushiLPs[i]] = true;
             fateGrowthStrategy[sushiLPs[i]] = FateGrowthStrategy
-            .indirectTwoRootEye;
+                .indirectTwoRootEye;
         }
         for (uint256 i = 0; i < uniLPs.length; i++) {
             require(
@@ -210,7 +210,7 @@ contract LimboDAO is Ownable {
             if (IERC20(eye).balanceOf(uniLPs[i]) > 1000)
                 assetApproved[uniLPs[i]] = true;
             fateGrowthStrategy[uniLPs[i]] = FateGrowthStrategy
-            .indirectTwoRootEye;
+                .indirectTwoRootEye;
         }
     }
 
@@ -267,7 +267,8 @@ contract LimboDAO is Ownable {
                 proposalConfig.votingDuration
             ) {
                 revert("LimboDAO: voting for current proposal has ended.");
-            } else if (  //The following if statement checks if the vote is flipped by fate
+            } else if (
+                //The following if statement checks if the vote is flipped by fate
                 fate * currentFate < 0 && //sign different
                 (fate + currentFate) * fate > 0 //fate flipped current fate onto the same side of zero as fate
             ) {

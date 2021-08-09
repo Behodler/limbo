@@ -160,7 +160,8 @@ describe("Limbo", function () {
       10,
       32,
       3,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -226,7 +227,7 @@ describe("Limbo", function () {
       await dao.executeCurrentProposal();
     };
   };
-
+  
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -1277,7 +1278,8 @@ describe("Limbo", function () {
       20,
       105,
       3,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -1346,7 +1348,8 @@ describe("Limbo", function () {
       200,
       105,
       3,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -1400,7 +1403,8 @@ describe("Limbo", function () {
       200,
       105,
       3,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -1438,7 +1442,7 @@ describe("Limbo", function () {
     );
   });
 
-  it("multiple migrations to real uniswap tilts price", async function () {
+  it("multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
     const AddressBalanceCheckLib = await ethers.getContractFactory(
       "AddressBalanceCheck"
     );
@@ -1497,7 +1501,7 @@ describe("Limbo", function () {
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
-    await this.flan.mint(pairAddress, "800000000000000000000");
+    await this.flan.mint(pairAddress, "300000000000000000000000");
 
     await scxFlanPair.mint(owner.address);
 
@@ -1521,10 +1525,10 @@ describe("Limbo", function () {
       200,
       105,
       4,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
-
     await this.limbo.configureSoul(
       this.aave.address,
       100, //crossingThreshold
@@ -1566,7 +1570,7 @@ describe("Limbo", function () {
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
     expect(scxBalanceOfPairBefore).to.equal("621742118423849412341");
-    expect(flanPairBalanceBefore).to.equal("800000000000000000000");
+    expect(flanPairBalanceBefore).to.equal("300000000000000000000000");
 
     await this.limbo.migrate(this.aave.address);
     const blackHoleBalanceAfter = await scxFlanPair.balanceOf(blackHoleAddress);
@@ -1576,21 +1580,43 @@ describe("Limbo", function () {
     const flanPairBalanceAfter = await this.flan.balanceOf(pairAddress);
     const scxBalanceOfPairAfter = await realBehodler.balanceOf(pairAddress);
 
-    expect(flanPairBalanceAfter.div(scxBalanceOfPairAfter)).to.equal(6);
+    expect(flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)).to.equal(
+      516286
+    );
 
     //SECOND MIGRATION
 
+    const mock1 = await this.TokenFactory.deploy("mock1", "mock1", [], []);
+
     //require DAI price of SCX to rise so that we can mint more FLN
 
-    await this.limbo.configureSoul(
+    //change DAI price
+    await this.aave.mint("100000000000000000000000");
+    await this.aave.approve(realBehodler.address, "10000000000000000000000000");
+    await realBehodler.addLiquidity(
       this.aave.address,
-      "10000000000000000000000", //crossingThreshold
+      "100000000000000000000000"
+    );
+
+    const scxBalance = await realBehodler.balanceOf(owner.address);
+    console.log("my balance: " + scxBalance);
+    await realBehodler.withdrawLiquidity(
+      this.dai.address,
+      "140000000000000010100"
+    );
+
+    await this.limbo.configureSoul(
+      mock1.address,
+      "100000000", //crossingThreshold
       1, //soulType
       0, //exitPenalty
       1, //state
       1,
       10000000
     );
+    //stake tokens
+    await mock1.approve(this.limbo.address, "100000000000000000000001");
+    await this.limbo.stake(mock1.address, "100000000000000000000");
 
     await this.limbo.configureCrossingConfig(
       realBehodler.address,
@@ -1603,8 +1629,6 @@ describe("Limbo", function () {
       // 105,
       100
     );
-    await this.aave.mint("100000000000000000000000");
-    await this.limbo.stake(this.aave.address, "10000000000000000000001");
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -1612,7 +1636,7 @@ describe("Limbo", function () {
     await advanceBlocks(minQuoteWaitDuration + 1);
 
     await this.uniswapHelper.generateFLNQuote();
-    await this.limbo.migrate(this.aave.address);
+    await this.limbo.migrate(mock1.address);
 
     const flanBalanceAfterSecondMigrate = await this.flan.balanceOf(
       pairAddress
@@ -1621,17 +1645,21 @@ describe("Limbo", function () {
       pairAddress
     );
 
+    const latestPrice = await this.uniswapHelper.latestFlanQuotes(0);
+    console.log("dai-scx spot: " + latestPrice[1].toString());
+
     const ratio = flanBalanceAfterSecondMigrate
-      .mul(10000)
+      .mul(1000)
       .div(scxBalanceOfPairAfterSecondMigrate);
 
     //flan strengthens
-    expect(ratio).to.equal(58241);
+    expect(ratio).to.equal(511123);
 
     //THIRD MIGRATION
+    const mock2 = await this.TokenFactory.deploy("mock1", "mock1", [], []);
 
     await this.limbo.configureSoul(
-      this.aave.address,
+      mock2.address,
       100, //crossingThreshold
       1, //soulType
       0, //exitPenalty
@@ -1651,8 +1679,9 @@ describe("Limbo", function () {
       // 105,
       100
     );
-    await this.aave.mint("1000000000000000000000");
-    await this.limbo.stake(this.aave.address, "100000000000000000000");
+    await mock2.mint("3000000000000000000000");
+    await mock2.approve(this.limbo.address, "3000000000000000000000");
+    await this.limbo.stake(mock2.address, "3000000000000000000000");
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -1660,7 +1689,7 @@ describe("Limbo", function () {
     await advanceBlocks(minQuoteWaitDuration + 1);
 
     await this.uniswapHelper.generateFLNQuote();
-    await this.limbo.migrate(this.aave.address);
+    await this.limbo.migrate(mock2.address);
 
     const flanBalanceAfterThirdMigrate = await this.flan.balanceOf(pairAddress);
     const scxBalanceOfPairAfteThirdMigrate = await realBehodler.balanceOf(
@@ -1671,7 +1700,7 @@ describe("Limbo", function () {
       .mul(10000)
       .div(scxBalanceOfPairAfteThirdMigrate);
 
-    expect(ratio2).to.equal(58230);
+    expect(ratio2).to.equal(5111239);
   });
 
   it("any whitelisted contract can mint flan", async function () {
@@ -1802,7 +1831,8 @@ describe("Limbo", function () {
       200,
       10,
       3,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -1898,7 +1928,8 @@ describe("Limbo", function () {
       200,
       10,
       3,
-      20
+      20,
+      0
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -1931,7 +1962,7 @@ describe("Limbo", function () {
     // Dai per flan =143.486644559
 
     const soulInfo = await this.limbo.souls(this.aave.address, 0);
-    expect(soulInfo.flanPerSecond).to.equal("1436466");
+    expect(soulInfo.flanPerSecond).to.equal("20611364789446981");
 
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     const pool = await this.TokenFactory.deploy("pool", "pool", [], []);
@@ -2000,21 +2031,22 @@ describe("Limbo", function () {
     expect(aaveDetails[2]).to.equal("10000000"); //crossing threshold
     expect(aaveDetails[3]).to.equal(1); //soul type = migration
     expect(aaveDetails[5]).to.equal(2); //exit penalty
-    expect(aaveDetails[6]).to.equal("1436466"); //fps
+    expect(aaveDetails[6]).to.equal("20611364789446981"); //fps
 
     const sushiDetails = await this.limbo.souls(sushi.address, 0);
     expect(sushiDetails[2]).to.equal("0"); //crossing threshold
     expect(sushiDetails[3]).to.equal(2); //soul type = migration
     expect(sushiDetails[5]).to.equal(0); //exit penalty
-    expect(sushiDetails[6]).to.equal("2872932"); //fps
-
+    expect(sushiDetails[6]).to.equal("41222729578893962"); //fps
+41222729578893962
     const poolDetails = await this.limbo.souls(pool.address, 0);
     expect(poolDetails[2]).to.equal("123456"); //crossing threshold
     expect(poolDetails[3]).to.equal(1); //soul type = migration
     expect(poolDetails[5]).to.equal(0); //exit penalty
-    expect(poolDetails[6]).to.equal("2872932"); //fps
+    expect(poolDetails[6]).to.equal("41222729578893962"); //fps
   });
 
+  
   it("protocol token buy buck works", async function () {
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     await sushi.mint("10000");
@@ -2070,4 +2102,108 @@ describe("Limbo", function () {
       this.limbo.claimSecondaryRewards(sushi.address)
     ).to.be.revertedWith("E7");
   });
+
+  it("flash governance tolerance enforeced for flash loan but not successful proposals or unconfigured", async function () {
+    await this.flashGovernance.configureSecurityParameters(10, 100, 3);
+
+    await this.limbo.configureSoul(
+      this.aave.address,
+      10000000,
+      1,
+      0,
+      1,
+      0,
+      10000000
+    );
+
+    //create real behodler
+    const AddressBalanceCheckLib = await ethers.getContractFactory(
+      "AddressBalanceCheck"
+    );
+    const addressBalanceCheckLibAddress = (
+      await AddressBalanceCheckLib.deploy()
+    ).address;
+    const RealBehodlerFactory = await ethers.getContractFactory(
+      "BehodlerLite",
+      {
+        libraries: {
+          AddressBalanceCheck: addressBalanceCheckLibAddress,
+        },
+      }
+    );
+    const realBehodler = await RealBehodlerFactory.deploy();
+
+    //add dai to real behodler
+    await this.dai.mint("5000000000000000000000000");
+    await this.dai.approve(realBehodler.address, "5000000000000000000000000");
+    await realBehodler.addLiquidity(
+      this.dai.address,
+      "5000000000000000000000000"
+    );
+
+    //create Uniswap pair for Flan/SCX
+    const RealUniswapFactoryFactory = await ethers.getContractFactory(
+      "RealUniswapV2Factory"
+    );
+    const RealUniswapPairFactory = await ethers.getContractFactory(
+      "RealUniswapV2Pair"
+    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
+      owner.address
+    );
+    await realUniswapFactory.createPair(
+      realBehodler.address,
+      this.flan.address
+    );
+
+    const pairAddress = await realUniswapFactory.getPair(
+      this.flan.address,
+      realBehodler.address
+    );
+    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+
+    //configure uniswapHelper
+    await this.uniswapHelper.configure(
+      this.limbo.address,
+      pairAddress,
+      realBehodler.address,
+      this.flan.address,
+      200,
+      10,
+      3,
+      20,
+      0
+    );
+    await this.uniswapHelper.setDAI(this.dai.address);
+
+    //send Flan and SCX to pair and mint
+    await this.flan.mint(pairAddress, "1000000000000000000000000");
+    130000000000000000000000;
+    const scxBalance = await realBehodler.balanceOf(owner.address);
+
+    await realBehodler.transfer(pairAddress, scxBalance);
+
+    await scxFlanPair.mint(owner.address);
+
+    //run price quote, wait required time and run quote again.
+    await this.uniswapHelper.generateFLNQuote();
+
+    await advanceBlocks(11);
+
+    await this.uniswapHelper.generateFLNQuote();
+
+    //flash govern set APY
+    await this.limbo.attemptToTargetAPY(
+      this.aave.address,
+      1300, // 13%
+      0 //let helper figure this out
+    );
+
+    await this.limbo.attemptToTargetAPY(
+      this.aave.address,
+      2600, //more than 3% is fine when not configured
+      0 //let helper figure this out
+    );
+  });
+  
 });

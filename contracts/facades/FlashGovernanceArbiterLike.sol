@@ -16,4 +16,6 @@ abstract contract FlashGovernanceArbiterLike {
         address asset,
         uint256 amount
     ) public virtual;
+
+     function setEnforcement(bool enforce) public virtual;
 }

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../facades/LimboDAOLike.sol";
-import "../facades/Burnable.sol";
 import "../facades/FlashGovernanceArbiterLike.sol";
 
 abstract contract Governable {
@@ -14,15 +13,25 @@ abstract contract Governable {
         configured = true;
     }
 
-    modifier onlySuccessfulProposal {
+    modifier onlySuccessfulProposal() {
         assertSuccessfulProposal(msg.sender);
         _;
     }
 
-    modifier governanceApproved {
-        if (configured && !LimboDAOLike(DAO).successfulProposal(msg.sender))
+    function _governanceApproved() internal {
+        bool successfulProposal = LimboDAOLike(DAO).successfulProposal(
+            msg.sender
+        );
+        if (successfulProposal) {
+            flashGoverner.setEnforcement(false);
+        } else if (configured)
             flashGoverner.assertGovernanceApproved(msg.sender, address(this));
+    }
+
+    modifier governanceApproved() {
+        _governanceApproved();
         _;
+        flashGoverner.setEnforcement(true);
     }
 
     function assertSuccessfulProposal(address sender) internal view {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 abstract contract AMMHelper {
-    function priceTiltFlan(uint256 rectangleOfFairness)
+    function stabilizeFlan(uint256 rectangleOfFairness)
         public
         virtual
         returns (uint256 lpMinted);

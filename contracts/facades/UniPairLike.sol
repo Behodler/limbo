@@ -16,5 +16,12 @@ abstract contract UniPairLike {
 
     function mint(address to) external virtual returns (uint256 liquidity);
 
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external virtual;
+    function swap(
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address to,
+        bytes calldata data
+    ) external virtual;
+
+    function totalSupply() external virtual returns (uint256);
 }
