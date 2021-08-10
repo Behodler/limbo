@@ -85,7 +85,7 @@ contract UniswapHelper is Governable {
     }
 
     function setDAI(address dai) public {
-        require(block.chainid != 1, "Uniswap factory hardcoded on mainnet");
+        require(block.chainid != 1, "DAI hardcoded on mainnet");
         VARS.DAI = dai;
     }
 

@@ -1458,7 +1458,6 @@ describe("Limbo", function () {
       }
     );
     const realBehodler = await RealBehodlerFactory.deploy();
-
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
