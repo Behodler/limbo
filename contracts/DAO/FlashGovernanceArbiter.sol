@@ -5,7 +5,12 @@ import "hardhat/console.sol";
 import "../facades/Burnable.sol";
 
 contract FlashGovernanceArbiter is Governable {
-    event flashDecision(address actor, address deposit_asset, uint256 amount, address target);
+    event flashDecision(
+        address actor,
+        address deposit_asset,
+        uint256 amount,
+        address target
+    );
     mapping(address => bool) enforceLimitsActive;
 
     constructor(address dao) Governable(dao) {}
@@ -44,6 +49,7 @@ contract FlashGovernanceArbiter is Governable {
             );
             pendingFlashDecision[target][sender] = flashGovernanceConfig;
             pendingFlashDecision[target][sender].unlockTime += block.timestamp;
+
             security.lastFlashGovernanceAct = block.timestamp;
             emit flashDecision(
                 sender,
@@ -55,8 +61,6 @@ contract FlashGovernanceArbiter is Governable {
             revert("LIMBO: governance decision rejected.");
         }
     }
-
-    
 
     function configureFlashGovernance(
         address asset,
@@ -125,8 +129,7 @@ contract FlashGovernanceArbiter is Governable {
 
     //bonus points for readability
     function enforceTolerance(uint256 v1, uint256 v2) public view {
-        if (!configured ||!enforceLimitsActive[msg.sender] )
-            return;
+        if (!configured || !enforceLimitsActive[msg.sender]) return;
         if (v1 > v2) {
             if (v2 == 0) require(v1 <= 1, "FE1");
             else

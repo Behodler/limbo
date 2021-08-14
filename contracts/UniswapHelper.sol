@@ -153,14 +153,15 @@ contract UniswapHelper is Governable {
             rectangleOfFairness;
 
         //the DAI value of SCX is the final quantity of Flan because we want Flan to hit parity with Dai.
-        uint256 DesiredFinalFlanOnLP = (finalSCXBalanceOnLP *
-            latestFlanQuotes[0].DaiScxSpotPrice) / EXA;
+        uint256 DesiredFinalFlanOnLP = ((finalSCXBalanceOnLP *
+            latestFlanQuotes[0].DaiScxSpotPrice) / EXA);
         address pair = address(VARS.Flan_SCX_tokenPair);
         uint256 existingFlanOnLP = IERC20(VARS.flan).balanceOf(pair);
 
         if (existingFlanOnLP < DesiredFinalFlanOnLP) {
             uint256 flanToMint = ((DesiredFinalFlanOnLP - existingFlanOnLP) *
                 (100 - VARS.priceBoostOvershoot)) / 100;
+
             flanToMint = flanToMint == 0
                 ? DesiredFinalFlanOnLP - existingFlanOnLP
                 : flanToMint;

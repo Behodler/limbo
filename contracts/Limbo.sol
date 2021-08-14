@@ -476,7 +476,7 @@ contract Limbo is Governable {
     }
 
     //reward user for calling with percentage. require no active or waiting souls for withdrawal
-    // We don't want airdrops or pooltogether winnings to be stuck in Limbo
+    // We don't want airdrops, rebased growth or pooltogether winnings to be stuck in Limbo
     function claimSecondaryRewards(address token) public {
         SoulState state = currentSoul(token).state;
         require(

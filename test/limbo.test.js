@@ -227,7 +227,7 @@ describe("Limbo", function () {
       await dao.executeCurrentProposal();
     };
   };
-  
+
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -1678,6 +1678,20 @@ describe("Limbo", function () {
       // 105,
       100
     );
+
+    await this.uniswapHelper.configure(
+      this.limbo.address,
+      pairAddress,
+      realBehodler.address,
+      this.flan.address,
+      200,
+      105,
+      4,
+      20,
+      99 //99% price overshoot on flan means 99% less flan minted
+    );
+    await this.uniswapHelper.setDAI(this.dai.address);
+
     await mock2.mint("3000000000000000000000");
     await mock2.approve(this.limbo.address, "3000000000000000000000");
     await this.limbo.stake(mock2.address, "3000000000000000000000");
@@ -1699,7 +1713,7 @@ describe("Limbo", function () {
       .mul(10000)
       .div(scxBalanceOfPairAfteThirdMigrate);
 
-    expect(ratio2).to.equal(5111239);
+    expect(ratio2).to.equal(4898939);
   });
 
   it("any whitelisted contract can mint flan", async function () {
@@ -2037,7 +2051,7 @@ describe("Limbo", function () {
     expect(sushiDetails[3]).to.equal(2); //soul type = migration
     expect(sushiDetails[5]).to.equal(0); //exit penalty
     expect(sushiDetails[6]).to.equal("41222729578893962"); //fps
-41222729578893962
+    41222729578893962;
     const poolDetails = await this.limbo.souls(pool.address, 0);
     expect(poolDetails[2]).to.equal("123456"); //crossing threshold
     expect(poolDetails[3]).to.equal(1); //soul type = migration
@@ -2045,7 +2059,6 @@ describe("Limbo", function () {
     expect(poolDetails[6]).to.equal("41222729578893962"); //fps
   });
 
-  
   it("protocol token buy buck works", async function () {
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     await sushi.mint("10000");
@@ -2204,5 +2217,4 @@ describe("Limbo", function () {
       0 //let helper figure this out
     );
   });
-  
 });
