@@ -15,7 +15,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         _setBurnOnTransferFee(fee);
     }
 
-    function incrementBurnOnTransferFee(int8 change) public governanceApproved {
+    function incrementBurnOnTransferFee(int8 change) public governanceApproved(false) {
         uint8 newFee = uint8(int8(burnOnTransferFee) + change);
         flashGoverner.enforceTolerance(newFee, burnOnTransferFee);
         _setBurnOnTransferFee(newFee);

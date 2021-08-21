@@ -5,10 +5,14 @@ const requireCondition = (condition, message) => {
   if (!condition) throw message;
 };
 describe("DAO staking", function () {
-  let owner, secondPerson, feeSetter, dai, eye, link, sushi;
+  let owner, secondPerson, proposalFactory, feeSetter, dai, eye, link, sushi;
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP;
-  let dao;
+  let dao,
+    GovernableStubFactory,
+    sushiSwapFactory,
+    uniswapFactory,
+    flashGovernance;
   const zero = "0x0000000000000000000000000000000000000000";
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
@@ -17,8 +21,8 @@ describe("DAO staking", function () {
     );
     const UniswapPairFactory = await ethers.getContractFactory("UniswapPair");
 
-    const sushiSwapFactory = await UniswapFactoryFactory.deploy();
-    const uniswapFactory = await UniswapFactoryFactory.deploy();
+    sushiSwapFactory = await UniswapFactoryFactory.deploy();
+    uniswapFactory = await UniswapFactoryFactory.deploy();
     requireCondition(sushiSwapFactory.address !== uniswapFactory.address);
 
     daiEYESLP = await UniswapPairFactory.deploy(
@@ -120,11 +124,9 @@ describe("DAO staking", function () {
     const flashGovernanceFactory = await ethers.getContractFactory(
       "FlashGovernanceArbiter"
     );
-    const flashGovernance = await flashGovernanceFactory.deploy(dao.address);
+    flashGovernance = await flashGovernanceFactory.deploy(dao.address);
 
-    const GovernableStubFactory = await ethers.getContractFactory(
-      "GovernableStub"
-    );
+    GovernableStubFactory = await ethers.getContractFactory("GovernableStub");
     const limbo = await GovernableStubFactory.deploy(dao.address);
     const flan = await GovernableStubFactory.deploy(dao.address);
 
@@ -170,7 +172,7 @@ describe("DAO staking", function () {
   const bigIntify = (num) => {
     return BigInt(num.toString());
   };
-
+  
   it("only eye or approved assets can be staked", async function () {
     await dao.makeLive();
     await expect(
@@ -360,7 +362,7 @@ describe("DAO staking", function () {
       daiEYESLPBalanceAfterReducedStake
         .sub(balanceOfDaiEYESLPAftertake)
         .toString()
-    ).to.equal('1428571428564444434');
+    ).to.equal("1428571428564444434");
 
     expectedFateWeight = 9n + rootEYEOfLP * 2n;
     fateState = await dao.fateState(owner.address);
@@ -388,4 +390,65 @@ describe("DAO staking", function () {
 
     await expect(fateAfter[1].sub(fateBefore[1]).toString()).to.equal("10280");
   });
+
+ /* it("setting asset with asset staked in limbo adds to fate", async function () {
+    const RealLimbo = await ethers.getContractFactory("Limbo");
+    const flan = await GovernableStubFactory.deploy(dao.address);
+    
+    const limbo = await RealLimbo.deploy(flan.address, dao.address);
+    await eye.approve(limbo.address,'10000000000000000000000000000')
+    await dao.seed(
+      limbo.address,
+      flan.address,
+      eye.address,
+      proposalFactory.address,
+      sushiSwapFactory.address,
+      uniswapFactory.address,
+      flashGovernance.address,
+      9,
+      [daiEYESLP.address, linkEYESLP.address, sushiEYESLP.address],
+      [daiEYEULP.address, linkEYEULP.address, sushiEYEULP.address]
+    );
+
+    await dao.makeLive();
+    await limbo.configureSoul(
+      eye.address,
+      10000000,
+      2,
+      0,
+      1,
+      0,
+      10000000
+    );
+
+    await limbo.stake(eye.address, 1000);
+    const balanceBefore = await eye.balanceOf(owner.addres);
+    await eye.approve(dao.address, "10000000000000000000000000000");
+    await dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address);
+
+    // const balanceAfter = await eye.balanceOf(owner.address);
+    // expect(balanceAfter.sub(balanceBefore).toString()).to.equal("9000");
+
+    // await advanceTime(21600); // 6 hours
+
+    // await dao.incrementFateFor(owner.address);
+    // let fateState = await dao.fateState(owner.address);
+    // expect(fateState[1].toString()).to.equal("25");
+
+    // await dao.setEYEBasedAssetStake(400, 400, 20, eye.address);
+
+    // await advanceTime(172800); //2 days
+    // await dao.incrementFateFor(owner.address);
+    // fateState = await dao.fateState(owner.address);
+    // expect(fateState[0].toString()).to.equal("20");
+    // expect(fateState[1].toString()).to.equal("65");
+
+    // await dao.setEYEBasedAssetStake(62500, 62500, 250, eye.address);
+
+    // await advanceTime(28800); //8 hours
+    // await dao.incrementFateFor(owner.address);
+    // fateState = await dao.fateState(owner.address);
+    // expect(fateState[1].toString()).to.equal("148");
+  });
+  */
 });

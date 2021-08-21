@@ -116,7 +116,7 @@ reference
 
 *.pdf
 
-TODO.txt
+*.txt
 
 build/
 demo*

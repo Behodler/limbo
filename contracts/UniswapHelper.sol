@@ -21,7 +21,6 @@ contract UniswapHelper is Governable {
         uint256 divergenceTolerance;
         uint256 minQuoteWaitDuration;
         address DAI;
-        uint256 behodlerActiveBondingCurves;
         uint8 precision; // behodler uses a binary search. The higher this number, the more precise
         IUniswapV2Factory factory;
         uint8 priceBoostOvershoot; //percentage (0-100) for which the price must be overcorrected when strengthened to account for other AMMs
@@ -54,11 +53,6 @@ contract UniswapHelper is Governable {
     modifier ensurePriceStability() {
         _ensurePriceStability();
         _;
-    }
-
-    modifier incrementBondingCurves() {
-        _;
-        VARS.behodlerActiveBondingCurves++;
     }
 
     modifier onlyLimbo() {
@@ -96,7 +90,6 @@ contract UniswapHelper is Governable {
         address flan,
         uint256 divergenceTolerance,
         uint256 minQuoteWaitDuration,
-        uint256 behodlerActiveBondingCurves,
         uint8 precision,
         uint8 priceBoostOvershoot
     ) public onlySuccessfulProposal {
@@ -104,10 +97,10 @@ contract UniswapHelper is Governable {
         VARS.Flan_SCX_tokenPair = UniPairLike(FlanSCXPair);
         VARS.behodler = behodler;
         VARS.flan = flan;
+        require(divergenceTolerance >= 100, "Divergence of 100 is parity");
         VARS.divergenceTolerance = divergenceTolerance;
         VARS.minQuoteWaitDuration = minQuoteWaitDuration;
         VARS.DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-        VARS.behodlerActiveBondingCurves = behodlerActiveBondingCurves;
         VARS.precision = precision == 0 ? precision : precision;
         require(
             priceBoostOvershoot < 100,
@@ -178,6 +171,7 @@ contract UniswapHelper is Governable {
             IERC20(VARS.behodler).transfer(pair, rectangleOfFairness);
             lpMinted = VARS.Flan_SCX_tokenPair.mint(VARS.blackHole);
         }
+        _zeroOutQuotes();
     }
 
     /* 
@@ -236,6 +230,11 @@ contract UniswapHelper is Governable {
         amountIn = (numerator / denominator) + 1;
     }
 
+    function _zeroOutQuotes() internal {
+        delete latestFlanQuotes[0];
+        delete latestFlanQuotes[1];
+    }
+
     //the purpose of the divergence code is to bring the robustness of a good oracle without requiring an oracle
     function _ensurePriceStability() internal view {
         FlanQuote[2] memory localFlanQuotes; //save gas
@@ -256,6 +255,7 @@ contract UniswapHelper is Governable {
             : (localFlanQuotes[1].DaiBalanceOnBehodler * 100) /
                 localFlanQuotes[0].DaiBalanceOnBehodler;
 
+        console.log("dai balance divergence %s", daiBalanceDivergence);
         require(
             daiSCXSpotPriceDivergence < VARS.divergenceTolerance &&
                 daiBalanceDivergence < VARS.divergenceTolerance,

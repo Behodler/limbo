@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 abstract contract FlashGovernanceArbiterLike {
-    function assertGovernanceApproved(address sender, address target)
+    function assertGovernanceApproved(address sender, address target, bool emergency)
         public
         virtual;
 

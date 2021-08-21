@@ -33,7 +33,7 @@ contract FlashGovernanceArbiter is Governable {
     mapping(address => mapping(address => FlashGovernanceConfig))
         public pendingFlashDecision; //contract->user->config
 
-    function assertGovernanceApproved(address sender, address target) public {
+    function assertGovernanceApproved(address sender, address target, bool emergency) public {
         if (
             IERC20(flashGovernanceConfig.asset).transferFrom(
                 sender,
@@ -43,8 +43,8 @@ contract FlashGovernanceArbiter is Governable {
             pendingFlashDecision[target][sender].unlockTime < block.timestamp
         ) {
             require(
-                block.timestamp - security.lastFlashGovernanceAct >
-                    security.epochSize,
+               emergency || ( block.timestamp - security.lastFlashGovernanceAct >
+                    security.epochSize),
                 "Limbo: flash governance disabled for rest of epoch"
             );
             pendingFlashDecision[target][sender] = flashGovernanceConfig;

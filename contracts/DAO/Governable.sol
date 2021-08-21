@@ -18,18 +18,22 @@ abstract contract Governable {
         _;
     }
 
-    function _governanceApproved() internal {
+    function _governanceApproved(bool emergency) internal {
         bool successfulProposal = LimboDAOLike(DAO).successfulProposal(
             msg.sender
         );
         if (successfulProposal) {
             flashGoverner.setEnforcement(false);
         } else if (configured)
-            flashGoverner.assertGovernanceApproved(msg.sender, address(this));
+            flashGoverner.assertGovernanceApproved(
+                msg.sender,
+                address(this),
+                emergency
+            );
     }
 
-    modifier governanceApproved() {
-        _governanceApproved();
+    modifier governanceApproved(bool emergency) {
+        _governanceApproved(emergency);
         _;
         flashGoverner.setEnforcement(true);
     }

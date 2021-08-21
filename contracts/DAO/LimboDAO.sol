@@ -312,9 +312,10 @@ contract LimboDAO is Ownable {
         uint256 finalEYEBalance,
         uint256 rootEYE,
         address asset
-    ) public isLive incrementFate {
+    ) public isLive incrementFate
+     {
         require(assetApproved[asset], "LimboDAO: illegal asset");
-        address sender = _msgSender();
+         address sender = _msgSender();
         FateGrowthStrategy strategy = fateGrowthStrategy[asset];
         uint256 rootEYESquared = rootEYE * rootEYE;
         uint256 rootEYEPlusOneSquared = (rootEYE + 1) * (rootEYE + 1);

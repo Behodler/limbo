@@ -157,9 +157,8 @@ describe("Limbo", function () {
       this.migrationTokenPair.address,
       this.mockBehodler.address,
       this.flan.address,
-      10,
+      110,
       32,
-      3,
       20,
       0
     );
@@ -1275,9 +1274,8 @@ describe("Limbo", function () {
       this.migrationTokenPair.address,
       this.mockBehodler.address,
       this.flan.address,
-      20,
+      120,
       105,
-      3,
       20,
       0
     );
@@ -1311,16 +1309,9 @@ describe("Limbo", function () {
 
     //3×10¹⁸
     //
+    await this.dai.transfer(this.mockBehodler.address, "3000000000000000000");
     await advanceTime(minQuoteWaitDuration + 1);
     await this.uniswapHelper.generateFLNQuote();
-
-    await this.migrationTokenPair.setReserves(1000, 4000); //divergence = 133.333
-
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
-      "EG"
-    );
-
-    await this.migrationTokenPair.setReserves(2000, 4000); //divergence = 150
 
     await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
       "EG"
@@ -1347,7 +1338,6 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       105,
-      3,
       20,
       0
     );
@@ -1402,7 +1392,6 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       105,
-      3,
       20,
       0
     );
@@ -1523,7 +1512,6 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       105,
-      4,
       20,
       0
     );
@@ -1654,7 +1642,7 @@ describe("Limbo", function () {
     //flan strengthens
     expect(ratio).to.equal(511123);
 
-    //THIRD MIGRATION
+    //  THIRD MIGRATION
     const mock2 = await this.TokenFactory.deploy("mock1", "mock1", [], []);
 
     await this.limbo.configureSoul(
@@ -1686,9 +1674,8 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       105,
-      4,
       20,
-      99 //99% price overshoot on flan means 99% less flan minted
+      10 //10% price overshoot on flan means 10% less flan minted
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
@@ -1713,7 +1700,7 @@ describe("Limbo", function () {
       .mul(10000)
       .div(scxBalanceOfPairAfteThirdMigrate);
 
-    expect(ratio2).to.equal(4898939);
+    expect(ratio2).to.equal(5089795);
   });
 
   it("any whitelisted contract can mint flan", async function () {
@@ -1843,7 +1830,6 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       10,
-      3,
       20,
       0
     );
@@ -1940,7 +1926,6 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       10,
-      3,
       20,
       0
     );
@@ -2182,7 +2167,6 @@ describe("Limbo", function () {
       this.flan.address,
       200,
       10,
-      3,
       20,
       0
     );

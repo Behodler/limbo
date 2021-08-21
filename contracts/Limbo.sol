@@ -175,12 +175,15 @@ contract Limbo is Governable {
         require(protocolEnabled, "EF");
         _;
     }
-
+    function userTokenBalance(address token) public view returns (uint) {
+       return userInfo[token][msg.sender][latestIndex[token]].stakedAmount;
+    }
+    
     function attemptToTargetAPY(
         address token,
         uint256 desiredAPY,
         uint256 daiThreshold
-    ) public governanceApproved {
+    ) public governanceApproved(false) {
         Soul storage soul = currentSoul(token);
         require(soul.soulType == SoulType.threshold, "EI");
         uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(
@@ -242,12 +245,18 @@ contract Limbo is Governable {
         crossingConfig.rectangleOfFairnessInflationFactor = rectInflationFactor;
     }
 
-    function disableProtocol() public governanceApproved {
+    function disableProtocol() public governanceApproved(true) {
         protocolEnabled = false;
     }
 
     function enableProtocol() public onlySuccessfulProposal {
         protocolEnabled = true;
+    }
+
+    //stop a nefarious token addition
+    function pauseSoul(address token) public governanceApproved(true) {
+         Soul storage soul = currentSoul(token);
+         soul.state = SoulState.calibration;
     }
 
     function adjustSoul(
@@ -256,7 +265,7 @@ contract Limbo is Governable {
         uint256 initialCrossingBonus,
         int256 crossingBonusDelta,
         uint256 fps
-    ) public governanceApproved {
+    ) public governanceApproved(false) {
         Soul storage soul = currentSoul(token);
         flashGoverner.enforceTolerance(soul.exitPenalty, exitPenalty);
         flashGoverner.enforceTolerance(soul.flanPerSecond, fps);
@@ -328,7 +337,7 @@ contract Limbo is Governable {
         int256 crossingBonusDelta,
         bool burnable,
         uint256 crossingThreshold
-    ) public governanceApproved {
+    ) public governanceApproved(false) {
         CrossingParameters storage params = tokenCrossingParameters[token][
             latestIndex[token]
         ];
