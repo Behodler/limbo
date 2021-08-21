@@ -2,6 +2,7 @@ import { task } from "hardhat/config";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
+import "hardhat-deploy";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -28,6 +29,9 @@ export default {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
       },
     },
+  },
+  namedAccounts: {
+    deployer: 0,
   },
   mocha: {
     timeout: 50000,

@@ -123,3 +123,5 @@ demo*
 usageReadme.txt
 
 typechain/
+deployments/
+deployed.json
