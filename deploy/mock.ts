@@ -46,13 +46,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   });
 
-  await deploy("Uniswap Factory", {
+  await deploy("UniswapFactory", {
     from: deployer,
     contract: UniswapFactoryArtifact,
     log: true,
   });
 
-  await deploy("Sushiswap Factory", {
+  await deploy("SushiswapFactory", {
     from: deployer,
     contract: UniswapFactoryArtifact,
     log: true,
