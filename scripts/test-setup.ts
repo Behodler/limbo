@@ -96,7 +96,7 @@ async function main() {
     mockMigrationUnipair.address,
     mockBehodler.address,
     flan.address,
-    10,
+    105,
     3,
     3,
     20,
@@ -104,48 +104,21 @@ async function main() {
   );
   uniswapHelper.setDAI(dai.address);
 
+  await flashGovernanceArbiter.configureSecurityParameters(10, 10, 30);
   await flashGovernanceArbiter.configureFlashGovernance(eye.address, parseEther("10").toHexString(), 10, true);
-  flashGovernanceArbiter.endConfiguration();
 
-  await limbo.configureSoul(aave.address, parseEther("1").toHexString(), 1, 0, 1, 0, parseEther("0.01").toHexString());
-  await limbo.configureCrossingParameters(aave.address, 1, 1, true, 10000010);
+  await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 0, 1, 0, parseEther("0.01").toHexString());
+  await limbo.configureCrossingParameters(aave.address, 1, 1, true, parseEther('100').toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
     mockAngband.address,
     uniswapHelper.address,
     mockAddTokenPower.address,
-    10000000,
-    10000,
+    parseEther('1000').toHexString(),
+    10000, // 10000 seconds
     100
   );
-  await limbo.endConfiguration()
-
-  // toggleWhiteList = toggleWhiteListFactory(eye, limboDAO, whiteListingProposal, proposalFactory);
 }
-
-// const toggleWhiteListFactory = (
-//   eye: MockToken,
-//   dao: LimboDAO,
-//   whiteListingProposal: ToggleWhitelistProposalProposal,
-//   proposalFactory: ProposalFactory
-// ) => {
-//   return async function (contractToToggle: any) {
-//     await whiteListingProposal.parameterize(
-//       proposalFactory.address,
-//       contractToToggle
-//     );
-//     const requiredFateToLodge = (await dao.proposalConfig())[1];
-
-//     await eye.mint(requiredFateToLodge);
-//     await eye.approve(dao.address, requiredFateToLodge.mul(2));
-//     await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10));
-
-//     await proposalFactory.lodgeProposal(whiteListingProposal.address);
-//     await dao.vote(whiteListingProposal.address, "100");
-//     await advanceTime(100000000);
-//     await dao.executeCurrentProposal();
-//   };
-// };
 
 main()
   .then(() => process.exit(0))
