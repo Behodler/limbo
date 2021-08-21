@@ -7,7 +7,11 @@
     "test": "docker-compose up test",
     "build": "docker-compose up build",
     "docker:install": "rm -rf node_modules/* && touch yarn.lock && rm yarn.lock && docker-compose up install",
-    "start:dev": "hardhat node --export deployed.json"
+    "node:dev": "hardhat node --export deployed.json",
+    "scripts:setup": "hardhat run --network localhost scripts/test-setup.ts",
+    "scripts:addresses": "hardhat run --network localhost scripts/collect-addresses.ts",
+    "setup:dev": "yarn scripts:setup && yarn scripts:addresses",
+    "dev": "hardhat --network localhost"
   },
   "repository": {
     "type": "git",

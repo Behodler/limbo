@@ -1,6 +1,5 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import MockTokenArtifact from "../artifacts/contracts/testing/MockToken.sol/MockToken.json";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -24,18 +23,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("FlashGovernanceArbiter", {
     from: deployer,
     args: [limboDAO.address],
-    log: true,
-  });
-
-  const whitelistingProposal = await deploy("ToggleWhitelistProposalProposal", {
-    from: deployer,
-    args: [limboDAO.address, "Toggle Whitelist"],
-    log: true,
-  });
-
-  await deploy("ProposalFactory", {
-    from: deployer,
-    args: [limboDAO.address, whitelistingProposal.address],
     log: true,
   });
 };
