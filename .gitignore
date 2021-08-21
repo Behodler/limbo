@@ -124,3 +124,5 @@ usageReadme.txt
 
 *_flat*
 typechain/
+deployments/
+deployed.json
