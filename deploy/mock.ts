@@ -63,7 +63,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: ["scx", "flan"],
     log: true,
   });
+
+  await deploy("Multicall", {
+    from: deployer,
+    log: true,
+  });
 };
 
 export default func;
 func.tags = ["Mock"];
+func.runAtTheEnd = true;
