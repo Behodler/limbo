@@ -14,7 +14,6 @@ abstract contract LimboLike {
             uint256,//crossingThreshold
             uint256,//soulType
             uint256,//state
-            uint16,//exitPenalty
             uint256//flanPerSecond
         );
 
@@ -34,7 +33,6 @@ abstract contract LimboLike {
         address token,
         uint256 crossingThreshold,
         uint256 soulType,
-        uint16 exitPenalty,
         uint256 state,
         uint256 index,
         uint256 fps

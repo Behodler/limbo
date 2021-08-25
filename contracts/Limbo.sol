@@ -88,7 +88,6 @@ Error string legend:
  token accounted for.	                        E7
  burning excess SCX failed.	                    E8
  Invocation reward failed.	                    E9
- claim rewards disabled when exit penlaty>0     EA
  only threshold souls can be migrated           EB
  not enough time between crossing and migration EC
  bonus must be positive                         ED
@@ -97,10 +96,11 @@ Error string legend:
  Reserve divergence tolerance exceeded          EG
  not enough time between reserve stamps         EH
  Minimum APY only applicable to threshold souls EI
+ Governance action failed.                      EJ
+ Access Denied                                  EK
 */
 contract Limbo is Governable {
     using SafeERC20 for IERC20;
-    using SafeERC20 for FlanLike;
 
     event SoulUpdated(address soul, uint256 fps);
     event Staked(address staker, address soul, uint256 amount);
@@ -127,7 +127,6 @@ contract Limbo is Governable {
         uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler
         SoulType soulType;
         SoulState state;
-        uint16 exitPenalty; // % between 0 and 10000, set to 10000 or more for no unstaking
         uint256 flanPerSecond; // fps: we use a helper function to convert min APY into fps
     }
 
@@ -157,7 +156,6 @@ contract Limbo is Governable {
     }
 
     uint256 constant TERA = 1E12;
-    uint256 constant myriad = 1e4;
     uint256 constant SCX_calc = TERA * 10000 * (1 ether); //112 bits added, still leaves plenty room to spare
     uint256 constant RectangleOfFairness = 30 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 28 is the result of scaling factors on Behodler.
     bool protocolEnabled = true;
@@ -175,10 +173,7 @@ contract Limbo is Governable {
         require(protocolEnabled, "EF");
         _;
     }
-    function userTokenBalance(address token) public view returns (uint) {
-       return userInfo[token][msg.sender][latestIndex[token]].stakedAmount;
-    }
-    
+
     function attemptToTargetAPY(
         address token,
         uint256 desiredAPY,
@@ -208,10 +203,11 @@ contract Limbo is Governable {
                 .stakingEndTimestamp;
         }
         uint256 balance = IERC20(token).balanceOf(address(this));
-
+    
         if (balance > 0) {
             uint256 flanReward = (finalTimeStamp - soul.lastRewardTimestamp) *
                 soul.flanPerSecond;
+   
 
             soul.accumulatedFlanPerShare =
                 soul.accumulatedFlanPerShare +
@@ -253,23 +249,14 @@ contract Limbo is Governable {
         protocolEnabled = true;
     }
 
-    //stop a nefarious token addition
-    function pauseSoul(address token) public governanceApproved(true) {
-         Soul storage soul = currentSoul(token);
-         soul.state = SoulState.calibration;
-    }
-
     function adjustSoul(
         address token,
-        uint16 exitPenalty,
         uint256 initialCrossingBonus,
         int256 crossingBonusDelta,
         uint256 fps
     ) public governanceApproved(false) {
         Soul storage soul = currentSoul(token);
-        flashGoverner.enforceTolerance(soul.exitPenalty, exitPenalty);
         flashGoverner.enforceTolerance(soul.flanPerSecond, fps);
-        soul.exitPenalty = exitPenalty;
         soul.flanPerSecond = fps;
 
         CrossingParameters storage params = tokenCrossingParameters[token][
@@ -305,11 +292,10 @@ contract Limbo is Governable {
         address token,
         uint256 crossingThreshold,
         uint256 soulType,
-        uint16 exitPenalty,
         uint256 state,
         uint256 index,
         uint256 fps
-    ) public onlySuccessfulProposal {
+    ) public onlySoulUpdateProposal {
         {
             Soul storage soul = currentSoul(token);
             latestIndex[token] = index > latestIndex[token]
@@ -326,7 +312,6 @@ contract Limbo is Governable {
                     .stakingBeginsTimestamp = block.timestamp;
             }
             soul.soulType = SoulType(soulType);
-            soul.exitPenalty = exitPenalty;
         }
         emit SoulUpdated(token, fps);
     }
@@ -373,10 +358,8 @@ contract Limbo is Governable {
 
         if (amount > 0) {
             //dish out accumulated rewards.
-            uint256 pending = ((user.stakedAmount *
-                soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
+            uint256 pending = getPending(user, soul);
             if (pending > 0) {
-                pending -= ((uint256(soul.exitPenalty)) * pending) / myriad; //staking more on an exitPenalty soul is like unstaking and restaking logcically. Without this incentive, users can game the system by staking more than they need.
                 Flan.mint(msg.sender, pending);
             }
 
@@ -404,25 +387,23 @@ contract Limbo is Governable {
         Soul storage soul = currentSoul(token);
         updateSoul(token, soul);
         require(soul.state == SoulState.staking, "E2");
-        uint16 exitPenalty = soul.exitPenalty;
-        require(exitPenalty < 10000, "E3");
         User storage user = userInfo[token][msg.sender][latestIndex[token]];
         require(user.stakedAmount >= amount, "E4");
 
-        uint256 pending = ((user.stakedAmount * soul.accumulatedFlanPerShare) /
-            TERA -
-            user.rewardDebt);
+        uint256 pending = getPending(user, soul);
 
         if (pending > 0) {
-            pending -= ((uint256(soul.exitPenalty)) * pending) / myriad;
-            Flan.mint(msg.sender, pending);
+            rewardAdjustDebt(
+                msg.sender,
+                pending,
+                soul.accumulatedFlanPerShare,
+                user
+            );
+
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;
                 IERC20(token).safeTransfer(address(msg.sender), amount);
             }
-            user.rewardDebt =
-                (user.stakedAmount * soul.accumulatedFlanPerShare) /
-                TERA;
             emit Unstaked(msg.sender, token, amount);
         }
     }
@@ -431,18 +412,28 @@ contract Limbo is Governable {
         Soul storage soul = souls[token][index];
         updateSoul(token, soul);
         User storage user = userInfo[token][msg.sender][index];
-        require(soul.exitPenalty == 0, "EA");
 
-        uint256 pending = ((user.stakedAmount * soul.accumulatedFlanPerShare) /
-            TERA) - user.rewardDebt;
+        uint256 pending = getPending(user, soul);
 
         if (pending > 0) {
-            Flan.mint(msg.sender, pending);
-            user.rewardDebt =
-                (user.stakedAmount * soul.accumulatedFlanPerShare) /
-                TERA;
+            rewardAdjustDebt(
+                msg.sender,
+                pending,
+                soul.accumulatedFlanPerShare,
+                user
+            );
             emit ClaimedReward(msg.sender, token, index, pending);
         }
+    }
+
+    function rewardAdjustDebt(
+        address recipient,
+        uint256 pending,
+        uint256 accumulatedFlanPerShare,
+        User storage user
+    ) internal {
+        Flan.mint(recipient, pending);
+        user.rewardDebt = (user.stakedAmount * accumulatedFlanPerShare) / TERA;
     }
 
     function claimBonus(address token, uint256 index) public enabled {
@@ -459,10 +450,10 @@ contract Limbo is Governable {
         User storage user = userInfo[token][msg.sender][index];
         require(!user.bonusPaid, "E5");
         user.bonusPaid = true;
-        uint256 totalStakingDuration = crossing.stakingEndTimestamp -
-            crossing.stakingBeginsTimestamp;
         int256 accumulatedFlanPerTeraToken = crossing.crossingBonusDelta *
-            int256(totalStakingDuration);
+            int256(
+                crossing.stakingEndTimestamp - crossing.stakingBeginsTimestamp
+            );
 
         //assert signs are the same
         require(
@@ -569,5 +560,15 @@ contract Limbo is Governable {
             "E9"
         );
         currentSoul(token).state = SoulState.crossedOver;
+    }
+
+    function getPending(User memory user, Soul memory soul)
+        internal
+        pure
+        returns (uint256)
+    {
+        return
+            ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) -
+            user.rewardDebt;
     }
 }

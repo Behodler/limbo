@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../facades/LimboDAOLike.sol";
 import "../facades/FlashGovernanceArbiterLike.sol";
+import "../facades/ProposalFactoryLike.sol";
 
 abstract contract Governable {
     FlashGovernanceArbiterLike internal flashGoverner;
@@ -16,6 +17,17 @@ abstract contract Governable {
     modifier onlySuccessfulProposal() {
         assertSuccessfulProposal(msg.sender);
         _;
+    }
+
+    modifier onlySoulUpdateProposal(){
+        assertSoulUpdateProposal(msg.sender);
+        _;
+    }
+
+    function assertSoulUpdateProposal(address sender) internal view {
+        (,,address proposalFactory) = LimboDAOLike(DAO).proposalConfig();
+        require(!configured || sender == ProposalFactoryLike(proposalFactory).soulUpdateProposal(),"EJ");
+        assertSuccessfulProposal(sender);
     }
 
     function _governanceApproved(bool emergency) internal {
@@ -41,7 +53,7 @@ abstract contract Governable {
     function assertSuccessfulProposal(address sender) internal view {
         require(
             !configured || LimboDAOLike(DAO).successfulProposal(sender),
-            "Limbo: governance action failed."
+            "EJ"
         );
     }
 
@@ -52,7 +64,7 @@ abstract contract Governable {
     function setDAO(address dao) public {
         require(
             DAO == address(0) || msg.sender == DAO || !configured,
-            "LimboDAO: access denied"
+            "EK"
         );
         DAO = dao;
         flashGoverner = FlashGovernanceArbiterLike(

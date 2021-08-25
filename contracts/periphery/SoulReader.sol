@@ -17,13 +17,13 @@ contract SoulReader is Governable {
         public
         view
         returns (
-            uint256,
-            uint256,
-            uint256
+            uint256, //state
+            uint256, //staked balance
+            uint256 //fps
         )
     {
         uint256 latestIndex = limbo.latestIndex(token);
-        (, , , , uint256 state, , uint256 fps) = limbo.souls(
+        (, , , ,uint256 state, uint256 fps) = limbo.souls(
             token,
             latestIndex
         );
@@ -35,14 +35,13 @@ contract SoulReader is Governable {
         public
         view
         returns (
-            uint16, //exitPenalty
             uint256, //initialCrossingbonus
             int256, //bonusDelta,
             uint256 //fps
         )
     {
         uint256 latestIndex = limbo.latestIndex(token);
-        (, , , , , uint16 exitPenalty, uint256 flanPerSecond) = limbo.souls(
+        (, , , , , uint256 flanPerSecond) = limbo.souls(
             token,
             latestIndex
         );
@@ -50,7 +49,6 @@ contract SoulReader is Governable {
         (, , int256 crossingBonusDelta, uint256 initialCrossingBonus, ) = limbo
             .tokenCrossingParameters(token, latestIndex);
         return (
-            exitPenalty,
             initialCrossingBonus,
             crossingBonusDelta,
             flanPerSecond

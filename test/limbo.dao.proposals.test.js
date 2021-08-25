@@ -123,18 +123,9 @@ describe("DAO Proposals", function () {
       "toggle whitelist"
     );
 
-    const ProposalFactoryFactory = await ethers.getContractFactory(
-      "ProposalFactory"
+    const morgothTokenApproverFactory = await ethers.getContractFactory(
+      "MockMorgothTokenApprover"
     );
-    proposalFactory = await ProposalFactoryFactory.deploy(
-      dao.address,
-      this.whiteListingProposal.address
-    );
-
-    const flashGovernanceFactory = await ethers.getContractFactory(
-      "FlashGovernanceArbiter"
-    );
-    this.flashGovernance = await flashGovernanceFactory.deploy(dao.address);
 
     const GovernableStubFactory = await ethers.getContractFactory(
       "GovernableStub"
@@ -142,6 +133,33 @@ describe("DAO Proposals", function () {
 
     this.limbo = await GovernableStubFactory.deploy(dao.address);
     this.flan = await GovernableStubFactory.deploy(dao.address);
+
+    this.morgothTokenApprover = await morgothTokenApproverFactory.deploy();
+
+    const soulUpdateProposalFactory = await ethers.getContractFactory(
+      "UpdateSoulConfigProposal"
+    );
+
+    this.soulUpdateProposal = await soulUpdateProposalFactory.deploy(
+      dao.address,
+      "hello",
+      this.limbo.address,
+      this.morgothTokenApprover.address
+    );
+
+    const ProposalFactoryFactory = await ethers.getContractFactory(
+      "ProposalFactory"
+    );
+    proposalFactory = await ProposalFactoryFactory.deploy(
+      dao.address,
+      this.whiteListingProposal.address,
+      this.soulUpdateProposal.address
+    );
+
+    const flashGovernanceFactory = await ethers.getContractFactory(
+      "FlashGovernanceArbiter"
+    );
+    this.flashGovernance = await flashGovernanceFactory.deploy(dao.address);
 
     await dao.seed(
       this.limbo.address,
@@ -189,7 +207,6 @@ describe("DAO Proposals", function () {
       updateProposalConfigProposal.address,
       this.whiteListingProposal
     );
-    //stringToBytes
   });
 
   const toggleWhiteList = async (contractToToggle, whiteListingProposal) => {
@@ -522,8 +539,37 @@ describe("DAO Proposals", function () {
     await dao.killDAO(newDAO.address);
 
     const limboDAOafter = await this.limbo.DAO();
+
     expect(limboDAOafter).to.equal(newDAO.address);
     const flanDAOafter = await this.flan.DAO();
     expect(flanDAOafter).to.equal(newDAO.address);
+  });
+
+  it("lisitng unapproved token fails", async function () {
+    //get enough fate to lodge proposal
+    const requiredFate = (await dao.proposalConfig())[1];
+    const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+    await dao.burnAsset(eye.address, eyeToBurn);
+
+    await expect(
+      this.soulUpdateProposal.parameterize(
+        sushiEYEULP.address,
+        "100",
+        1,
+        1,
+        1,
+        1
+      )
+    ).to.be.revertedWith("MORGOTH: token not approved for listing on Behodler");
+
+    await this.morgothTokenApprover.addToken(sushiEYEULP.address);
+    await this.soulUpdateProposal.parameterize(
+      sushiEYEULP.address,
+      "100",
+      1,
+      1,
+      1,
+      1
+    );
   });
 });

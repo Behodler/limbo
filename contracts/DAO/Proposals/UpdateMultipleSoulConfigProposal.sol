@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import "../ProposalFactory.sol";
 import "../../facades/LimboLike.sol";
 import "../../facades/AMMHelper.sol";
+import "../../facades/MorgothTokenApproverLike.sol";
 
 contract UpdateMultipleSoulConfigProposal is Proposal {
     struct Parameters {
@@ -10,7 +11,6 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
         uint256 crossingThreshold;
         uint256 soulType;
         uint256 state;
-        uint16 exitPenalty;
         uint256 index;
         uint256 targetAPY;
         uint256 daiThreshold;
@@ -19,15 +19,18 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     Parameters[] params;
     LimboLike limbo;
     AMMHelper ammHelper;
+    MorgothTokenApproverLike morgothApprover;
 
     constructor(
         address dao,
         string memory _description,
         address _limbo,
-        address _ammHelper
+        address _ammHelper,
+        address morgothTokenApprover
     ) Proposal(dao, _description) {
         limbo = LimboLike(_limbo);
         ammHelper = AMMHelper(_ammHelper);
+         morgothApprover = MorgothTokenApproverLike(morgothTokenApprover);
     }
 
     function parameterize(
@@ -35,18 +38,20 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
         uint256 crossingThreshold,
         uint256 soulType,
         uint256 state,
-        uint16 exitPenalty,
         uint256 index,
         uint256 targetAPY,
         uint256 daiThreshold
     ) public notCurrent {
+         require(
+            morgothApprover.approved(token),
+            "MORGOTH: token not approved for listing on Behodler"
+        );
         params.push(
             Parameters({
                 token: token,
                 crossingThreshold: crossingThreshold,
                 soulType: soulType,
                 state: state,
-                exitPenalty: exitPenalty,
                 index: index,
                 targetAPY: targetAPY,
                 daiThreshold: daiThreshold
@@ -64,7 +69,6 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
                 params[i].token,
                 params[i].crossingThreshold,
                 params[i].soulType,
-                params[i].exitPenalty,
                 params[i].state,
                 params[i].index,
                 fps

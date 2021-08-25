@@ -97,21 +97,31 @@ describe("Limbo", function () {
       "toggle whitelist"
     );
 
+    const morgothTokenApproverFactory = await ethers.getContractFactory(
+      "MockMorgothTokenApprover"
+    );
+
+    this.morgothTokenApprover = await morgothTokenApproverFactory.deploy();
+
+    const soulUpdateProposalFactory = await ethers.getContractFactory(
+      "UpdateSoulConfigProposal"
+    );
+
+    this.soulUpdateProposal = await soulUpdateProposalFactory.deploy(
+      this.limboDAO.address,
+      "hello",
+      this.limbo.address,
+      this.morgothTokenApprover.address
+    );
+
     //  const flanSCXPair = await sushiSwapFactory.
     this.ProposalFactoryFactory = await ethers.getContractFactory(
       "ProposalFactory"
     );
     this.proposalFactory = await this.ProposalFactoryFactory.deploy(
       this.limboDAO.address,
-      this.whiteListingProposal.address
-    );
-
-    const ProposalFactoryFactory = await ethers.getContractFactory(
-      "ProposalFactory"
-    );
-    proposalFactory = await ProposalFactoryFactory.deploy(
-      this.limboDAO.address,
-      this.whiteListingProposal.address
+      this.whiteListingProposal.address,
+      this.soulUpdateProposal.address
     );
 
     await this.limboDAO.seed(
@@ -238,7 +248,6 @@ describe("Limbo", function () {
       0,
       0,
       0,
-      0,
       10000000
     );
     await this.aave.transfer(this.limbo.address, 1000);
@@ -246,7 +255,7 @@ describe("Limbo", function () {
     await this.limbo.enableProtocol();
 
     //governanceShutdown
-    await this.limbo.adjustSoul(this.aave.address, 1, 0, 1, 10);
+    await this.limbo.adjustSoul(this.aave.address, 1, 0, 10);
     //withdrawERC20
     console.log(`secondPerson: ${secondPerson.address}`);
 
@@ -265,7 +274,7 @@ describe("Limbo", function () {
     await this.limbo.disableProtocol();
     await this.limbo.enableProtocol();
     //adjustSoul
-    await this.limbo.adjustSoul(this.aave.address, 1, 0, 1, 10);
+    await this.limbo.adjustSoul(this.aave.address, 1, 0, 10);
     //configureCrossingParameters
 
     await this.limbo.configureCrossingParameters(
@@ -279,21 +288,11 @@ describe("Limbo", function () {
     await this.limbo.endConfiguration();
 
     await expect(
-      this.limbo.configureSoul(
-        this.aave.address,
-        10000000,
-        0,
-        0,
-        0,
-        0,
-        10000000
-      )
-    ).to.be.revertedWith("Limbo: governance action failed.");
+      this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)
+    ).to.be.revertedWith("EJ");
     // await this.aave.transfer(this.limbo.address, 1000);
     // enableProtocol
-    await expect(this.limbo.enableProtocol()).to.be.revertedWith(
-      "Limbo: governance action failed."
-    );
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith("EJ");
     //governanceShutdown
     //configureCrossingConfig
     await expect(
@@ -306,19 +305,17 @@ describe("Limbo", function () {
         10000,
         0
       )
-    ).to.be.revertedWith("Limbo: governance action failed.");
+    ).to.be.revertedWith("EJ");
 
     //governanceApproved:
     //disableProtocol
     await expect(this.limbo.disableProtocol()).to.be.revertedWith(
       "ERC20: transfer amount exceeds allowance"
     );
-    await expect(this.limbo.enableProtocol()).to.be.revertedWith(
-      "Limbo: governance action failed."
-    );
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith("EJ");
     //adjustSoul
     await expect(
-      this.limbo.adjustSoul(this.aave.address, 1, 0, 1, 10)
+      this.limbo.adjustSoul(this.aave.address, 1, 0, 10)
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
     //configureCrossingParameters
 
@@ -339,7 +336,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -381,14 +377,13 @@ describe("Limbo", function () {
       flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()
     ).to.equal("0");
   });
-
+  
   it("old souls can be bonus claimed from (DELTA = 0)", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -438,7 +433,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -487,7 +481,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -538,7 +531,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       2,
-      0,
       1,
       0,
       10000000
@@ -567,7 +559,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -594,14 +585,13 @@ describe("Limbo", function () {
 
     //try to adjust soul and fail
     await expect(
-      this.limbo.adjustSoul(this.aave.address, 1, 10, 1, 200)
+      this.limbo.adjustSoul(this.aave.address, 1, 10, 200)
     ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
     await this.limbo.adjustSoul(
       this.aave.address,
-      1,
       20000000001,
       -1001,
       10000001
@@ -613,9 +603,8 @@ describe("Limbo", function () {
 
     //assert newStates
     const stringNewStates = stringifyBigNumber(newStates);
-    expect(stringNewStates[0]).to.equal("1");
-    expect(stringNewStates[1]).to.equal("20000000001");
-    expect(stringNewStates[2]).to.equal("-1001");
+    expect(stringNewStates[0]).to.equal("20000000001");
+    expect(stringNewStates[1]).to.equal("-1001");
   });
 
   it("flashGovernance adjust configureCrossingParameters", async function () {
@@ -776,7 +765,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -827,7 +815,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -875,7 +862,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       2500000
@@ -928,14 +914,12 @@ describe("Limbo", function () {
   it("staking/unstaking only possible in staking state", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
-      10000000, //crossingThreshold
+      1000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
     );
-    await this.limbo.endConfiguration();
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -948,17 +932,18 @@ describe("Limbo", function () {
       await updateSoulConfigProposalFactory.deploy(
         this.limboDAO.address,
         "change state",
-        this.limbo.address
+        this.limbo.address,
+        this.morgothTokenApprover.address
       );
 
+    await this.morgothTokenApprover.addToken(this.aave.address);
     await updateSoulConfigProposal.parameterize(
-      this.aave.address,
-      10000000,
-      1,
-      0,
-      2,
-      0,
-      10
+      this.aave.address, //token
+      10000000, //threshold
+      1, //type
+      2, //state = waitingToCross
+      0, //index
+      10 //fps
     );
 
     const proposalConfig = await this.limboDAO.proposalConfig();
@@ -975,12 +960,15 @@ describe("Limbo", function () {
     await advanceTime(6048010);
     await this.limboDAO.executeCurrentProposal();
 
-    await expect(
-      this.limbo.stake(this.aave.address, "10000")
-    ).to.be.revertedWith("E2");
+    console.log("aave: " + this.aave.address);
+
+    const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
+    const soulReader = await SoulReaderFactory.deploy(this.limboDAO.address);
+    const soulStats = await soulReader.SoulStats(this.aave.address);
+    expect(soulStats[0].toNumber()).to.equal(2);
 
     await expect(
-      this.limbo.unstake(this.aave.address, "10000")
+      this.limbo.stake(this.aave.address, "10000")
     ).to.be.revertedWith("E2");
   });
 
@@ -994,33 +982,11 @@ describe("Limbo", function () {
     ).to.be.revertedWith("E1");
   });
 
-  it("unstaking with exitPenalty >= 10000 reverts with E3", async function () {
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000, //crossingThreshold
-      1, //soulType
-      10000, //exitPenalty
-      1, //state
-      0,
-      10000000
-    );
-    await this.limbo.endConfiguration();
-
-    //stake tokens
-    await this.aave.approve(this.limbo.address, "10000001");
-    await this.limbo.stake(this.aave.address, "10000");
-
-    await expect(
-      this.limbo.unstake(this.aave.address, "100")
-    ).to.be.revertedWith("E3");
-  });
-
   it("unstaking amount larger than balance reverts with E4", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1036,118 +1002,11 @@ describe("Limbo", function () {
     ).to.be.revertedWith("E4");
   });
 
-  it("unstaking with exitPenalty > 0 incurs penalty on claims  ", async function () {
-    //gather rewards for zero penalty
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000, //crossingThreshold
-      1, //soulType
-      0, //exitPenalty
-      1, //state
-      0,
-      10000000
-    );
-
-    const flanBeforeZeroPenaltyStake = await this.flan.balanceOf(owner.address);
-
-    //stake tokens
-    await this.aave.approve(this.limbo.address, "10000001");
-    await this.limbo.stake(this.aave.address, "10000");
-
-    await advanceTime(1000);
-
-    this.limbo.unstake(this.aave.address, "10000");
-    const flanAfterZeroPenaltyStake = await this.flan.balanceOf(owner.address);
-
-    const zeroPenaltyRewards = flanAfterZeroPenaltyStake.sub(
-      flanBeforeZeroPenaltyStake
-    );
-
-    const zeroPenaltyRewardsLowerBound = zeroPenaltyRewards.mul(9).div(10);
-    const zeroPenaltyRewardsUpperBound = zeroPenaltyRewards.mul(10).div(9);
-
-    const flanBeforeQuarterRewardStake = await this.flan.balanceOf(
-      owner.address
-    );
-
-    //gather rewards for exit penalty = 75%
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000, //crossingThreshold
-      1, //soulType
-      7500, //exitPenalty = 75%
-      1, //state
-      0,
-      10000000
-    );
-
-    await this.limbo.stake(this.aave.address, "10000");
-
-    await advanceTime(1000);
-
-    this.limbo.unstake(this.aave.address, "10000");
-    const flanAfterQuarterRewardStake = await this.flan.balanceOf(
-      owner.address
-    );
-
-    const quarterRewards = flanAfterQuarterRewardStake.sub(
-      flanBeforeQuarterRewardStake
-    );
-
-    const isAbove = quarterRewards.mul(4).gte(zeroPenaltyRewardsLowerBound);
-    const isBelow = quarterRewards.mul(4).lte(zeroPenaltyRewardsUpperBound);
-    expect(isAbove).to.be.true;
-    expect(isBelow).to.be.true;
-  });
-
-  it("claims disabled on exitPenalty>0", async function () {
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000, //crossingThreshold
-      1, //soulType
-      1, //exitPenalty
-      1, //state
-      0,
-      10000000
-    );
-    //stake tokens
-    await this.aave.approve(this.limbo.address, "10000001");
-    await this.limbo.stake(this.aave.address, "10000");
-
-    await advanceTime(1000);
-
-    await expect(
-      this.limbo.claimReward(this.aave.address, 0)
-    ).to.be.revertedWith("EA");
-
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000, //crossingThreshold
-      1, //soulType
-      0, //exitPenalty
-      1, //state
-      0,
-      10000000
-    );
-
-    const flanBeforeClaim = await this.flan.balanceOf(owner.address);
-    await this.limbo.claimReward(this.aave.address, 0);
-    const flanAfterClaim = await this.flan.balanceOf(owner.address);
-    const actualReward = flanAfterClaim.sub(flanBeforeClaim);
-
-    const expectedFlanRewardLowerBound = (10000000n * 1000n).toString();
-    const expectedFlanRewardUpperBound = (10000000n * 1005n).toString();
-
-    expect(actualReward.gte(expectedFlanRewardLowerBound)).to.be.true;
-    expect(actualReward.lte(expectedFlanRewardUpperBound)).to.be.true;
-  });
-
   it("unstaking amount larger than balance reverts with E4", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1168,7 +1027,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1194,7 +1052,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1214,7 +1071,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1245,7 +1101,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1285,7 +1140,6 @@ describe("Limbo", function () {
       this.aave.address,
       100, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1347,7 +1201,6 @@ describe("Limbo", function () {
       this.aave.address,
       2, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1401,7 +1254,6 @@ describe("Limbo", function () {
       this.aave.address,
       100, //crossingThreshold
       2, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1520,7 +1372,6 @@ describe("Limbo", function () {
       this.aave.address,
       100, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       0,
       10000000
@@ -1596,7 +1447,6 @@ describe("Limbo", function () {
       mock1.address,
       "100000000", //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       1,
       10000000
@@ -1649,7 +1499,6 @@ describe("Limbo", function () {
       mock2.address,
       100, //crossingThreshold
       1, //soulType
-      0, //exitPenalty
       1, //state
       1,
       10000000
@@ -1770,7 +1619,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       2,
-      0,
       1,
       0,
       10000000
@@ -1866,7 +1714,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -1980,7 +1827,6 @@ describe("Limbo", function () {
       10000000,
       1,
       0,
-      2,
       0,
       1300,
       "5000000000000000000000000"
@@ -1991,7 +1837,6 @@ describe("Limbo", function () {
       2,
       0,
       0,
-      0,
       2600,
       "5000000000000000000000000"
     );
@@ -1999,7 +1844,6 @@ describe("Limbo", function () {
       pool.address,
       123456,
       1,
-      0,
       0,
       0,
       1300,
@@ -2028,20 +1872,17 @@ describe("Limbo", function () {
     const aaveDetails = await this.limbo.souls(this.aave.address, 0);
     expect(aaveDetails[2]).to.equal("10000000"); //crossing threshold
     expect(aaveDetails[3]).to.equal(1); //soul type = migration
-    expect(aaveDetails[5]).to.equal(2); //exit penalty
-    expect(aaveDetails[6]).to.equal("20611364789446981"); //fps
+    expect(aaveDetails[5]).to.equal("20611364789446981"); //fps
 
     const sushiDetails = await this.limbo.souls(sushi.address, 0);
     expect(sushiDetails[2]).to.equal("0"); //crossing threshold
     expect(sushiDetails[3]).to.equal(2); //soul type = migration
-    expect(sushiDetails[5]).to.equal(0); //exit penalty
-    expect(sushiDetails[6]).to.equal("41222729578893962"); //fps
+    expect(sushiDetails[5]).to.equal("41222729578893962"); //fps
     41222729578893962;
     const poolDetails = await this.limbo.souls(pool.address, 0);
     expect(poolDetails[2]).to.equal("123456"); //crossing threshold
     expect(poolDetails[3]).to.equal(1); //soul type = migration
-    expect(poolDetails[5]).to.equal(0); //exit penalty
-    expect(poolDetails[6]).to.equal("41222729578893962"); //fps
+    expect(poolDetails[5]).to.equal("41222729578893962"); //fps
   });
 
   it("protocol token buy buck works", async function () {
@@ -2082,15 +1923,7 @@ describe("Limbo", function () {
     expect(flanBalanceAfter.gt(flanBalanceBefore)).to.be.true;
     expect(sushibalanceOnLimboAfter).to.equal(0);
 
-    await this.limbo.configureSoul(
-      sushi.address,
-      10000000,
-      1,
-      0,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(sushi.address, 10000000, 1, 1, 0, 10000000);
 
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
@@ -2107,7 +1940,6 @@ describe("Limbo", function () {
       this.aave.address,
       10000000,
       1,
-      0,
       1,
       0,
       10000000
@@ -2201,4 +2033,5 @@ describe("Limbo", function () {
       0 //let helper figure this out
     );
   });
+  
 });
