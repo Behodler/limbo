@@ -119,16 +119,7 @@ async function main() {
   await flashGovernanceArbiter.configureSecurityParameters(10, 10, 30);
   await flashGovernanceArbiter.configureFlashGovernance(eye.address, parseEther("10").toHexString(), 10, true);
 
-  // await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.01").toHexString());
-  await limbo.configureSoul(
-    aave.address,
-    100, //crossingThreshold
-    1, //soulType
-    1, //state
-    1,
-    10000000
-  );
-  console.log('aave', aave.address)
+  await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.01").toHexString());
   await limbo.configureCrossingParameters(aave.address, 1, 1, true, parseEther("100").toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
