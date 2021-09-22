@@ -13,9 +13,9 @@ import {
   MockToken__factory,
   ProposalFactory__factory,
   RealUniswapV2Factory__factory,
-  ToggleWhitelistProposalProposal__factory,
   UniswapHelper__factory,
 } from "../typechain";
+import Addresses from "../addresses.json";
 
 async function main() {
   const { deploy } = deployments;
@@ -55,20 +55,33 @@ async function main() {
 
   await mockAddTokenPower.seed(mockBehodler.address, limbo.address);
 
-  // White lits proposal
+  // Whitelist proposal
   const deployedWhiteListingProposal = await deploy("ToggleWhitelistProposalProposal", {
     from: deployer.address,
-    args: ["0x8c9bd714e2598860E56a4D9E675E717665204442", "Toggle Whitelist"],
+    args: [Addresses.LimboDAO, "Toggle Whitelist"],
     log: true,
   });
-  const whiteListingProposal = ToggleWhitelistProposalProposal__factory.connect(
-    deployedWhiteListingProposal.address,
-    deployer
-  );
+
+  // morgoth
+  const morgothTokenApprover = await deploy("MockMorgothTokenApprover", {
+    from: deployer.address,
+    log: true,
+  });
+
+  // Update Soul Config proposal
+  const deployedUpdateSoulConfigProposal = await deploy("UpdateSoulConfigProposal", {
+    from: deployer.address,
+    args: [Addresses.LimboDAO, "Update Soul Config", Addresses.Limbo, morgothTokenApprover.address],
+    log: true,
+  });
 
   const deployedProposalFactory = await deploy("ProposalFactory", {
     from: deployer.address,
-    args: [DeployedContracts.LimboDAO.address, whiteListingProposal.address],
+    args: [
+      DeployedContracts.LimboDAO.address,
+      deployedWhiteListingProposal.address,
+      deployedUpdateSoulConfigProposal.address,
+    ],
     log: true,
   });
   const proposalFactory = ProposalFactory__factory.connect(deployedProposalFactory.address, deployer);
@@ -98,7 +111,6 @@ async function main() {
     flan.address,
     105,
     3,
-    3,
     20,
     0
   );
@@ -107,14 +119,23 @@ async function main() {
   await flashGovernanceArbiter.configureSecurityParameters(10, 10, 30);
   await flashGovernanceArbiter.configureFlashGovernance(eye.address, parseEther("10").toHexString(), 10, true);
 
-  await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 0, 1, 0, parseEther("0.01").toHexString());
-  await limbo.configureCrossingParameters(aave.address, 1, 1, true, parseEther('100').toHexString());
+  // await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.01").toHexString());
+  await limbo.configureSoul(
+    aave.address,
+    100, //crossingThreshold
+    1, //soulType
+    1, //state
+    1,
+    10000000
+  );
+  console.log('aave', aave.address)
+  await limbo.configureCrossingParameters(aave.address, 1, 1, true, parseEther("100").toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
     mockAngband.address,
     uniswapHelper.address,
     mockAddTokenPower.address,
-    parseEther('1000').toHexString(),
+    parseEther("1000").toHexString(),
     10000, // 10000 seconds
     100
   );
