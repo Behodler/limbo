@@ -29,7 +29,7 @@ partition yoghurt "transaction"{
                             :finalSCXBalance = rectange + existingBalanceOn LP;
                             :R = ratio of Dai spot price in SCX to LP_syntheticPrice;
                             :FinalFlanBal on Uni = finalSCXBalance * R;
-                            :flanToMint = FinalFan - currentFlanBalance;
+                            :flanToMint = FinalFlan - currentFlanBalance;
                             :mint flanToMint and send to LP;
                             :Send rectangle SCX to LP;
                             :Mint new LP tokens;

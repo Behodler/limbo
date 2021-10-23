@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -363,10 +363,11 @@ contract Limbo is Governable {
                 Flan.mint(msg.sender, pending);
             }
 
+            uint oldBalance = IERC20(token).balanceOf(address(this));
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-            user.stakedAmount = user.stakedAmount + amount;
             uint256 newBalance = IERC20(token).balanceOf(address(this));
 
+            user.stakedAmount = user.stakedAmount + newBalance-oldBalance; //adding true differenc accounts for FOT tokens
             if (
                 soul.soulType == SoulType.threshold &&
                 newBalance > soul.crossingThreshold

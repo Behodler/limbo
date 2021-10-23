@@ -121,3 +121,5 @@ reference
 build/
 demo*
 usageReadme.txt
+
+*_flat*

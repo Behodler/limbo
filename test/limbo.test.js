@@ -377,7 +377,7 @@ describe("Limbo", function () {
       flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()
     ).to.equal("0");
   });
-  
+
   it("old souls can be bonus claimed from (DELTA = 0)", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(
@@ -2033,5 +2033,8 @@ describe("Limbo", function () {
       0 //let helper figure this out
     );
   });
-  
+
+  it("FOT token accounting handled correctly", async function () {
+    throw "NOT IMPLEMENTED"
+  });
 });

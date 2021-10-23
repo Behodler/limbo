@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 import "../ERC677/ERC20Burnable.sol";
 
 contract MockMigrationUniPair is ERC20Burnable {

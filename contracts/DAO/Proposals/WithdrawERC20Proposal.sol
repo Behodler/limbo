@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 import "../ProposalFactory.sol";
 import "../../facades/LimboLike.sol";
 import "../../facades/LimboDAOLike.sol";
