@@ -245,7 +245,7 @@ describe("Limbo", function () {
       await dao.executeCurrentProposal();
     };
   };
-  
+
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -2059,7 +2059,7 @@ describe("Limbo", function () {
     );
     await this.limbo.configureSoul(
       feeOnTransferToken.address,
-      '10000000000',
+      "10000000000",
       1,
       1,
       0,
@@ -2071,7 +2071,7 @@ describe("Limbo", function () {
       21000000,
       0,
       true,
-      '10000000000'
+      "10000000000"
     );
 
     await feeOnTransferToken.approve(this.limbo.address, "100000000");
@@ -2094,6 +2094,55 @@ describe("Limbo", function () {
     const bigBalanceAfter = BigInt(
       (await feeOnTransferToken.balanceOf(owner.address)).toString()
     );
-    expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal("90250000");
+    expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal(
+      "90250000"
+    );
+  });
+
+  it("test unstaking from another user more than allowance fails", async function () {
+    await this.limbo.configureSoul(
+      this.aave.address,
+      10000000, //crossingThreshold
+      1, //soulType
+      1, //state
+      0,
+      10000000
+    );
+    await this.limbo.endConfiguration();
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+
+    await advanceTime(400000);
+
+    const userInfoBeforeUntake = await this.limbo.userInfo(
+      this.aave.address,
+      owner.address,
+      0
+    );
+    expect(userInfoBeforeUntake[0].toNumber()).to.equal(10000);
+
+    const expectedFlanLowerbound = Number((10000000n * 400001n) / 1000000n);
+
+    const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const expectedFlanUpperbound = Number((10000000n * 400006n) / 1000000n);
+    await this.limbo.approveUnstake(
+      this.aave.address,
+      secondPerson.address,
+      "2000"
+    );
+
+    await this.limbo
+      .connect(secondPerson)
+      .unstakeFor(this.aave.address, 2000, owner.address);
+
+    await expect(
+      this.limbo
+        .connect(secondPerson)
+        .unstakeFor(this.aave.address, 1, owner.address)
+    ).to.be.revertedWith(
+      "Arithmetic operation underflowed or overflowed outside of an unchecked block"
+    );
   });
 });

@@ -275,7 +275,7 @@ contract Limbo is Governable {
         public userInfo; //tokenAddress->userAddress->soulIndex->Userinfo
     mapping(address => mapping(uint256 => CrossingParameters))
         public tokenCrossingParameters; //token->index->data
-
+    mapping(address => mapping(address => mapping(address => uint256))) unstakeApproval; //soul->owner->unstaker->amount
     FlanLike Flan;
 
     modifier enabled() {
@@ -460,7 +460,11 @@ contract Limbo is Governable {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
             uint256 newBalance = IERC20(token).balanceOf(address(this));
-            console.log("new balance %s, old balance %s", newBalance, oldBalance);
+            console.log(
+                "new balance %s, old balance %s",
+                newBalance,
+                oldBalance
+            );
             user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true differenc accounts for FOT tokens
             if (
                 soul.soulType == SoulType.threshold &&
@@ -479,17 +483,34 @@ contract Limbo is Governable {
     }
 
     function unstake(address token, uint256 amount) public enabled {
+        _unstake(token, amount, msg.sender,msg.sender);
+    }
+
+    //Allows for Limbo to be upgraded 1 user at a time without introducing a system wide security risk
+    function unstakeFor(address token, uint amount, address holder) public {
+        _unstake(token, amount, msg.sender,holder);
+    }
+
+    function _unstake(
+        address token,
+        uint256 amount,
+        address unstaker,
+        address holder
+    ) internal {
+        if(unstaker!=holder){
+            unstakeApproval[token][holder][unstaker]-=amount;
+        }
         Soul storage soul = currentSoul(token);
         updateSoul(token, soul);
         require(soul.state == SoulState.staking, "E2");
-        User storage user = userInfo[token][msg.sender][latestIndex[token]];
+        User storage user = userInfo[token][holder][latestIndex[token]];
         require(user.stakedAmount >= amount, "E4");
 
         uint256 pending = getPending(user, soul);
 
         if (pending > 0) {
             rewardAdjustDebt(
-                msg.sender,
+                unstaker,
                 pending,
                 soul.accumulatedFlanPerShare,
                 user
@@ -497,9 +518,9 @@ contract Limbo is Governable {
 
             if (amount > 0) {
                 user.stakedAmount = user.stakedAmount - amount;
-                IERC20(token).safeTransfer(address(msg.sender), amount);
+                IERC20(token).safeTransfer(address(unstaker), amount);
             }
-            emit Unstaked(msg.sender, token, amount);
+            emit Unstaked(unstaker, token, amount);
         }
     }
 
@@ -613,6 +634,14 @@ contract Limbo is Governable {
             soul
         );
         emit TokenListed(token, tokenBalance, lpMinted);
+    }
+
+    function approveUnstake(
+        address soul,
+        address unstaker,
+        uint256 amount
+    ) external {
+        unstakeApproval[soul][msg.sender][unstaker] = amount; //soul->owner->unstaker->amount
     }
 
     function getPending(User memory user, Soul memory soul)
