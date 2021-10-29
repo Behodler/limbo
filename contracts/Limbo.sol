@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
@@ -446,7 +446,6 @@ contract Limbo is Governable {
         require(soul.state == SoulState.staking, "E2");
         uint256 currentIndex = latestIndex[token];
         User storage user = userInfo[token][msg.sender][currentIndex];
-        console.log("amount staked %s", amount);
         if (amount > 0) {
             //dish out accumulated rewards.
             uint256 pending = getPending(user, soul);
@@ -460,11 +459,7 @@ contract Limbo is Governable {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
             uint256 newBalance = IERC20(token).balanceOf(address(this));
-            console.log(
-                "new balance %s, old balance %s",
-                newBalance,
-                oldBalance
-            );
+
             user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true differenc accounts for FOT tokens
             if (
                 soul.soulType == SoulType.threshold &&
