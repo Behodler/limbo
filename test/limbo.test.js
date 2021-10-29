@@ -66,7 +66,16 @@ describe("Limbo", function () {
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(this.limboDAO.address);
 
-    const LimboFactory = await ethers.getContractFactory("Limbo");
+    const SoulLib = await ethers.getContractFactory("SoulLib");
+    const CrossingLib = await ethers.getContractFactory("CrossingLib");
+    const MigrationLib = await ethers.getContractFactory("MigrationLib");
+    const LimboFactory = await ethers.getContractFactory("Limbo", {
+      libraries: {
+        SoulLib: (await SoulLib.deploy()).address,
+        CrossingLib: (await CrossingLib.deploy()).address,
+        MigrationLib: (await MigrationLib.deploy()).address,
+      },
+    });
     this.limbo = await LimboFactory.deploy(
       this.flan.address,
       //  10000000,
@@ -236,7 +245,7 @@ describe("Limbo", function () {
       await dao.executeCurrentProposal();
     };
   };
-
+  
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -1814,12 +1823,17 @@ describe("Limbo", function () {
     //initiatialize proposal
     const updateMultipleSoulConfigProposalFactory =
       await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
+    await this.morgothTokenApprover.toggleManyTokens(
+      [this.aave.address, sushi.address, pool.address],
+      true
+    );
     const updateMultiSoulConfigProposal =
       await updateMultipleSoulConfigProposalFactory.deploy(
         this.limboDAO.address,
         "List many tokens",
         this.limbo.address,
-        this.uniswapHelper.address
+        this.uniswapHelper.address,
+        this.morgothTokenApprover.address
       );
     //parameterize
     await updateMultiSoulConfigProposal.parameterize(
@@ -2035,6 +2049,51 @@ describe("Limbo", function () {
   });
 
   it("FOT token accounting handled correctly", async function () {
-    throw "NOT IMPLEMENTED"
+    const feeOnTransferTokenFactory = await ethers.getContractFactory(
+      "MockFOTToken"
+    );
+    const feeOnTransferToken = await feeOnTransferTokenFactory.deploy(
+      "FOT",
+      "FOT",
+      50
+    );
+    await this.limbo.configureSoul(
+      feeOnTransferToken.address,
+      '10000000000',
+      1,
+      1,
+      0,
+      10000000
+    );
+
+    await this.limbo.configureCrossingParameters(
+      feeOnTransferToken.address,
+      21000000,
+      0,
+      true,
+      '10000000000'
+    );
+
+    await feeOnTransferToken.approve(this.limbo.address, "100000000");
+
+    await this.limbo.stake(feeOnTransferToken.address, "100000000");
+
+    const balanceOnLimbo = (
+      await feeOnTransferToken.balanceOf(this.limbo.address)
+    ).toString();
+    expect(balanceOnLimbo).to.equal("95000000");
+    const stakedBalance = (
+      await this.limbo.userInfo(feeOnTransferToken.address, owner.address, 0)
+    )[0].toString();
+    expect(stakedBalance).to.equal("95000000");
+
+    const bigBalanceBefore = BigInt(
+      (await feeOnTransferToken.balanceOf(owner.address)).toString()
+    );
+    await this.limbo.unstake(feeOnTransferToken.address, "95000000");
+    const bigBalanceAfter = BigInt(
+      (await feeOnTransferToken.balanceOf(owner.address)).toString()
+    );
+    expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal("90250000");
   });
 });

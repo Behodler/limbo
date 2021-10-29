@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
@@ -15,6 +15,7 @@ import "./facades/AMMHelper.sol";
 import "./facades/AngbandLike.sol";
 import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
 import "./DAO/Governable.sol";
+import "./facades/FlashGovernanceArbiterLike.sol";
 
 /*
 LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
@@ -98,10 +99,146 @@ Error string legend:
  Minimum APY only applicable to threshold souls EI
  Governance action failed.                      EJ
  Access Denied                                  EK
+ ERC20 Transfer Failed                          EL
 */
+
+struct Soul {
+    uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.
+    uint256 accumulatedFlanPerShare;
+    uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler
+    SoulType soulType;
+    SoulState state;
+    uint256 flanPerSecond; // fps: we use a helper function to convert min APY into fps
+}
+
+struct CrossingParameters {
+    uint256 stakingBeginsTimestamp; //to calculate bonus
+    uint256 stakingEndTimestamp;
+    int256 crossingBonusDelta; //change in teraFlanPerToken per second
+    uint256 initialCrossingBonus; //measured in teraflanPerToken
+    bool burnable;
+}
+
+struct CrossingConfig {
+    address behodler;
+    uint256 SCX_fee;
+    uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
+    uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
+    address morgothPower;
+    address angband;
+    address ammHelper;
+    uint16 rectangleOfFairnessInflationFactor; //0-100: if the community finds the requirement to be too strict, they can inflate how much SCX to hold back
+}
+
+library SoulLib {
+    function set(
+        Soul storage soul,
+        uint256 crossingThreshold,
+        uint256 soulType,
+        uint256 state,
+        uint256 fps
+    ) external {
+        soul.crossingThreshold = crossingThreshold;
+        soul.flanPerSecond = fps;
+        soul.state = SoulState(state);
+        soul.soulType = SoulType(soulType);
+    }
+}
+
+library CrossingLib {
+    function set(
+        CrossingParameters storage params,
+        FlashGovernanceArbiterLike flashGoverner,
+        Soul storage soul,
+        uint256 initialCrossingBonus,
+        int256 crossingBonusDelta,
+        bool burnable,
+        uint256 crossingThreshold
+    ) external {
+        flashGoverner.enforceTolerance(
+            initialCrossingBonus,
+            params.initialCrossingBonus
+        );
+        flashGoverner.enforceToleranceInt(
+            crossingBonusDelta,
+            params.crossingBonusDelta
+        );
+
+        params.initialCrossingBonus = initialCrossingBonus;
+        params.crossingBonusDelta = crossingBonusDelta;
+        params.burnable = burnable;
+
+        flashGoverner.enforceTolerance(
+            crossingThreshold,
+            soul.crossingThreshold
+        );
+        soul.crossingThreshold = crossingThreshold;
+    }
+}
+
+library MigrationLib {
+    function migrate(
+        address token,
+        LimboAddTokenToBehodlerPowerLike power,
+        CrossingParameters memory crossingParams,
+        CrossingConfig memory crossingConfig,
+        FlanLike flan,
+        uint256 RectangleOfFairness,
+        Soul storage soul
+    ) external returns (uint256, uint256) {
+        power.parameterize(token, crossingParams.burnable);
+
+        //invoke Angband execute on power that migrates token type to Behodler
+        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(
+            address(crossingConfig.morgothPower),
+            tokenBalance
+        );
+        AngbandLike(crossingConfig.angband).executePower(
+            address(crossingConfig.morgothPower)
+        );
+
+        uint256 scxMinted = IERC20(address(crossingConfig.behodler)).balanceOf(
+            address(this)
+        );
+
+        uint256 adjustedRectangle = ((
+            crossingConfig.rectangleOfFairnessInflationFactor
+        ) * RectangleOfFairness) / 100;
+
+        //for top up or exotic high value migrations.
+        if (scxMinted <= adjustedRectangle) {
+            adjustedRectangle = scxMinted / 2;
+        }
+
+        //burn SCX - rectangle
+        uint256 excessSCX = scxMinted - adjustedRectangle;
+        require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
+
+        //use remaining scx to buy flan and pool it on an external AMM
+        IERC20(crossingConfig.behodler).transfer(
+            crossingConfig.ammHelper,
+            adjustedRectangle
+        );
+        uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(
+            adjustedRectangle
+        );
+
+        //reward caller and update soul state
+        require(
+            flan.mint(msg.sender, crossingConfig.migrationInvocationReward),
+            "E9"
+        );
+        soul.state = SoulState.crossedOver;
+        return (tokenBalance, lpMinted);
+    }
+}
+
 contract Limbo is Governable {
     using SafeERC20 for IERC20;
-
+    using SoulLib for Soul;
+    using MigrationLib for address;
+    using CrossingLib for CrossingParameters;
     event SoulUpdated(address soul, uint256 fps);
     event Staked(address staker, address soul, uint256 amount);
     event Unstaked(address staker, address soul, uint256 amount);
@@ -120,34 +257,6 @@ contract Limbo is Governable {
         address recipient,
         uint256 bonus
     );
-
-    struct Soul {
-        uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.
-        uint256 accumulatedFlanPerShare;
-        uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler
-        SoulType soulType;
-        SoulState state;
-        uint256 flanPerSecond; // fps: we use a helper function to convert min APY into fps
-    }
-
-    struct CrossingParameters {
-        uint256 stakingBeginsTimestamp; //to calculate bonus
-        uint256 stakingEndTimestamp;
-        int256 crossingBonusDelta; //change in teraFlanPerToken per second
-        uint256 initialCrossingBonus; //measured in teraflanPerToken
-        bool burnable;
-    }
-
-    struct CrossingConfig {
-        address behodler;
-        uint256 SCX_fee;
-        uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
-        uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
-        address morgothPower;
-        address angband;
-        address ammHelper;
-        uint16 rectangleOfFairnessInflationFactor; //0-100: if the community finds the requirement to be too strict, they can inflate how much SCX to hold back
-    }
 
     struct User {
         uint256 stakedAmount;
@@ -203,11 +312,10 @@ contract Limbo is Governable {
                 .stakingEndTimestamp;
         }
         uint256 balance = IERC20(token).balanceOf(address(this));
-    
+
         if (balance > 0) {
             uint256 flanReward = (finalTimeStamp - soul.lastRewardTimestamp) *
                 soul.flanPerSecond;
-   
 
             soul.accumulatedFlanPerShare =
                 soul.accumulatedFlanPerShare +
@@ -297,21 +405,16 @@ contract Limbo is Governable {
         uint256 fps
     ) public onlySoulUpdateProposal {
         {
-            Soul storage soul = currentSoul(token);
             latestIndex[token] = index > latestIndex[token]
                 ? latestIndex[token] + 1
                 : latestIndex[token];
 
-            soul = currentSoul(token);
-            soul.crossingThreshold = crossingThreshold;
-            soul.flanPerSecond = fps;
-            soul.state = SoulState(state);
-
+            Soul storage soul = currentSoul(token);
+            soul.set(crossingThreshold, soulType, state, fps);
             if (SoulState(state) == SoulState.staking) {
                 tokenCrossingParameters[token][latestIndex[token]]
                     .stakingBeginsTimestamp = block.timestamp;
             }
-            soul.soulType = SoulType(soulType);
         }
         emit SoulUpdated(token, fps);
     }
@@ -326,27 +429,15 @@ contract Limbo is Governable {
         CrossingParameters storage params = tokenCrossingParameters[token][
             latestIndex[token]
         ];
-        flashGoverner.enforceTolerance(
-            initialCrossingBonus,
-            params.initialCrossingBonus
-        );
-        flashGoverner.enforceToleranceInt(
-            crossingBonusDelta,
-            params.crossingBonusDelta
-        );
-
-        tokenCrossingParameters[token][latestIndex[token]]
-            .initialCrossingBonus = initialCrossingBonus;
-        tokenCrossingParameters[token][latestIndex[token]]
-            .crossingBonusDelta = crossingBonusDelta;
-        tokenCrossingParameters[token][latestIndex[token]].burnable = burnable;
-
         Soul storage soul = currentSoul(token);
-        flashGoverner.enforceTolerance(
-            crossingThreshold,
-            soul.crossingThreshold
+        params.set(
+            flashGoverner,
+            soul,
+            initialCrossingBonus,
+            crossingBonusDelta,
+            burnable,
+            crossingThreshold
         );
-        currentSoul(token).crossingThreshold = crossingThreshold;
     }
 
     function stake(address token, uint256 amount) public enabled {
@@ -355,7 +446,7 @@ contract Limbo is Governable {
         require(soul.state == SoulState.staking, "E2");
         uint256 currentIndex = latestIndex[token];
         User storage user = userInfo[token][msg.sender][currentIndex];
-
+        console.log("amount staked %s", amount);
         if (amount > 0) {
             //dish out accumulated rewards.
             uint256 pending = getPending(user, soul);
@@ -363,11 +454,14 @@ contract Limbo is Governable {
                 Flan.mint(msg.sender, pending);
             }
 
-            uint oldBalance = IERC20(token).balanceOf(address(this));
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-            uint256 newBalance = IERC20(token).balanceOf(address(this));
+            //implicitly: limbo can't handle tokens that rebase down. EG. OUSD is fine, AMP is not
+            uint256 oldBalance = IERC20(token).balanceOf(address(this));
 
-            user.stakedAmount = user.stakedAmount + newBalance-oldBalance; //adding true differenc accounts for FOT tokens
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+
+            uint256 newBalance = IERC20(token).balanceOf(address(this));
+            console.log("new balance %s, old balance %s", newBalance, oldBalance);
+            user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true differenc accounts for FOT tokens
             if (
                 soul.soulType == SoulType.threshold &&
                 newBalance > soul.crossingThreshold
@@ -485,7 +579,7 @@ contract Limbo is Governable {
             "E7"
         );
         uint256 balance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(crossingConfig.ammHelper, balance);
+        IERC20(token).safeTransfer(crossingConfig.ammHelper, balance);
         AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(
             token,
             balance,
@@ -510,57 +604,15 @@ contract Limbo is Governable {
                 crossingConfig.crossingMigrationDelay,
             "EC"
         );
-
-        LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower)
-            .parameterize(
-                token,
-                tokenCrossingParameters[token][latestIndex[token]].burnable
-            );
-
-        //invoke Angband execute on power that migrates token type to Behodler
-        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(
-            address(crossingConfig.morgothPower),
-            tokenBalance
+        (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
+            LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),
+            tokenCrossingParameters[token][latestIndex[token]],
+            crossingConfig,
+            Flan,
+            RectangleOfFairness,
+            soul
         );
-        AngbandLike(crossingConfig.angband).executePower(
-            address(crossingConfig.morgothPower)
-        );
-
-        uint256 scxMinted = IERC20(address(crossingConfig.behodler)).balanceOf(
-            address(this)
-        );
-
-        uint256 adjustedRectangle = ((
-            crossingConfig.rectangleOfFairnessInflationFactor
-        ) * RectangleOfFairness) / 100;
-
-        //for top up or exotic high value migrations.
-        if (scxMinted <= adjustedRectangle) {
-            adjustedRectangle = scxMinted / 2;
-        }
-
-        //burn SCX - rectangle
-        uint256 excessSCX = scxMinted - adjustedRectangle;
-        require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
-
-        //use remaining scx to buy flan and pool it on an external AMM
-        IERC20(crossingConfig.behodler).transfer(
-            crossingConfig.ammHelper,
-            adjustedRectangle
-        );
-        uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(
-            adjustedRectangle
-        );
-
         emit TokenListed(token, tokenBalance, lpMinted);
-
-        //reward caller and update soul state
-        require(
-            Flan.mint(msg.sender, crossingConfig.migrationInvocationReward),
-            "E9"
-        );
-        currentSoul(token).state = SoulState.crossedOver;
     }
 
     function getPending(User memory user, Soul memory soul)
