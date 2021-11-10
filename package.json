@@ -11,7 +11,7 @@
     "node:dev": "hardhat node --export deployed.json",
     "scripts:setup": "hardhat run --network localhost scripts/test-setup.ts",
     "scripts:addresses": "hardhat run --network localhost scripts/collect-addresses.ts",
-    "setup:dev": "yarn scripts:setup && yarn scripts:addresses",
+    "setup:dev": "yarn scripts:addresses && yarn scripts:setup",
     "dev": "hardhat --network localhost"
   },
   "repository": {
