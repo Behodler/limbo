@@ -120,14 +120,62 @@ async function main() {
   await flashGovernanceArbiter.configureFlashGovernance(eye.address, parseEther("10").toHexString(), 10, true);
 
   await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.01").toHexString());
-  await limbo.configureCrossingParameters(aave.address, 1, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingParameters(aave.address, 1000000000, 1, true, parseEther("100").toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
     mockAngband.address,
     uniswapHelper.address,
     mockAddTokenPower.address,
     parseEther("1000").toHexString(),
-    10000, // 10000 seconds
+    1000, // 1000 seconds
+    100
+  );
+
+  await limbo.configureSoul(dai.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.02").toHexString());
+  await limbo.configureCrossingParameters(dai.address, 2000000000, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingConfig(
+    mockBehodler.address,
+    mockAngband.address,
+    uniswapHelper.address,
+    mockAddTokenPower.address,
+    parseEther("1000").toHexString(),
+    1000, // 1000 seconds
+    100
+  );
+
+  await limbo.configureSoul(eye.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.03").toHexString());
+  await limbo.configureCrossingParameters(eye.address, 3000000000, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingConfig(
+    mockBehodler.address,
+    mockAngband.address,
+    uniswapHelper.address,
+    mockAddTokenPower.address,
+    parseEther("1000").toHexString(),
+    1000, // 1000 seconds
+    100
+  );
+
+  await limbo.configureSoul(mockBehodler.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.04").toHexString());
+  await limbo.configureCrossingParameters(mockBehodler.address, 4000000000, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingConfig(
+    mockBehodler.address,
+    mockAngband.address,
+    uniswapHelper.address,
+    mockAddTokenPower.address,
+    parseEther("1000").toHexString(),
+    1000, // 1000 seconds
+    100
+  );
+
+  await limbo.configureSoul(mockBehodler.address, parseEther("100").toHexString(), 2, 1, 0, parseEther("0.01").toHexString());
+  await limbo.configureCrossingParameters(mockBehodler.address, 1, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingConfig(
+    mockBehodler.address,
+    mockAngband.address,
+    uniswapHelper.address,
+    mockAddTokenPower.address,
+    parseEther("1000").toHexString(),
+    1000, // 1000 seconds
     100
   );
 }

@@ -4,6 +4,7 @@
   "description": "Token Preseeding Smart Contracts for Behodler.",
   "main": "index.js",
   "scripts": {
+    "typechain": "typechain --target=ethers-v5 'build/contracts/*.json' --out-dir 'typechain'",
     "test": "docker-compose up test",
     "build": "docker-compose up build",
     "docker:install": "rm -rf node_modules/* && touch yarn.lock && rm yarn.lock && docker-compose up install",
