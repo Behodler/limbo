@@ -7,13 +7,31 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
-  const flan = await get("Flan")
-  const limboDAO = await get("LimboDAO")
-  
+  const flan = await get("Flan");
+  const limboDAO = await get("LimboDAO");
+
+  const soulLib = await deploy("SoulLib", {
+    from: deployer,
+    log: true
+  })
+  const crossingLib = await deploy("CrossingLib", {
+    from: deployer,
+    log: true
+  })
+  const migrationLib = await deploy("MigrationLib", {
+    from: deployer,
+    log: true
+  })
+
   const limbo = await deploy("Limbo", {
     from: deployer,
     args: [flan.address, limboDAO.address],
     log: true,
+    libraries: {
+      SoulLib: soulLib.address,
+      CrossingLib: crossingLib.address,
+      MigrationLib: migrationLib.address,
+    }
   });
 
   await deploy("UniswapHelper", {
@@ -31,4 +49,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func;
 func.tags = ["Limbo"];
-func.dependencies = ["Flan", "DAO"]
+func.dependencies = ["Flan", "DAO"];
