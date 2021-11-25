@@ -77,8 +77,6 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(sender, recipient, amount);
-
         uint256 fee = (burnOnTransferFee * amount) / 100;
 
         _totalSupply = _totalSupply - fee;

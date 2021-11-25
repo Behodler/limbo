@@ -49,10 +49,4 @@ contract ERC677 is ERC20Burnable, Ownable {
         }
         return length > 0;
     }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {}
 }

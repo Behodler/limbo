@@ -9,6 +9,12 @@ task("accounts", "Prints the list of accounts", async () => {
   }
 });
 
+task("0x0", "Prints zero address", async () => {
+
+ console.log('0x0000000000000000000000000000000000000000')
+});
+
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
