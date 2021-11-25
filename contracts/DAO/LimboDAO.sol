@@ -107,6 +107,7 @@ contract LimboDAO is Ownable {
         public stakedUserAssetWeight; //user->asset->weight
     ProposalState public currentProposalState;
     ProposalState public previousProposalState;
+    uint256 public fateToFlan;
 
     modifier isLive() {
         require(domainConfig.live, "LimboDAO: DAO is not live.");
@@ -221,6 +222,17 @@ contract LimboDAO is Ownable {
         emit daoKilled(newOwner);
     }
 
+    function setFateToFlan(uint256 rate) public onlySuccessfulProposal {
+        fateToFlan = rate;
+    }
+
+    function convertFateToFlan(uint256 fate) public returns (uint flan) {
+        require(fateToFlan>0, "LimboDAO: Fate conversion to Flan disabled.");
+        fateState[msg.sender].fateBalance -= fate;
+        flan = (fateToFlan * fate) / ONE;
+        Flan(domainConfig.flan).mint(msg.sender, flan);
+    }
+
     function makeProposal(address proposal, address proposer)
         public
         updateCurrentProposal
@@ -312,10 +324,9 @@ contract LimboDAO is Ownable {
         uint256 finalEYEBalance,
         uint256 rootEYE,
         address asset
-    ) public isLive incrementFate
-     {
+    ) public isLive incrementFate {
         require(assetApproved[asset], "LimboDAO: illegal asset");
-         address sender = _msgSender();
+        address sender = _msgSender();
         FateGrowthStrategy strategy = fateGrowthStrategy[asset];
         uint256 rootEYESquared = rootEYE * rootEYE;
         uint256 rootEYEPlusOneSquared = (rootEYE + 1) * (rootEYE + 1);

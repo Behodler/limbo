@@ -131,8 +131,10 @@ describe("DAO Proposals", function () {
       "GovernableStub"
     );
 
+    const FlanFactory = await ethers.getContractFactory("Flan");
+    this.flan = await FlanFactory.deploy(dao.address);
+    this.flan.transferOwnership(dao.address);
     this.limbo = await GovernableStubFactory.deploy(dao.address);
-    this.flan = await GovernableStubFactory.deploy(dao.address);
 
     this.morgothTokenApprover = await morgothTokenApproverFactory.deploy();
 
@@ -571,5 +573,50 @@ describe("DAO Proposals", function () {
       1,
       1
     );
+  });
+
+  it("trying to convert fate to flan without a rate mints zero flan", async function () {
+    await expect(dao.convertFateToFlan(1000)).to.be.revertedWith(
+      "LimboDAO: Fate conversion to Flan disabled."
+    );
+  });
+
+  it("setting fateToFlan to positive number mints flan, depletes fate", async function () {
+    const FateToFlanProposal = await ethers.getContractFactory(
+      "TurnOnFateMintingProposal"
+    );
+    const fateToFlanProposal = await FateToFlanProposal.deploy(
+      dao.address,
+      "minting"
+    );
+    await fateToFlanProposal.parameterize("2000000000000000000");
+    const requiredFate = (await dao.proposalConfig())[1];
+
+    await dao.burnAsset(eye.address, requiredFate);
+
+    await toggleWhiteList(
+      fateToFlanProposal.address,
+      this.whiteListingProposal
+    );
+
+    await proposalFactory.lodgeProposal(fateToFlanProposal.address);
+    const fateAfterLodge = BigInt(
+      (await dao.fateState(owner.address))[1].toString()
+    );
+    const expectedFlan = fateAfterLodge * BigInt(2);
+
+    await eye.transfer(secondPerson.address, "1000000000");
+    await eye.connect(secondPerson).approve(dao.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000");
+    await dao.connect(secondPerson).vote(fateToFlanProposal.address, "10000");
+
+    await advanceTime(259200);
+
+    await dao.executeCurrentProposal();
+
+    await dao.convertFateToFlan(fateAfterLodge);
+    const flanBalance = (await this.flan.balanceOf(owner.address)).toString();
+
+    expect(flanBalance).to.equal(expectedFlan.toString());
   });
 });

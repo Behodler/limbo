@@ -40,4 +40,6 @@ abstract contract LimboDAOLike {
     function getFlashGoverner() external view virtual returns (address);
 
     function proposalConfig() public virtual view returns (uint,uint,address);
+
+  function setFateToFlan(uint256 rate) public virtual;
 }
