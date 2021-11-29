@@ -121,5 +121,9 @@ reference
 build/
 demo*
 usageReadme.txt
+typechain/
+deployments/
+deployed.json
+addresses.json
 
 *_flat*
