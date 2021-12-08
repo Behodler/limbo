@@ -1,19 +1,26 @@
 # Limbo
 Token Preseeding Smart Contracts for Behodler.
 
-## Setup
-This project uses a Docker image to orchestrate testing and compilation via hardhat. Run
+## Debuging
+```
+yarn && yarn build:debug
+yarn node:dev
+```
+In a separate terminal, 
+```
+yarn scripts:addresses
+yarn scripts:setup
+```
+
+Note that addresses generates will be in addresses.json. These must be copied across to LimboUI project into scr/constants/addresses/hardhat.json
+
+If the ui and contracts repo are at the same level on your local file system then you the above copy step is automated by
 
 ```
-npm run docker:rebuild
+yarn update:contracts
 ```
-in order to build the image locally. Then to test and compile code,
 
+To update the UI in one step after starting a node run
 ```
-npm test
-npm run build
+yarn update:ui
 ```
-respectively.
-
-## Testing
-The tests include a coverage.md that will detail with a checkbox whether a particular test case has been adequately covered.

@@ -16,21 +16,13 @@ describe("Limbo", function () {
     const MockAngband = await ethers.getContractFactory("MockAngband");
     this.mockAngband = await MockAngband.deploy();
 
-    const addTokenPowerFactory = await ethers.getContractFactory(
-      "MockAddTokenPower"
-    );
+    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
     this.addTokenPower = await addTokenPowerFactory.deploy();
 
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
-    this.mockBehodler = await MockBehodlerFactory.deploy(
-      "Scarcity",
-      "SCX",
-      this.addTokenPower.address
-    );
+    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
 
-    const TransferHelperFactory = await ethers.getContractFactory(
-      "TransferHelper"
-    );
+    const TransferHelperFactory = await ethers.getContractFactory("TransferHelper");
     const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
         TransferHelper: (await TransferHelperFactory.deploy()).address,
@@ -47,21 +39,12 @@ describe("Limbo", function () {
     await this.dai.mint("600000000");
     await this.dai.transfer(this.mockBehodler.address, "600000000");
 
-    const flashGovernanceFactory = await ethers.getContractFactory(
-      "FlashGovernanceArbiter"
-    );
-    this.flashGovernance = await flashGovernanceFactory.deploy(
-      this.limboDAO.address
-    );
+    const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
+    this.flashGovernance = await flashGovernanceFactory.deploy(this.limboDAO.address);
 
     await this.flashGovernance.configureSecurityParameters(10, 100, 30);
     // await this.eye.approve(this.limbo.address, 2000);
-    await this.flashGovernance.configureFlashGovernance(
-      this.eye.address,
-      1000,
-      10,
-      true
-    );
+    await this.flashGovernance.configureFlashGovernance(this.eye.address, 1000, 10, true);
 
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(this.limboDAO.address);
@@ -86,35 +69,21 @@ describe("Limbo", function () {
     await this.flan.whiteListMinting(owner.address, true);
     // await this.flan.endConfiguration();
 
-    await this.addTokenPower.seed(
-      this.mockBehodler.address,
-      this.limbo.address
-    );
+    await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
 
-    const UniswapFactoryFactory = await ethers.getContractFactory(
-      "UniswapFactory"
-    );
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapFactory");
 
     const sushiSwapFactory = await UniswapFactoryFactory.deploy();
     const uniswapFactory = await UniswapFactoryFactory.deploy();
 
-    const firstProposalFactory = await ethers.getContractFactory(
-      "ToggleWhitelistProposalProposal"
-    );
-    this.whiteListingProposal = await firstProposalFactory.deploy(
-      this.limboDAO.address,
-      "toggle whitelist"
-    );
+    const firstProposalFactory = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
+    this.whiteListingProposal = await firstProposalFactory.deploy(this.limboDAO.address, "toggle whitelist");
 
-    const morgothTokenApproverFactory = await ethers.getContractFactory(
-      "MockMorgothTokenApprover"
-    );
+    const morgothTokenApproverFactory = await ethers.getContractFactory("MockMorgothTokenApprover");
 
     this.morgothTokenApprover = await morgothTokenApproverFactory.deploy();
 
-    const soulUpdateProposalFactory = await ethers.getContractFactory(
-      "UpdateSoulConfigProposal"
-    );
+    const soulUpdateProposalFactory = await ethers.getContractFactory("UpdateSoulConfigProposal");
 
     this.soulUpdateProposal = await soulUpdateProposalFactory.deploy(
       this.limboDAO.address,
@@ -124,9 +93,7 @@ describe("Limbo", function () {
     );
 
     //  const flanSCXPair = await sushiSwapFactory.
-    this.ProposalFactoryFactory = await ethers.getContractFactory(
-      "ProposalFactory"
-    );
+    this.ProposalFactoryFactory = await ethers.getContractFactory("ProposalFactory");
     this.proposalFactory = await this.ProposalFactoryFactory.deploy(
       this.limboDAO.address,
       this.whiteListingProposal.address,
@@ -151,24 +118,14 @@ describe("Limbo", function () {
     await this.limboDAO.makeLive();
 
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
-    this.soulReader = await SoulReaderFactory.deploy(this.limboDAO.address);
+    this.soulReader = await SoulReaderFactory.deploy();
 
-    const UniswapHelperFactory = await ethers.getContractFactory(
-      "UniswapHelper"
-    );
-    this.uniswapHelper = await UniswapHelperFactory.deploy(
-      this.limbo.address,
-      this.limboDAO.address
-    );
+    const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
+    this.uniswapHelper = await UniswapHelperFactory.deploy(this.limbo.address, this.limboDAO.address);
     await this.flan.whiteListMinting(this.uniswapHelper.address, true);
 
-    const migrationTokenPairFactory = await ethers.getContractFactory(
-      "MockMigrationUniPair"
-    );
-    this.migrationTokenPair = await migrationTokenPairFactory.deploy(
-      "uni",
-      "uni"
-    );
+    const migrationTokenPairFactory = await ethers.getContractFactory("MockMigrationUniPair");
+    this.migrationTokenPair = await migrationTokenPairFactory.deploy("uni", "uni");
     await this.migrationTokenPair.setReserves(1000, 3000);
 
     await this.uniswapHelper.configure(
@@ -183,13 +140,7 @@ describe("Limbo", function () {
     );
     await this.uniswapHelper.setDAI(this.dai.address);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      1,
-      1,
-      true,
-      10000010
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
     await this.limbo.configureCrossingConfig(
       this.mockBehodler.address,
@@ -201,16 +152,9 @@ describe("Limbo", function () {
       100
     );
 
-    toggleWhiteList = toggleWhiteListFactory(
-      this.eye,
-      this.limboDAO,
-      this.whiteListingProposal,
-      this.proposalFactory
-    );
+    toggleWhiteList = toggleWhiteListFactory(this.eye, this.limboDAO, this.whiteListingProposal, this.proposalFactory);
 
-    const TokenProxyRegistry = await ethers.getContractFactory(
-      "TokenProxyRegistry"
-    );
+    const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
     this.registry = await TokenProxyRegistry.deploy(this.limboDAO.address);
   });
 
@@ -227,17 +171,9 @@ describe("Limbo", function () {
 
   const stringifyBigNumber = (b) => b.map((i) => i.toString());
 
-  var toggleWhiteListFactory = (
-    eye,
-    dao,
-    whiteListingProposal,
-    proposalFactory
-  ) => {
+  var toggleWhiteListFactory = (eye, dao, whiteListingProposal, proposalFactory) => {
     return async function (contractToToggle) {
-      await whiteListingProposal.parameterize(
-        proposalFactory.address,
-        contractToToggle
-      );
+      await whiteListingProposal.parameterize(proposalFactory.address, contractToToggle);
       const requiredFateToLodge = (await dao.proposalConfig())[1];
 
       await eye.mint(requiredFateToLodge);
@@ -256,14 +192,7 @@ describe("Limbo", function () {
 
     //onlySuccessfulProposal:
     //configureSoul
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      0,
-      0,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000);
     await this.aave.transfer(this.limbo.address, 1000);
     //enableProtocol
     await this.limbo.enableProtocol();
@@ -291,19 +220,11 @@ describe("Limbo", function () {
     await this.limbo.adjustSoul(this.aave.address, 1, 0, 10);
     //configureCrossingParameters
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      1,
-      1,
-      true,
-      10000010
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
     await this.limbo.endConfiguration();
 
-    await expect(
-      this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)
-    ).to.be.revertedWith("EJ");
+    await expect(this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)).to.be.revertedWith("EJ");
     // await this.aave.transfer(this.limbo.address, 1000);
     // enableProtocol
     await expect(this.limbo.enableProtocol()).to.be.revertedWith("EJ");
@@ -323,37 +244,22 @@ describe("Limbo", function () {
 
     //governanceApproved:
     //disableProtocol
-    await expect(this.limbo.disableProtocol()).to.be.revertedWith(
-      "ERC20: transfer amount exceeds allowance"
-    );
+    await expect(this.limbo.disableProtocol()).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
     await expect(this.limbo.enableProtocol()).to.be.revertedWith("EJ");
     //adjustSoul
-    await expect(
-      this.limbo.adjustSoul(this.aave.address, 1, 0, 10)
-    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+    await expect(this.limbo.adjustSoul(this.aave.address, 1, 0, 10)).to.be.revertedWith(
+      "ERC20: transfer amount exceeds allowance"
+    );
     //configureCrossingParameters
 
-    await expect(
-      this.limbo.configureCrossingParameters(
-        this.aave.address,
-        1,
-        1,
-        true,
-        10000010
-      )
-    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+    await expect(this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010)).to.be.revertedWith(
+      "ERC20: transfer amount exceeds allowance"
+    );
   });
 
   it("old souls can be claimed from", async function () {
     //make a threshold pool.
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
     await this.limbo.endConfiguration();
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
@@ -368,18 +274,14 @@ describe("Limbo", function () {
 
     //stake enough tokens to cross threshold
     await this.limbo.stake(this.aave.address, "9990001");
-    const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(
-      owner.address
-    );
+    const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
 
-    expect(
-      flanImmediatelyAfterSecondStake.gt("900000000000") &&
-        flanImmediatelyAfterSecondStake.lt("900050000000")
-    ).to.be.true;
+    expect(flanImmediatelyAfterSecondStake.gt("900000000000") && flanImmediatelyAfterSecondStake.lt("900050000000")).to
+      .be.true;
 
     console.log((await this.flan.balanceOf(owner.address)).toString());
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(this.aave.address);
+    const stats = await this.soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
     //claim
@@ -387,29 +289,14 @@ describe("Limbo", function () {
     await this.limbo.claimReward(this.aave.address, 0);
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     console.log((await this.flan.balanceOf(owner.address)).toString());
-    expect(
-      flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()
-    ).to.equal("0");
+    expect(flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()).to.equal("0");
   });
 
   it("old souls can be bonus claimed from (DELTA = 0)", async function () {
     //make a threshold pool.
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      21000000,
-      0,
-      true,
-      10000000
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 21000000, 0, true, 10000000);
 
     await this.limbo.endConfiguration();
 
@@ -427,7 +314,7 @@ describe("Limbo", function () {
     await this.limbo.stake(this.aave.address, "9990001");
 
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(this.aave.address);
+    const stats = await this.soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
     //claim
@@ -443,22 +330,9 @@ describe("Limbo", function () {
 
   it("old souls can be bonus claimed from (DELTA > 0)", async function () {
     //make a threshold pool.
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      21000000,
-      10000000,
-      true,
-      10000000
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 21000000, 10000000, true, 10000000);
 
     await this.limbo.endConfiguration();
 
@@ -476,7 +350,7 @@ describe("Limbo", function () {
     await this.limbo.stake(this.aave.address, "9990001");
     console.log((await this.flan.balanceOf(owner.address)).toString());
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(this.aave.address);
+    const stats = await this.soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
 
@@ -491,22 +365,9 @@ describe("Limbo", function () {
 
   it("old souls can be bonus claimed from (DELTA < 0)", async function () {
     //make a threshold pool.
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      20000000000,
-      "-1000",
-      true,
-      10000000
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
     await this.limbo.endConfiguration();
 
@@ -524,7 +385,7 @@ describe("Limbo", function () {
     await this.limbo.stake(this.aave.address, "9990001");
     console.log((await this.flan.balanceOf(owner.address)).toString());
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(this.aave.address);
+    const stats = await this.soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
 
@@ -541,50 +402,24 @@ describe("Limbo", function () {
 
   it("perpetual pools have no upper limit", async function () {
     //make a threshold pool.
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      2,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 2, 1, 0, 10000000);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      20000000000,
-      "-1000",
-      true,
-      10000000
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
     await this.limbo.endConfiguration();
 
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000001");
 
-    const stats = await this.soulReader.SoulStats(this.aave.address);
+    const stats = await this.soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(stats[0].toNumber()).to.equal(1);
   });
 
   it("use flashGovernance to adjustSoul", async function () {
     //configure soul
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      20000000000,
-      "-1000",
-      true,
-      10000000
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
     //set flash loan params
     await this.flashGovernance.configureFlashGovernance(
@@ -598,22 +433,15 @@ describe("Limbo", function () {
     await this.limbo.endConfiguration();
 
     //try to adjust soul and fail
-    await expect(
-      this.limbo.adjustSoul(this.aave.address, 1, 10, 200)
-    ).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
+    await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith(
+      "ERC20: transfer amount exceeds allowance"
+    );
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
-    await this.limbo.adjustSoul(
-      this.aave.address,
-      20000000001,
-      -1001,
-      10000001
-    );
+    await this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001);
 
-    const newStates = await this.soulReader.CrossingParameters(
-      this.aave.address
-    );
+    const newStates = await this.soulReader.CrossingParameters(this.aave.address, this.limbo.address);
 
     //assert newStates
     const stringNewStates = stringifyBigNumber(newStates);
@@ -633,33 +461,19 @@ describe("Limbo", function () {
     //end configuration
     await this.limbo.endConfiguration();
     await this.eye.approve(this.flashGovernance.address, 21000000);
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      1,
-      1,
-      true,
-      10000010
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
-    await expect(
-      this.flashGovernance.withdrawGovernanceAsset(
-        this.limbo.address,
-        this.eye.address
-      )
-    ).to.be.revertedWith("Limbo: Flashgovernance decision pending.");
+    await expect(this.flashGovernance.withdrawGovernanceAsset(this.limbo.address, this.eye.address)).to.be.revertedWith(
+      "Limbo: Flashgovernance decision pending."
+    );
 
     await advanceTime(604801);
 
     const eyeBalanceBefore = await this.eye.balanceOf(owner.address);
-    await this.flashGovernance.withdrawGovernanceAsset(
-      this.limbo.address,
-      this.eye.address
-    );
+    await this.flashGovernance.withdrawGovernanceAsset(this.limbo.address, this.eye.address);
     const eyeBalanceAfter = await this.eye.balanceOf(owner.address);
 
-    expect(eyeBalanceAfter.sub(eyeBalanceBefore).toString()).to.equal(
-      "21000000"
-    );
+    expect(eyeBalanceAfter.sub(eyeBalanceBefore).toString()).to.equal("21000000");
   });
 
   it("burn asset for flashGov decision", async function () {
@@ -685,13 +499,8 @@ describe("Limbo", function () {
     await this.limboDAO.burnAsset(this.eye.address, eyeToBurn);
 
     //configure and lodge proposal
-    const burnFlashStakeProposalFactory = await ethers.getContractFactory(
-      "BurnFlashStakeDeposit"
-    );
-    const burnFlashStakeProposal = await burnFlashStakeProposalFactory.deploy(
-      this.limboDAO.address,
-      "burnFlash"
-    );
+    const burnFlashStakeProposalFactory = await ethers.getContractFactory("BurnFlashStakeDeposit");
+    const burnFlashStakeProposal = await burnFlashStakeProposalFactory.deploy(this.limboDAO.address, "burnFlash");
     await burnFlashStakeProposal.parameterize(
       owner.address,
       this.eye.address,
@@ -702,20 +511,11 @@ describe("Limbo", function () {
 
     await toggleWhiteList(burnFlashStakeProposal.address);
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      1,
-      1,
-      true,
-      10000010
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
     await this.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
     let currentProposal = (await this.limboDAO.currentProposalState())[4];
     console.log("proposal: " + currentProposal);
-    expect(
-      currentProposal.toString() !==
-        "0x0000000000000000000000000000000000000000"
-    ).to.be.true;
+    expect(currentProposal.toString() !== "0x0000000000000000000000000000000000000000").to.be.true;
 
     //get more fate to vote
     await this.limboDAO.burnAsset(this.eye.address, "10000");
@@ -730,47 +530,29 @@ describe("Limbo", function () {
     await advanceTime(advancement.toNumber()); //more time
 
     //assert eye locked for user
-    const pendingBeforeAttempt =
-      await this.flashGovernance.pendingFlashDecision(
-        this.limbo.address,
-        owner.address
-      );
+    const pendingBeforeAttempt = await this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address);
     expect(pendingBeforeAttempt[1].toString()).to.equal("21000000");
 
     //try to withdraw flash gov asset and fail. Assert money still there
-    await expect(
-      this.flashGovernance.withdrawGovernanceAsset(
-        this.limbo.address,
-        this.eye.address
-      )
-    ).to.be.revertedWith("Limbo: Flashgovernance decision pending.");
+    await expect(this.flashGovernance.withdrawGovernanceAsset(this.limbo.address, this.eye.address)).to.be.revertedWith(
+      "Limbo: Flashgovernance decision pending."
+    );
 
     //execute burn proposal
 
     const eyeTotalsupplyBefore = await this.eye.totalSupply();
-    const eyeInFlashGovBefore = await this.eye.balanceOf(
-      this.flashGovernance.address
-    );
+    const eyeInFlashGovBefore = await this.eye.balanceOf(this.flashGovernance.address);
 
     await this.limboDAO.executeCurrentProposal();
 
-    const eyeInFlashGovAfter = await this.eye.balanceOf(
-      this.flashGovernance.address
-    );
+    const eyeInFlashGovAfter = await this.eye.balanceOf(this.flashGovernance.address);
     const eyeTotalsupplyAfter = await this.eye.totalSupply();
-    const pendingAfterAttempt = await this.flashGovernance.pendingFlashDecision(
-      this.limbo.address,
-      owner.address
-    );
+    const pendingAfterAttempt = await this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address);
 
     expect(pendingAfterAttempt[1].toString()).to.equal("21000000");
     //assert eye has declined by 21000000
-    expect(eyeInFlashGovBefore.sub(eyeInFlashGovAfter).toString()).to.equal(
-      "21000000"
-    );
-    expect(eyeTotalsupplyBefore.sub(eyeTotalsupplyAfter).toString()).to.equal(
-      "21000000"
-    );
+    expect(eyeInFlashGovBefore.sub(eyeInFlashGovAfter).toString()).to.equal("21000000");
+    expect(eyeTotalsupplyBefore.sub(eyeTotalsupplyAfter).toString()).to.equal("21000000");
   });
 
   it("unstaking rewards user correctly and sets unclaimed to zero", async function () {
@@ -791,11 +573,7 @@ describe("Limbo", function () {
 
     await advanceTime(400000);
 
-    const userInfoBeforeUntake = await this.limbo.userInfo(
-      this.aave.address,
-      owner.address,
-      0
-    );
+    const userInfoBeforeUntake = await this.limbo.userInfo(this.aave.address, owner.address, 0);
     expect(userInfoBeforeUntake[0].toNumber()).to.equal(10000);
 
     const expectedFlanLowerbound = Number((10000000n * 400001n) / 1000000n);
@@ -806,16 +584,9 @@ describe("Limbo", function () {
     await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
-    const userInfoAfterUnstake = await this.limbo.userInfo(
-      this.aave.address,
-      owner.address,
-      0
-    );
+    const userInfoAfterUnstake = await this.limbo.userInfo(this.aave.address, owner.address, 0);
 
-    const actualFlanDiff = userFlanBalanceAfter
-      .sub(userFlanBalanceBefore)
-      .div(1000000)
-      .toNumber();
+    const actualFlanDiff = userFlanBalanceAfter.sub(userFlanBalanceBefore).div(1000000).toNumber();
 
     expect(actualFlanDiff).to.be.greaterThanOrEqual(expectedFlanLowerbound);
     expect(actualFlanDiff).to.be.lessThanOrEqual(expectedFlanUpperbound);
@@ -839,9 +610,7 @@ describe("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
     await this.aave.transfer(secondPerson.address, 2000);
-    await this.aave
-      .connect(secondPerson)
-      .approve(this.limbo.address, "10000001");
+    await this.aave.connect(secondPerson).approve(this.limbo.address, "10000001");
     await this.limbo.connect(secondPerson).stake(this.aave.address, 2000);
 
     await advanceTime(400000);
@@ -851,16 +620,9 @@ describe("Limbo", function () {
     await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
-    const userInfoAfterUnstake = await this.limbo.userInfo(
-      this.aave.address,
-      owner.address,
-      0
-    );
+    const userInfoAfterUnstake = await this.limbo.userInfo(this.aave.address, owner.address, 0);
 
-    const changeInFlan = userFlanBalanceAfter
-      .sub(userFlanBalanceBefore)
-      .div("10000000")
-      .toNumber();
+    const changeInFlan = userFlanBalanceAfter.sub(userFlanBalanceBefore).div("10000000").toNumber();
     console.log("change in flan " + changeInFlan);
     const lowerBound = 333335;
     const upperBound = 333339;
@@ -888,37 +650,22 @@ describe("Limbo", function () {
 
     await advanceTime(400000);
 
-    const userInfoBeforeUntake = await this.limbo.userInfo(
-      this.aave.address,
-      owner.address,
-      0
-    );
+    const userInfoBeforeUntake = await this.limbo.userInfo(this.aave.address, owner.address, 0);
     expect(userInfoBeforeUntake[0].toNumber()).to.equal(10000);
 
     const flanPerSecond = 10000000n;
-    const expectedFlanLowerRange = Number(
-      (flanPerSecond * 400001n) / (4n * 1000000n)
-    ); // quarter rewards because sharing with other token
+    const expectedFlanLowerRange = Number((flanPerSecond * 400001n) / (4n * 1000000n)); // quarter rewards because sharing with other token
 
-    const expectedFlanUpperRange = Number(
-      (flanPerSecond * 400003n) / (4n * 1000000n)
-    ); // quarter rewards because sharing with other token
+    const expectedFlanUpperRange = Number((flanPerSecond * 400003n) / (4n * 1000000n)); // quarter rewards because sharing with other token
 
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
 
     await this.limbo.unstake(this.aave.address, 4000);
     const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
 
-    const userInfoAfterUnstake = await this.limbo.userInfo(
-      this.aave.address,
-      owner.address,
-      0
-    );
+    const userInfoAfterUnstake = await this.limbo.userInfo(this.aave.address, owner.address, 0);
 
-    const actualFlanDiff = userFlanBalanceAfter
-      .sub(userFlanBalanceBefore)
-      .div(1000000)
-      .toNumber();
+    const actualFlanDiff = userFlanBalanceAfter.sub(userFlanBalanceBefore).div(1000000).toNumber();
 
     expect(actualFlanDiff).to.be.greaterThanOrEqual(expectedFlanLowerRange);
     expect(actualFlanDiff).to.be.lessThanOrEqual(expectedFlanUpperRange);
@@ -939,16 +686,13 @@ describe("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-    const updateSoulConfigProposalFactory = await ethers.getContractFactory(
-      "UpdateSoulConfigProposal"
+    const updateSoulConfigProposalFactory = await ethers.getContractFactory("UpdateSoulConfigProposal");
+    const updateSoulConfigProposal = await updateSoulConfigProposalFactory.deploy(
+      this.limboDAO.address,
+      "change state",
+      this.limbo.address,
+      this.morgothTokenApprover.address
     );
-    const updateSoulConfigProposal =
-      await updateSoulConfigProposalFactory.deploy(
-        this.limboDAO.address,
-        "change state",
-        this.limbo.address,
-        this.morgothTokenApprover.address
-      );
 
     await this.morgothTokenApprover.addToken(this.aave.address);
     await updateSoulConfigProposal.parameterize(
@@ -977,13 +721,11 @@ describe("Limbo", function () {
     console.log("aave: " + this.aave.address);
 
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
-    const soulReader = await SoulReaderFactory.deploy(this.limboDAO.address);
-    const soulStats = await soulReader.SoulStats(this.aave.address);
+    const soulReader = await SoulReaderFactory.deploy();
+    const soulStats = await soulReader.SoulStats(this.aave.address,this.limbo.address);
     expect(soulStats[0].toNumber()).to.equal(2);
 
-    await expect(
-      this.limbo.stake(this.aave.address, "10000")
-    ).to.be.revertedWith("E2");
+    await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("E2");
   });
 
   it("staking an invalid token fails", async function () {
@@ -991,9 +733,7 @@ describe("Limbo", function () {
 
     //stake tokens
     await this.titan.approve(this.limbo.address, "10000001");
-    await expect(
-      this.limbo.stake(this.titan.address, "10000")
-    ).to.be.revertedWith("E1");
+    await expect(this.limbo.stake(this.titan.address, "10000")).to.be.revertedWith("E1");
   });
 
   it("unstaking amount larger than balance reverts with E4", async function () {
@@ -1011,9 +751,7 @@ describe("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-    await expect(
-      this.limbo.unstake(this.aave.address, "10001")
-    ).to.be.revertedWith("E4");
+    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
   });
 
   it("unstaking amount larger than balance reverts with E4", async function () {
@@ -1031,9 +769,7 @@ describe("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-    await expect(
-      this.limbo.unstake(this.aave.address, "10001")
-    ).to.be.revertedWith("E4");
+    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
   });
 
   it("claiming staked reward resets unclaimed to zero", async function () {
@@ -1075,9 +811,7 @@ describe("Limbo", function () {
     await this.limbo.stake(this.aave.address, "10000");
 
     await advanceTime(1000);
-    await expect(
-      this.limbo.claimBonus(this.aave.address, 0)
-    ).to.be.revertedWith("E2");
+    await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("E2");
   });
 
   it("claiming negative bonus fails", async function () {
@@ -1090,13 +824,7 @@ describe("Limbo", function () {
       10000000
     );
 
-    await this.limbo.configureCrossingParameters(
-      this.aave.address,
-      10,
-      -10,
-      true,
-      10000
-    );
+    await this.limbo.configureCrossingParameters(this.aave.address, 10, -10, true, 10000);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -1105,9 +833,7 @@ describe("Limbo", function () {
     await advanceTime(1000);
     await this.limbo.stake(this.aave.address, "2");
 
-    await expect(
-      this.limbo.claimBonus(this.aave.address, 0)
-    ).to.be.revertedWith("ED");
+    await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("ED");
   });
 
   it("migration fails on not waitingToCross", async function () {
@@ -1122,9 +848,7 @@ describe("Limbo", function () {
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
-      "E2"
-    );
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("E2");
   });
 
   it("too much reserve drift between stamping and execution fails (divergenceTolerance)", async function () {
@@ -1166,9 +890,7 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(this.aave.address, 0);
     expect(currentSoul[4]).to.equal(2);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -1181,9 +903,7 @@ describe("Limbo", function () {
     await advanceTime(minQuoteWaitDuration + 1);
     await this.uniswapHelper.generateFLNQuote();
 
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
-      "EG"
-    );
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("EG");
   });
 
   it("stamping reserves requires wait to pass before migration", async function () {
@@ -1227,16 +947,12 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(this.aave.address, 0);
     expect(currentSoul[4]).to.equal(2);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
     await this.uniswapHelper.generateFLNQuote();
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
-      "EH"
-    );
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("EH");
   });
 
   it("only threshold souls can migrate", async function () {
@@ -1281,9 +997,7 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(this.aave.address, latestIndex);
     expect(currentSoul[4]).to.equal(1);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -1292,33 +1006,22 @@ describe("Limbo", function () {
 
     await advanceTime(minQuoteWaitDuration + 1);
     await this.uniswapHelper.generateFLNQuote();
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith(
-      "EB"
-    );
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("EB");
   });
 
   it("multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
-    const RealPower = await ethers.getContractFactory(
-      "LimboAddTokenToBehodler"
-    );
+    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
     const realPower = await RealPower.deploy(
       realAngband.address,
       this.limbo.address,
@@ -1326,33 +1029,18 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "14000000000000001010055"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
@@ -1399,9 +1087,7 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(this.aave.address, 0);
     expect(currentSoul[4]).to.equal(2);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -1416,9 +1102,7 @@ describe("Limbo", function () {
 
     const blackHoleAddress = await this.uniswapHelper.blackHole();
 
-    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(
-      blackHoleAddress
-    );
+    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(blackHoleAddress);
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
@@ -1433,9 +1117,7 @@ describe("Limbo", function () {
     const flanPairBalanceAfter = await this.flan.balanceOf(pairAddress);
     const scxBalanceOfPairAfter = await realBehodler.balanceOf(pairAddress);
 
-    expect(flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)).to.equal(
-      516286
-    );
+    expect(flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)).to.equal(516286);
 
     //SECOND MIGRATION
 
@@ -1446,17 +1128,11 @@ describe("Limbo", function () {
     //change DAI price
     await this.aave.mint("100000000000000000000000");
     await this.aave.approve(realBehodler.address, "10000000000000000000000000");
-    await realBehodler.addLiquidity(
-      this.aave.address,
-      "100000000000000000000000"
-    );
+    await realBehodler.addLiquidity(this.aave.address, "100000000000000000000000");
 
     const scxBalance = await realBehodler.balanceOf(owner.address);
     console.log("my balance: " + scxBalance);
-    await realBehodler.withdrawLiquidity(
-      this.dai.address,
-      "140000000000000010100"
-    );
+    await realBehodler.withdrawLiquidity(this.dai.address, "140000000000000010100");
 
     await this.limbo.configureSoul(
       mock1.address,
@@ -1490,19 +1166,13 @@ describe("Limbo", function () {
     await this.uniswapHelper.generateFLNQuote();
     await this.limbo.migrate(mock1.address);
 
-    const flanBalanceAfterSecondMigrate = await this.flan.balanceOf(
-      pairAddress
-    );
-    const scxBalanceOfPairAfterSecondMigrate = await realBehodler.balanceOf(
-      pairAddress
-    );
+    const flanBalanceAfterSecondMigrate = await this.flan.balanceOf(pairAddress);
+    const scxBalanceOfPairAfterSecondMigrate = await realBehodler.balanceOf(pairAddress);
 
     const latestPrice = await this.uniswapHelper.latestFlanQuotes(0);
     console.log("dai-scx spot: " + latestPrice[1].toString());
 
-    const ratio = flanBalanceAfterSecondMigrate
-      .mul(1000)
-      .div(scxBalanceOfPairAfterSecondMigrate);
+    const ratio = flanBalanceAfterSecondMigrate.mul(1000).div(scxBalanceOfPairAfterSecondMigrate);
 
     //flan strengthens
     expect(ratio).to.equal(511123);
@@ -1556,22 +1226,18 @@ describe("Limbo", function () {
     await this.limbo.migrate(mock2.address);
 
     const flanBalanceAfterThirdMigrate = await this.flan.balanceOf(pairAddress);
-    const scxBalanceOfPairAfteThirdMigrate = await realBehodler.balanceOf(
-      pairAddress
-    );
+    const scxBalanceOfPairAfteThirdMigrate = await realBehodler.balanceOf(pairAddress);
 
-    const ratio2 = flanBalanceAfterThirdMigrate
-      .mul(10000)
-      .div(scxBalanceOfPairAfteThirdMigrate);
+    const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfteThirdMigrate);
 
     expect(ratio2).to.equal(5089795);
   });
 
   it("any whitelisted contract can mint flan", async function () {
     //assert secondPerson can't mint flan
-    await expect(
-      this.flan.connect(secondPerson).mint(owner.address, 1000)
-    ).to.be.revertedWith("Flan: Mint allowance exceeded");
+    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
+      "Flan: Mint allowance exceeded"
+    );
 
     //whitelist secondPerson
     await this.flan.whiteListMinting(secondPerson.address, true);
@@ -1585,19 +1251,14 @@ describe("Limbo", function () {
     await this.flan.whiteListMinting(secondPerson.address, false);
 
     //assert secondPerson can't mint flan
-    await expect(
-      this.flan.connect(secondPerson).mint(owner.address, 1000)
-    ).to.be.revertedWith("Flan: Mint allowance exceeded");
+    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
+      "Flan: Mint allowance exceeded"
+    );
   });
 
   it("flan burn fee on transfer proposal", async function () {
-    const feechangeProposalFactory = await ethers.getContractFactory(
-      "AdjustFlanFeeOnTransferProposal"
-    );
-    const feechangeProposal = await feechangeProposalFactory.deploy(
-      this.limboDAO.address,
-      "changer"
-    );
+    const feechangeProposalFactory = await ethers.getContractFactory("AdjustFlanFeeOnTransferProposal");
+    const feechangeProposal = await feechangeProposalFactory.deploy(this.limboDAO.address, "changer");
 
     await feechangeProposal.parameterize(this.flan.address, 3);
 
@@ -1630,59 +1291,30 @@ describe("Limbo", function () {
   });
 
   it("attemptToTargetAPY for non threshold soul fails", async function () {
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      2,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 2, 1, 0, 10000000);
 
     //create real behodler
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
 
     //add dai to real behodler
     await this.dai.mint("5000000000000000000000000");
     await this.dai.approve(realBehodler.address, "5000000000000000000000000");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "5000000000000000000000000"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     //configure uniswapHelper
@@ -1725,59 +1357,30 @@ describe("Limbo", function () {
   });
 
   it("attemptToTargetAPY sets fps correctly, use to test multiple token migrations", async function () {
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
     //create real behodler
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
 
     //add dai to real behodler
     await this.dai.mint("5000000000000000000000000");
     await this.dai.approve(realBehodler.address, "5000000000000000000000000");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "5000000000000000000000000"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     //configure uniswapHelper
@@ -1827,20 +1430,15 @@ describe("Limbo", function () {
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     const pool = await this.TokenFactory.deploy("pool", "pool", [], []);
     //initiatialize proposal
-    const updateMultipleSoulConfigProposalFactory =
-      await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
-    await this.morgothTokenApprover.toggleManyTokens(
-      [this.aave.address, sushi.address, pool.address],
-      true
+    const updateMultipleSoulConfigProposalFactory = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
+    await this.morgothTokenApprover.toggleManyTokens([this.aave.address, sushi.address, pool.address], true);
+    const updateMultiSoulConfigProposal = await updateMultipleSoulConfigProposalFactory.deploy(
+      this.limboDAO.address,
+      "List many tokens",
+      this.limbo.address,
+      this.uniswapHelper.address,
+      this.morgothTokenApprover.address
     );
-    const updateMultiSoulConfigProposal =
-      await updateMultipleSoulConfigProposalFactory.deploy(
-        this.limboDAO.address,
-        "List many tokens",
-        this.limbo.address,
-        this.uniswapHelper.address,
-        this.morgothTokenApprover.address
-      );
     //parameterize
     await updateMultiSoulConfigProposal.parameterize(
       this.aave.address,
@@ -1851,24 +1449,8 @@ describe("Limbo", function () {
       1300,
       "5000000000000000000000000"
     );
-    await updateMultiSoulConfigProposal.parameterize(
-      sushi.address,
-      0,
-      2,
-      0,
-      0,
-      2600,
-      "5000000000000000000000000"
-    );
-    await updateMultiSoulConfigProposal.parameterize(
-      pool.address,
-      123456,
-      1,
-      0,
-      0,
-      1300,
-      "10000000000000000000000000"
-    );
+    await updateMultiSoulConfigProposal.parameterize(sushi.address, 0, 2, 0, 0, 2600, "5000000000000000000000000");
+    await updateMultiSoulConfigProposal.parameterize(pool.address, 123456, 1, 0, 0, 1300, "10000000000000000000000000");
     //lodge
 
     const proposalConfig = await this.limboDAO.proposalConfig();
@@ -1878,9 +1460,7 @@ describe("Limbo", function () {
     await this.limboDAO.burnAsset(this.eye.address, requiredFate);
 
     await toggleWhiteList(updateMultiSoulConfigProposal.address);
-    await this.proposalFactory.lodgeProposal(
-      updateMultiSoulConfigProposal.address
-    );
+    await this.proposalFactory.lodgeProposal(updateMultiSoulConfigProposal.address);
 
     //vote and execute
     await this.limboDAO.vote(updateMultiSoulConfigProposal.address, 1000);
@@ -1909,23 +1489,14 @@ describe("Limbo", function () {
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(sushi.address, this.flan.address);
     await this.uniswapHelper.setFactory(realUniswapFactory.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      sushi.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, sushi.address);
     await sushi.mint("1000000000");
     await sushi.transfer(pairAddress, "1000000000");
     await this.flan.mint(pairAddress, "80000000000");
@@ -1948,67 +1519,36 @@ describe("Limbo", function () {
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
 
-    await expect(
-      this.limbo.claimSecondaryRewards(sushi.address)
-    ).to.be.revertedWith("E7");
+    await expect(this.limbo.claimSecondaryRewards(sushi.address)).to.be.revertedWith("E7");
   });
 
   it("flash governance tolerance enforeced for flash loan but not successful proposals or unconfigured", async function () {
     await this.flashGovernance.configureSecurityParameters(10, 100, 3);
 
-    await this.limbo.configureSoul(
-      this.aave.address,
-      10000000,
-      1,
-      1,
-      0,
-      10000000
-    );
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
     //create real behodler
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
 
     //add dai to real behodler
     await this.dai.mint("5000000000000000000000000");
     await this.dai.approve(realBehodler.address, "5000000000000000000000000");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "5000000000000000000000000"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     //configure uniswapHelper
@@ -2055,54 +1595,25 @@ describe("Limbo", function () {
   });
 
   it("FOT token accounting handled correctly", async function () {
-    const feeOnTransferTokenFactory = await ethers.getContractFactory(
-      "MockFOTToken"
-    );
-    const feeOnTransferToken = await feeOnTransferTokenFactory.deploy(
-      "FOT",
-      "FOT",
-      50
-    );
-    await this.limbo.configureSoul(
-      feeOnTransferToken.address,
-      "10000000000",
-      1,
-      1,
-      0,
-      10000000
-    );
+    const feeOnTransferTokenFactory = await ethers.getContractFactory("MockFOTToken");
+    const feeOnTransferToken = await feeOnTransferTokenFactory.deploy("FOT", "FOT", 50);
+    await this.limbo.configureSoul(feeOnTransferToken.address, "10000000000", 1, 1, 0, 10000000);
 
-    await this.limbo.configureCrossingParameters(
-      feeOnTransferToken.address,
-      21000000,
-      0,
-      true,
-      "10000000000"
-    );
+    await this.limbo.configureCrossingParameters(feeOnTransferToken.address, 21000000, 0, true, "10000000000");
 
     await feeOnTransferToken.approve(this.limbo.address, "100000000");
 
     await this.limbo.stake(feeOnTransferToken.address, "100000000");
 
-    const balanceOnLimbo = (
-      await feeOnTransferToken.balanceOf(this.limbo.address)
-    ).toString();
+    const balanceOnLimbo = (await feeOnTransferToken.balanceOf(this.limbo.address)).toString();
     expect(balanceOnLimbo).to.equal("95000000");
-    const stakedBalance = (
-      await this.limbo.userInfo(feeOnTransferToken.address, owner.address, 0)
-    )[0].toString();
+    const stakedBalance = (await this.limbo.userInfo(feeOnTransferToken.address, owner.address, 0))[0].toString();
     expect(stakedBalance).to.equal("95000000");
 
-    const bigBalanceBefore = BigInt(
-      (await feeOnTransferToken.balanceOf(owner.address)).toString()
-    );
+    const bigBalanceBefore = BigInt((await feeOnTransferToken.balanceOf(owner.address)).toString());
     await this.limbo.unstake(feeOnTransferToken.address, "95000000");
-    const bigBalanceAfter = BigInt(
-      (await feeOnTransferToken.balanceOf(owner.address)).toString()
-    );
-    expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal(
-      "90250000"
-    );
+    const bigBalanceAfter = BigInt((await feeOnTransferToken.balanceOf(owner.address)).toString());
+    expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal("90250000");
   });
 
   it("test unstaking from another user more than allowance fails", async function () {
@@ -2122,74 +1633,43 @@ describe("Limbo", function () {
 
     await advanceTime(400000);
 
-    const userInfoBeforeUntake = await this.limbo.userInfo(
-      this.aave.address,
-      owner.address,
-      0
-    );
+    const userInfoBeforeUntake = await this.limbo.userInfo(this.aave.address, owner.address, 0);
     expect(userInfoBeforeUntake[0].toNumber()).to.equal(10000);
 
     const expectedFlanLowerbound = Number((10000000n * 400001n) / 1000000n);
 
     const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
     const expectedFlanUpperbound = Number((10000000n * 400006n) / 1000000n);
-    await this.limbo.approveUnstake(
-      this.aave.address,
-      secondPerson.address,
-      "2000"
-    );
+    await this.limbo.approveUnstake(this.aave.address, secondPerson.address, "2000");
 
-    await this.limbo
-      .connect(secondPerson)
-      .unstakeFor(this.aave.address, 2000, owner.address);
+    await this.limbo.connect(secondPerson).unstakeFor(this.aave.address, 2000, owner.address);
 
-    await expect(
-      this.limbo
-        .connect(secondPerson)
-        .unstakeFor(this.aave.address, 1, owner.address)
-    ).to.be.revertedWith(
+    await expect(this.limbo.connect(secondPerson).unstakeFor(this.aave.address, 1, owner.address)).to.be.revertedWith(
       "Arithmetic operation underflowed or overflowed outside of an unchecked block"
     );
   });
 
   it("token with proxy but baseToken zero simply migrates proxy", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
-    const proxy = await proxyFactory.deploy(
-      "Hello",
-      "there",
-      this.aave.address
-    );
-    await this.registry.setProxy(
-      "0x0000000000000000000000000000000000000000",
-      proxy.address,
-      false
-    );
+    const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
+    await this.registry.setProxy("0x0000000000000000000000000000000000000000", proxy.address, false);
     const aaveBalance = await this.aave.balanceOf(owner.address);
     console.log("aave balance" + aaveBalance);
     await this.aave.approve(proxy.address, "100000000000000000000");
     await proxy.mint(owner.address, "100000000000000000000");
 
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
-    const RealPower = await ethers.getContractFactory(
-      "LimboAddTokenToBehodler"
-    );
+    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
     const realPower = await RealPower.deploy(
       realAngband.address,
       this.limbo.address,
@@ -2197,33 +1677,18 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "14000000000000001010055"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
@@ -2270,9 +1735,7 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(proxy.address, 0);
     expect(currentSoul[4]).to.equal(2);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -2287,9 +1750,7 @@ describe("Limbo", function () {
 
     const blackHoleAddress = await this.uniswapHelper.blackHole();
 
-    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(
-      blackHoleAddress
-    );
+    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(blackHoleAddress);
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
@@ -2298,50 +1759,33 @@ describe("Limbo", function () {
 
     await this.limbo.migrate(proxy.address);
 
-    const balanceOfProxyOnBehodler = (
-      await proxy.balanceOf(realBehodler.address)
-    ).toString();
+    const balanceOfProxyOnBehodler = (await proxy.balanceOf(realBehodler.address)).toString();
     expect(balanceOfProxyOnBehodler).to.not.equal("0");
 
-    const aaveBalanceOnBehodler = await this.aave.balanceOf(
-      realBehodler.address
-    );
+    const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
   it("token with proxy and baseToken with migrateToBehodler true migrates baseToken", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
-    const proxy = await proxyFactory.deploy(
-      "Hello",
-      "there",
-      this.aave.address
-    );
+    const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
     await this.registry.setProxy(this.aave.address, proxy.address, true);
     const aaveBalance = await this.aave.balanceOf(owner.address);
     console.log("aave balance" + aaveBalance);
     await this.aave.approve(proxy.address, "100000000000000000000");
     await proxy.mint(owner.address, "100000000000000000000");
 
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
-    const RealPower = await ethers.getContractFactory(
-      "LimboAddTokenToBehodler"
-    );
+    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
     const realPower = await RealPower.deploy(
       realAngband.address,
       this.limbo.address,
@@ -2349,33 +1793,18 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "14000000000000001010055"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
@@ -2422,9 +1851,7 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(proxy.address, 0);
     expect(currentSoul[4]).to.equal(2);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -2439,9 +1866,7 @@ describe("Limbo", function () {
 
     const blackHoleAddress = await this.uniswapHelper.blackHole();
 
-    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(
-      blackHoleAddress
-    );
+    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(blackHoleAddress);
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
@@ -2450,51 +1875,34 @@ describe("Limbo", function () {
 
     await this.limbo.migrate(proxy.address);
 
-    const balanceOfProxyOnBehodler = (
-      await proxy.balanceOf(realBehodler.address)
-    ).toString();
+    const balanceOfProxyOnBehodler = (await proxy.balanceOf(realBehodler.address)).toString();
     expect(balanceOfProxyOnBehodler).to.equal("0");
 
-    const aaveBalanceOnBehodler = await this.aave.balanceOf(
-      realBehodler.address
-    );
+    const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
     expect(aaveBalanceOnBehodler).to.not.equal("0");
   });
 
   it("token with proxy and baseToken with migrateToBehodler false migrates proxy", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
-    const proxy = await proxyFactory.deploy(
-      "Hello",
-      "there",
-      this.aave.address
-    );
+    const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
     await this.registry.setProxy(this.aave.address, proxy.address, false);
     const aaveBalance = await this.aave.balanceOf(owner.address);
     console.log("aave balance" + aaveBalance);
     await this.aave.approve(proxy.address, "100000000000000000000");
     await proxy.mint(owner.address, "100000000000000000000");
 
-    const AddressBalanceCheckLib = await ethers.getContractFactory(
-      "AddressBalanceCheck"
-    );
-    const addressBalanceCheckLibAddress = (
-      await AddressBalanceCheckLib.deploy()
-    ).address;
-    const RealBehodlerFactory = await ethers.getContractFactory(
-      "BehodlerLite",
-      {
-        libraries: {
-          AddressBalanceCheck: addressBalanceCheckLibAddress,
-        },
-      }
-    );
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
     const realBehodler = await RealBehodlerFactory.deploy();
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
-    const RealPower = await ethers.getContractFactory(
-      "LimboAddTokenToBehodler"
-    );
+    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
     const realPower = await RealPower.deploy(
       realAngband.address,
       this.limbo.address,
@@ -2502,33 +1910,18 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory(
-      "RealUniswapV2Factory"
-    );
-    const RealUniswapPairFactory = await ethers.getContractFactory(
-      "RealUniswapV2Pair"
-    );
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(
-      owner.address
-    );
-    await realUniswapFactory.createPair(
-      realBehodler.address,
-      this.flan.address
-    );
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
-    const pairAddress = await realUniswapFactory.getPair(
-      this.flan.address,
-      realBehodler.address
-    );
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
     const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(
-      this.dai.address,
-      "14000000000000001010055"
-    );
+    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
@@ -2575,9 +1968,7 @@ describe("Limbo", function () {
     const currentSoul = await this.limbo.souls(proxy.address, 0);
     expect(currentSoul[4]).to.equal(2);
 
-    const requiredDelayBetweenEndOfStakingAndMigrate = (
-      await this.limbo.crossingConfig()
-    )[3].toNumber();
+    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
 
     await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
     await this.uniswapHelper.generateFLNQuote();
@@ -2592,9 +1983,7 @@ describe("Limbo", function () {
 
     const blackHoleAddress = await this.uniswapHelper.blackHole();
 
-    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(
-      blackHoleAddress
-    );
+    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(blackHoleAddress);
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
@@ -2603,14 +1992,10 @@ describe("Limbo", function () {
 
     await this.limbo.migrate(proxy.address);
 
-    const balanceOfProxyOnBehodler = (
-      await proxy.balanceOf(realBehodler.address)
-    ).toString();
+    const balanceOfProxyOnBehodler = (await proxy.balanceOf(realBehodler.address)).toString();
     expect(balanceOfProxyOnBehodler).to.not.equal("0");
 
-    const aaveBalanceOnBehodler = await this.aave.balanceOf(
-      realBehodler.address
-    );
+    const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
 });

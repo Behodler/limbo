@@ -42,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy("SoulReader", {
     from: deployer,
-    args: [limboDAO.address],
+    args: [],
     log: true,
   });
 };

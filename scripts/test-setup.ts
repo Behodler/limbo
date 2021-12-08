@@ -14,6 +14,7 @@ import {
   ProposalFactory__factory,
   RealUniswapV2Factory__factory,
   UniswapHelper__factory,
+  SoulReader__factory
 } from "../typechain";
 import Addresses from "../addresses.json";
 
@@ -115,12 +116,13 @@ async function main() {
     0
   );
   uniswapHelper.setDAI(dai.address);
-
+const typicalCrossingDelta = parseEther("1500000000000")
+console.log("typicalCrossingDelta", typicalCrossingDelta.toString())
   await flashGovernanceArbiter.configureSecurityParameters(10, 10, 30);
   await flashGovernanceArbiter.configureFlashGovernance(eye.address, parseEther("10").toHexString(), 10, true);
 
-  await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.01").toHexString());
-  await limbo.configureCrossingParameters(aave.address, 1000000000, 1, true, parseEther("100").toHexString());
+  await limbo.configureSoul(aave.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.001").toHexString());
+  await limbo.configureCrossingParameters(aave.address, 1000000000, typicalCrossingDelta, true, parseEther("100").toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
     mockAngband.address,
@@ -132,7 +134,7 @@ async function main() {
   );
 
   await limbo.configureSoul(dai.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.02").toHexString());
-  await limbo.configureCrossingParameters(dai.address, 2000000000, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingParameters(dai.address, 2000000000, typicalCrossingDelta, true, parseEther("100").toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
     mockAngband.address,
@@ -144,7 +146,7 @@ async function main() {
   );
 
   await limbo.configureSoul(eye.address, parseEther("100").toHexString(), 1, 1, 0, parseEther("0.03").toHexString());
-  await limbo.configureCrossingParameters(eye.address, 3000000000, 1, true, parseEther("100").toHexString());
+  await limbo.configureCrossingParameters(eye.address, 3000000000,  typicalCrossingDelta, true, parseEther("100").toHexString());
   await limbo.configureCrossingConfig(
     mockBehodler.address,
     mockAngband.address,

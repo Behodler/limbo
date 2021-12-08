@@ -204,6 +204,25 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "fate",
+              "type": "uint256"
+            }
+          ],
+          "name": "convertFateToFlan",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "flan",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "currentProposalState",
           "outputs": [
@@ -333,6 +352,19 @@
             {
               "internalType": "uint256",
               "name": "lastDamnAdjustment",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "fateToFlan",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
               "type": "uint256"
             }
           ],
@@ -579,6 +611,19 @@
             }
           ],
           "name": "setEYEBasedAssetStake",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "rate",
+              "type": "uint256"
+            }
+          ],
+          "name": "setFateToFlan",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -2713,18 +2758,12 @@
           "inputs": [
             {
               "internalType": "address",
-              "name": "dao",
+              "name": "token",
               "type": "address"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "constructor"
-        },
-        {
-          "inputs": [
+            },
             {
               "internalType": "address",
-              "name": "token",
+              "name": "_limbo",
               "type": "address"
             }
           ],
@@ -2750,13 +2789,29 @@
           "type": "function"
         },
         {
-          "inputs": [],
-          "name": "DAO",
-          "outputs": [
+          "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "account",
               "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_limbo",
+              "type": "address"
+            }
+          ],
+          "name": "GetPendingReward",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -2767,6 +2822,11 @@
             {
               "internalType": "address",
               "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_limbo",
               "type": "address"
             }
           ],
@@ -2789,39 +2849,6 @@
             }
           ],
           "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "configured",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "endConfiguration",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "dao",
-              "type": "address"
-            }
-          ],
-          "name": "setDAO",
-          "outputs": [],
-          "stateMutability": "nonpayable",
           "type": "function"
         }
       ]

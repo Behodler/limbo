@@ -69,7 +69,7 @@ module.exports = async function (deployer, network, accounts) {
     flanInstance.address,
     behodlerInstance.address
   );
-  await deployer.deploy(SoulReader, limboDAOInstance.address);
+  await deployer.deploy(SoulReader);
   const soulReaderInstance = await SoulReader.deployed();
 
   await deployer.deploy(
