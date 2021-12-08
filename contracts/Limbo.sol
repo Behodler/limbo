@@ -429,12 +429,10 @@ contract Limbo is Governable {
 
     uint256 pending = getPending(user, soul);
 
-    if (pending > 0) {
-      if (amount > 0) {
-        user.stakedAmount = user.stakedAmount - amount;
-        IERC20(token).safeTransfer(address(unstaker), amount);
-        rewardAdjustDebt(unstaker, pending, soul.accumulatedFlanPerShare, user);
-      }
+    if (pending > 0 && amount > 0) {
+      user.stakedAmount = user.stakedAmount - amount;
+      IERC20(token).safeTransfer(address(unstaker), amount);
+      rewardAdjustDebt(unstaker, pending, soul.accumulatedFlanPerShare, user);
       emit Unstaked(unstaker, token, amount);
     }
   }
