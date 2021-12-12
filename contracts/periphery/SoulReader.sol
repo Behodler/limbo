@@ -5,6 +5,7 @@ import "../facades/LimboDAOLike.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SoulReader {
+  uint256 constant TERA = 1E12;
   struct Soul {
     uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.
     uint256 accumulatedFlanPerShare;
@@ -64,8 +65,8 @@ contract SoulReader {
       latestIndex
     );
 
-    (, uint256 stakingEndTimestamp, , , ) = limbo.tokenCrossingParameters(token, latestIndex);
-    uint256 finalTimeStamp = soul.state != 1 ? stakingEndTimestamp : block.timestamp;
+    (, uint256 stakingEndsTimestamp, , , ) = limbo.tokenCrossingParameters(token, latestIndex);
+    uint256 finalTimeStamp = soul.state != 1 ? stakingEndsTimestamp : block.timestamp;
     uint256 limboBalance = IERC20(token).balanceOf(address(limbo));
 
     (uint256 stakedAmount, uint256 rewardDebt, ) = limbo.userInfo(token, account, latestIndex);
@@ -77,5 +78,27 @@ contract SoulReader {
     uint256 accumulated = ((stakedAmount * soul.accumulatedFlanPerShare) / (1e12));
     if (accumulated >= rewardDebt) return accumulated - rewardDebt;
     return 0;
+  }
+
+  //For rebase tokens, make the appropriate adjustments on the front end, not here.
+  //Only call this on live souls.
+  function ExpectedCrossingBonus(
+    address holder,
+    address token,
+    address _limbo
+  ) external view returns (uint256 flanBonus) {
+    LimboLike limbo = getLimbo(_limbo);
+    uint256 latestIndex = limbo.latestIndex(token);
+    (uint256 stakedAmount, , bool bonusPaid) = limbo.userInfo(token, holder, latestIndex);
+    if (bonusPaid) return 0;
+
+    (uint256 stakingBegins, uint256 stakingEnds, int256 crossingBonusDelta, uint256 initialCrossingBonus, ) = limbo
+      .tokenCrossingParameters(token, latestIndex);
+    stakingEnds = stakingEnds == 0 ? block.timestamp : stakingEnds;
+    int256 accumulatedFlanPerTeraToken = crossingBonusDelta * int256(stakingBegins - stakingEnds);
+    int256 finalFlanPerTeraToken = int256(initialCrossingBonus) + accumulatedFlanPerTeraToken;
+
+    uint256 bonusRate = finalFlanPerTeraToken > 0 ? uint256(finalFlanPerTeraToken) : 0;
+    flanBonus = (bonusRate * stakedAmount) / TERA;
   }
 }

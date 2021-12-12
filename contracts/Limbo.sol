@@ -113,7 +113,7 @@ struct Soul {
 
 struct CrossingParameters {
   uint256 stakingBeginsTimestamp; //to calculate bonus
-  uint256 stakingEndTimestamp;
+  uint256 stakingEndsTimestamp;
   int256 crossingBonusDelta; //change in teraFlanPerToken per second
   uint256 initialCrossingBonus; //measured in teraflanPerToken
   bool burnable;
@@ -267,7 +267,7 @@ contract Limbo is Governable {
     require(soul.state != SoulState.calibration, "E2");
     uint256 finalTimeStamp = block.timestamp;
     if (soul.state != SoulState.staking) {
-      finalTimeStamp = tokenCrossingParameters[token][latestIndex[token]].stakingEndTimestamp;
+      finalTimeStamp = tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp;
     }
     uint256 balance = IERC20(token).balanceOf(address(this));
 
@@ -381,7 +381,7 @@ contract Limbo is Governable {
         Flan.mint(msg.sender, pending);
       }
 
-      //implicitly: limbo can't handle tokens that rebase down. EG. OUSD is fine, AMP is not
+      //Note to auditors: exotic tokens such as rebase are handled via token proxies.
       uint256 oldBalance = IERC20(token).balanceOf(address(this));
 
       IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
@@ -391,7 +391,7 @@ contract Limbo is Governable {
       user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true differenc accounts for FOT tokens
       if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
         soul.state = SoulState.waitingToCross;
-        tokenCrossingParameters[token][latestIndex[token]].stakingEndTimestamp = block.timestamp;
+        tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
       }
     }
 
@@ -469,7 +469,7 @@ contract Limbo is Governable {
     require(!user.bonusPaid, "E5");
     user.bonusPaid = true;
     int256 accumulatedFlanPerTeraToken = crossing.crossingBonusDelta *
-      int256(crossing.stakingEndTimestamp - crossing.stakingBeginsTimestamp);
+      int256(crossing.stakingEndsTimestamp - crossing.stakingBeginsTimestamp);
 
     //assert signs are the same
     require(accumulatedFlanPerTeraToken * crossing.crossingBonusDelta >= 0, "E6");
@@ -506,7 +506,7 @@ contract Limbo is Governable {
     require(soul.soulType == SoulType.threshold, "EB");
     require(soul.state == SoulState.waitingToCross, "E2");
     require(
-      block.timestamp - tokenCrossingParameters[token][latestIndex[token]].stakingEndTimestamp >
+      block.timestamp - tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp >
         crossingConfig.crossingMigrationDelay,
       "EC"
     );
