@@ -2378,7 +2378,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "stakingEndTimestamp",
+              "name": "stakingEndsTimestamp",
               "type": "uint256"
             },
             {
@@ -2782,6 +2782,64 @@
             {
               "internalType": "uint256",
               "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "holder",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_limbo",
+              "type": "address"
+            }
+          ],
+          "name": "ExpectedCrossingBonus",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "flanBonus",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "holder",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_limbo",
+              "type": "address"
+            }
+          ],
+          "name": "ExpectedCrossingBonusRate",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "bonusRate",
               "type": "uint256"
             }
           ],

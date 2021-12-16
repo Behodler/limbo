@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 import "../facades/LimboLike.sol";
 import "../facades/LimboDAOLike.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "hardhat/console.sol";
 
 contract SoulReader {
   uint256 constant TERA = 1E12;
@@ -91,14 +92,36 @@ contract SoulReader {
     uint256 latestIndex = limbo.latestIndex(token);
     (uint256 stakedAmount, , bool bonusPaid) = limbo.userInfo(token, holder, latestIndex);
     if (bonusPaid) return 0;
+    uint256 bonusRate = ExpectedCrossingBonusRate(holder, token, _limbo);
+    flanBonus = (bonusRate * stakedAmount) / TERA;
+  }
+
+  function ExpectedCrossingBonusRate(
+    address holder,
+    address token,
+    address _limbo
+  ) public view returns (uint256 bonusRate) {
+    LimboLike limbo = getLimbo(_limbo);
+    uint256 latestIndex = limbo.latestIndex(token);
+
+    (uint256 stakedAmount, , bool bonusPaid) = limbo.userInfo(token, holder, latestIndex);
+    if (bonusPaid) return 0;
 
     (uint256 stakingBegins, uint256 stakingEnds, int256 crossingBonusDelta, uint256 initialCrossingBonus, ) = limbo
       .tokenCrossingParameters(token, latestIndex);
     stakingEnds = stakingEnds == 0 ? block.timestamp : stakingEnds;
-    int256 accumulatedFlanPerTeraToken = crossingBonusDelta * int256(stakingBegins - stakingEnds);
-    int256 finalFlanPerTeraToken = int256(initialCrossingBonus) + accumulatedFlanPerTeraToken;
+    stakingBegins = stakingBegins == 0 ? block.timestamp - 1 : stakingBegins;
 
-    uint256 bonusRate = finalFlanPerTeraToken > 0 ? uint256(finalFlanPerTeraToken) : 0;
-    flanBonus = (bonusRate * stakedAmount) / TERA;
+    int256 accumulatedFlanPerTeraToken = crossingBonusDelta * int256(stakingEnds - stakingBegins);
+    console.log("token: %d", token);
+    console.log("time elapsed %d", stakingEnds - stakingBegins);
+    console.log(
+      "accumulatedFlanPerTeraToken %d, initialCrossingBonus %d",
+      uint256(accumulatedFlanPerTeraToken),
+      uint256(initialCrossingBonus)
+    );
+    int256 finalFlanPerTeraToken = int256(initialCrossingBonus) +
+      (stakedAmount > 0 ? accumulatedFlanPerTeraToken : int256(0));
+    bonusRate = finalFlanPerTeraToken > 0 ? uint256(finalFlanPerTeraToken) : 0;
   }
 }

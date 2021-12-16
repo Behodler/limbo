@@ -722,7 +722,7 @@ describe("Limbo", function () {
 
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
     const soulReader = await SoulReaderFactory.deploy();
-    const soulStats = await soulReader.SoulStats(this.aave.address,this.limbo.address);
+    const soulStats = await soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(soulStats[0].toNumber()).to.equal(2);
 
     await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("E2");
@@ -1018,6 +1018,8 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
+
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
@@ -1106,7 +1108,7 @@ describe("Limbo", function () {
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
-    expect(scxBalanceOfPairBefore).to.equal("621742118423849412341");
+    expect(scxBalanceOfPairBefore).to.equal("609176545126652594565");
     expect(flanPairBalanceBefore).to.equal("300000000000000000000000");
 
     await this.limbo.migrate(this.aave.address);
@@ -1117,7 +1119,7 @@ describe("Limbo", function () {
     const flanPairBalanceAfter = await this.flan.balanceOf(pairAddress);
     const scxBalanceOfPairAfter = await realBehodler.balanceOf(pairAddress);
 
-    expect(flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)).to.equal(516286);
+    expect(flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)).to.equal(514228);
 
     //SECOND MIGRATION
 
@@ -1175,7 +1177,7 @@ describe("Limbo", function () {
     const ratio = flanBalanceAfterSecondMigrate.mul(1000).div(scxBalanceOfPairAfterSecondMigrate);
 
     //flan strengthens
-    expect(ratio).to.equal(511123);
+    expect(ratio).to.equal(508988);
 
     //  THIRD MIGRATION
     const mock2 = await this.TokenFactory.deploy("mock1", "mock1", [], []);
@@ -1230,7 +1232,7 @@ describe("Limbo", function () {
 
     const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfteThirdMigrate);
 
-    expect(ratio2).to.equal(5089795);
+    expect(ratio2).to.equal(5068736);
   });
 
   it("any whitelisted contract can mint flan", async function () {
@@ -1302,6 +1304,7 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
 
     //add dai to real behodler
     await this.dai.mint("5000000000000000000000000");
@@ -1368,6 +1371,7 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
 
     //add dai to real behodler
     await this.dai.mint("5000000000000000000000000");
@@ -1425,7 +1429,7 @@ describe("Limbo", function () {
     // Dai per flan =143.486644559
 
     const soulInfo = await this.limbo.souls(this.aave.address, 0);
-    expect(soulInfo.flanPerSecond).to.equal("20611364789446981");
+    expect(soulInfo.flanPerSecond).to.equal("20508307965499746");
 
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     const pool = await this.TokenFactory.deploy("pool", "pool", [], []);
@@ -1536,6 +1540,7 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
 
     //add dai to real behodler
     await this.dai.mint("5000000000000000000000000");
@@ -1666,6 +1671,7 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
@@ -1754,7 +1760,7 @@ describe("Limbo", function () {
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
-    expect(scxBalanceOfPairBefore).to.equal("621742118423849412341");
+    expect(scxBalanceOfPairBefore).to.equal("609176545126652594565");
     expect(flanPairBalanceBefore).to.equal("300000000000000000000000");
 
     await this.limbo.migrate(proxy.address);
@@ -1782,6 +1788,7 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
@@ -1870,7 +1877,7 @@ describe("Limbo", function () {
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
-    expect(scxBalanceOfPairBefore).to.equal("621742118423849412341");
+    expect(scxBalanceOfPairBefore).to.equal("609176545126652594565");
     expect(flanPairBalanceBefore).to.equal("300000000000000000000000");
 
     await this.limbo.migrate(proxy.address);
@@ -1899,6 +1906,7 @@ describe("Limbo", function () {
       },
     });
     const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
     const RealAngband = await ethers.getContractFactory("AngbandLite");
     const realAngband = await RealAngband.deploy();
 
@@ -1987,7 +1995,7 @@ describe("Limbo", function () {
 
     const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
 
-    expect(scxBalanceOfPairBefore).to.equal("621742118423849412341");
+    expect(scxBalanceOfPairBefore).to.equal("609176545126652594565");
     expect(flanPairBalanceBefore).to.equal("300000000000000000000000");
 
     await this.limbo.migrate(proxy.address);

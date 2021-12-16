@@ -100,6 +100,7 @@ Error string legend:
  Governance action failed.                      EJ
  Access Denied                                  EK
  ERC20 Transfer Failed                          EL
+ Incorrect SCX transfer to AMMHelper            EM
 */
 
 struct Soul {
