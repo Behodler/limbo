@@ -279,22 +279,88 @@ library ABDK {
 
 contract StubLiquidityReceiver {}
 
+contract LachesisLite {
+  struct tokenConfig {
+    bool valid;
+    bool burnable;
+  }
+  address public behodler;
+  mapping(address => tokenConfig) private config;
+
+  function cut(address token) public view returns (bool, bool) {
+    tokenConfig memory parameters = config[token];
+    return (parameters.valid, parameters.burnable);
+  }
+
+  function measure(
+    address token,
+    bool valid,
+    bool burnable
+  ) public {
+    _measure(token, valid, burnable);
+  }
+
+  function _measure(
+    address token,
+    bool valid,
+    bool burnable
+  ) internal {
+    config[token] = tokenConfig({valid: valid, burnable: burnable});
+  }
+
+  function setBehodler(address b) public {
+    behodler = b;
+  }
+
+  function updateBehodler(address token) public {
+    (bool valid, bool burnable) = cut(token);
+
+    BehodlerLite(behodler).setValidToken(token, valid, burnable);
+    BehodlerLite(behodler).setTokenBurnable(token, burnable);
+  }
+}
+
 contract BehodlerLite is ScarcityLite {
   using ABDK for int128;
   using ABDK for uint256;
   using AddressBalanceCheck for address;
-
+  mapping(address => bool) validTokens;
   struct PrecisionFactors {
     uint8 swapPrecisionFactor;
     uint8 maxLiquidityExit; //percentage as number between 1 and 100
   }
   address receiver;
+  address lachesis;
   PrecisionFactors safetyParameters;
 
   constructor() {
     receiver = address(new StubLiquidityReceiver());
     safetyParameters.swapPrecisionFactor = 30; //approximately a billion
     safetyParameters.maxLiquidityExit = 90;
+  }
+
+  function setLachesis(address l) public {
+    lachesis = l;
+  }
+
+  function setValidToken(
+    address token,
+    bool valid,
+    bool burnable
+  ) public {
+    require(msg.sender == lachesis);
+    validTokens[token] = valid;
+    tokenBurnable[token] = burnable;
+  }
+
+  modifier onlyValidToken(address token) {
+    if (!validTokens[token]) console.log("invalid token %s", token);
+    require(lachesis == address(0) || validTokens[token], "BehodlerLite: tokenInvalid");
+    _;
+  }
+
+  function setReceiver(address newReceiver) public {
+    receiver = newReceiver;
   }
 
   function setSafetParameters(uint8 swapPrecisionFactor, uint8 maxLiquidityExit) external {
@@ -318,7 +384,7 @@ contract BehodlerLite is ScarcityLite {
     address outputToken,
     uint256 inputAmount,
     uint256 outputAmount
-  ) external payable returns (bool success) {
+  ) external payable onlyValidToken(inputToken) returns (bool success) {
     uint256 initialInputBalance = inputToken.tokenBalance();
 
     inputToken.transferIn(msg.sender, inputAmount);
@@ -346,7 +412,12 @@ contract BehodlerLite is ScarcityLite {
     success = true;
   }
 
-  function addLiquidity(address inputToken, uint256 amount) external payable returns (uint256 deltaSCX) {
+  function addLiquidity(address inputToken, uint256 amount)
+    external
+    payable
+    onlyValidToken(inputToken)
+    returns (uint256 deltaSCX)
+  {
     uint256 initialBalance = uint256(int256(inputToken.shiftedBalance(MIN_LIQUIDITY).fromUInt()));
 
     inputToken.transferIn(msg.sender, amount);
@@ -369,7 +440,12 @@ contract BehodlerLite is ScarcityLite {
         but from a computational point of view, base 2 is the cheapest for obvious reasons.
         "From my point of view, the Jedi are evil" - Darth Vader
      */
-  function withdrawLiquidity(address outputToken, uint256 tokensToRelease) external payable returns (uint256 deltaSCX) {
+  function withdrawLiquidity(address outputToken, uint256 tokensToRelease)
+    external
+    payable
+    onlyValidToken(outputToken)
+    returns (uint256 deltaSCX)
+  {
     uint256 initialBalance = outputToken.tokenBalance();
     uint256 finalBalance = initialBalance - tokensToRelease;
     require(finalBalance > MIN_LIQUIDITY, "BEHODLER: min liquidity");

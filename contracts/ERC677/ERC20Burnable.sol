@@ -7,7 +7,7 @@
 pragma solidity 0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+import "hardhat/console.sol";
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
@@ -207,7 +207,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         uint256 amount
     ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
-
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(
             currentAllowance >= amount,
