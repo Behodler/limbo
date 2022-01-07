@@ -2,8 +2,15 @@ import { ethers } from "hardhat";
 import { parseEther } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
 import { BigNumber, Contract } from "ethers";
+import { write, writeFileSync } from "fs";
 type address = string;
 const nullAddress = "0x0000000000000000000000000000000000000000";
+
+interface OutputAddress {
+  address: address;
+  name: string;
+}
+
 interface Token {
   name: string;
   instance: Contract;
@@ -17,23 +24,45 @@ const getTokenFactory =
   };
 
 async function main() {
+  let output: OutputAddress[] = [];
   const [deployer] = await ethers.getSigners();
   const network = await deployer.provider?.getNetwork();
   const isKovan = network?.chainId === 42;
   const behodler = await deployBehodler(deployer);
+  output.push({ name: "behodler", address: behodler.address });
+
   const tokens = await deployTokens(deployer);
   tokens.push({ name: "scx", instance: behodler, burnable: true });
+  output.push(...tokens.map((t) => ({ name: t.name, address: t.instance.address })));
+
   const [lachesis, liquidityReceiver, snufferCap] = await deployLiquidityReceiver(deployer, tokens, behodler);
+  output.push({ name: "lachesis", address: lachesis.address });
+  output.push({ name: "liquidityReceiver", address: liquidityReceiver.address });
+  output.push({ name: "snufferCap", address: snufferCap.address });
+
   const [weth, proxy] = await deployWeth(deployer, liquidityReceiver, lachesis);
+  output.push({ name: "weth", address: weth.address });
+  output.push({ name: "proxy", address: proxy.address });
+
   await weth.deposit({ value: parseEther("4") });
   tokens.push({ name: "weth", instance: weth, burnable: false });
   await mintOnBehodler(behodler, tokens);
   const [uniswapFactory, EYEDAI, SCXWETH, EYESCX] = await deployUniswap(deployer, tokens, isKovan);
+  output.push({ name: "uniswapFactory", address: uniswapFactory.address });
+  output.push({ name: "EYEDAI", address: EYEDAI.address });
+  output.push({ name: "SCXWETH", address: SCXWETH.address });
+  output.push({ name: "EYESCX", address: EYESCX.address });
+
   const [dao, flashGovernanceArbiter] = await deployLimboDAO(
     deployer,
     tokens.filter((t) => t.name === "eye")[0].instance
   );
+  output.push({ name: "dao", address: dao.address });
+  output.push({ name: "flashGovernanceArbiter", address: flashGovernanceArbiter.address });
+
   const [flan, flanSCXPair] = await deployFlan(deployer, dao, lachesis, behodler, uniswapFactory, liquidityReceiver);
+  output.push({ name: "flan", address: flan.address });
+  output.push({ name: "flanSCXPair", address: flanSCXPair.address });
 
   const getToken = getTokenFactory(tokens);
   const dai = getToken("dai");
@@ -45,8 +74,16 @@ async function main() {
     behodler.address,
     dao
   );
+  output.push({ name: "limbo", address: limbo.address });
+  output.push({ name: "uniswapHelper", address: uniswapHelper.address });
+
   const [mockMorgothTokenApprover, whiteList, updateMultipleSoulConfigProposal, proposalFactory] =
     await deployProposalFactory(deployer, dao, limbo, uniswapHelper);
+  output.push({ name: "mockMorgothTokenApprover", address: mockMorgothTokenApprover.address });
+  output.push({ name: "whiteList", address: whiteList.address });
+  output.push({ name: "updateMultipleSoulConfigProposal", address: updateMultipleSoulConfigProposal.address });
+  output.push({ name: "proposalFactory", address: proposalFactory.address });
+
   await seedLimboDAO(
     dao,
     limbo.address,
@@ -60,6 +97,9 @@ async function main() {
 
   const [angband, migrationPower] = await deployMorgothDAO(deployer, lachesis, behodler, limbo);
 
+  output.push({ name: "angband", address: angband.address });
+  output.push({ name: "migrationPower", address: migrationPower.address });
+
   await limbo.configureCrossingConfig(
     behodler.address,
     angband.address,
@@ -72,6 +112,24 @@ async function main() {
 
   const SoulReader = await ethers.getContractFactory("SoulReader");
   const soulReader = await SoulReader.deploy();
+  output.push({ name: "soulReader", address: soulReader.address });
+  printAddresses(output, network?.chainId);
+}
+
+function printAddresses(output: OutputAddress[], chainId?: number) {
+  if (!chainId) {
+    console.log("chainId not defined");
+    return;
+  }
+  const name = (() => {
+    switch (chainId) {
+      case 42:
+        return "kovan";
+    }
+  })();
+
+  //TODO: deploy multicall
+  writeFileSync(name + ".json", JSON.stringify(output, null, 2));
 }
 
 async function deployMorgothDAO(
@@ -150,15 +208,8 @@ async function deployLimbo(
 
   const UniswapHelper = await ethers.getContractFactory("UniswapHelper");
   const uniswapHelper = await UniswapHelper.deploy(limbo.address, dao.address);
-  await uniswapHelper.configure(limbo.address, 
-  flanSCXPair,
-   behodler,
-    flan,
-    180,
-    3,
-    20,
-    10);
-   await uniswapHelper.setDAI(dai);
+  await uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 180, 3, 20, 10);
+  await uniswapHelper.setDAI(dai);
 
   return [limbo, uniswapHelper];
 }
