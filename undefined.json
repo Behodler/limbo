@@ -1,0 +1,130 @@
+[
+  {
+    "name": "behodler",
+    "address": "0x8a16E29CaC5e50c9aa2a497589a02004e83e10e2"
+  },
+  {
+    "name": "eye",
+    "address": "0x156E7b05073A8AD3C867b1362bb917696dCCA3f2"
+  },
+  {
+    "name": "maker",
+    "address": "0x4Cfde611c84E2318C01092Ade351479b71164203"
+  },
+  {
+    "name": "oxt",
+    "address": "0x1E4691302632e8C2a207736ED1BedAfe2D64b5e1"
+  },
+  {
+    "name": "pnk",
+    "address": "0xB9f5A0Ad0B8F3b3C704C9b071f753F73Cc8843bE"
+  },
+  {
+    "name": "link",
+    "address": "0x058ed3F134cFfF664fAd7AFed02b83044eD61efb"
+  },
+  {
+    "name": "weidai",
+    "address": "0x59698F078B0004fbbb3EE455c54D88C6c059B274"
+  },
+  {
+    "name": "loom",
+    "address": "0xc0315E377d4b7740CF501Cd23f1066Cc59FC262a"
+  },
+  {
+    "name": "dai",
+    "address": "0x54a76f0561158F0c181491651339c4436E07bB8D"
+  },
+  {
+    "name": "scx",
+    "address": "0x8a16E29CaC5e50c9aa2a497589a02004e83e10e2"
+  },
+  {
+    "name": "lachesis",
+    "address": "0x2E3BeBB78e89b13c46a91EDb5B695b7b1863ABf1"
+  },
+  {
+    "name": "liquidityReceiver",
+    "address": "0x8629A03B95c75bC27278122F5A00438439dAF628"
+  },
+  {
+    "name": "snufferCap",
+    "address": "0xC525B0DE48B62e0eC0e3a5d8a67A51de2eA18729"
+  },
+  {
+    "name": "weth",
+    "address": "0x9b53D55F070b63705AbFCB23E3C0f493EcFDd39c"
+  },
+  {
+    "name": "proxy",
+    "address": "0x95535d427924C84485e20caC0CB0Ce789309a087"
+  },
+  {
+    "name": "uniswapFactory",
+    "address": "0xA4fAC7f1EB14247a5429729FfE635D18e55EA2C9"
+  },
+  {
+    "name": "EYEDAI",
+    "address": "0x68D0f1d6e64ad2d70B8B42EeA73FDd6eA99C25d8"
+  },
+  {
+    "name": "SCXWETH",
+    "address": "0xD54dc2F002200E63Eb0ddFbCDAB5c85c0E9b3E52"
+  },
+  {
+    "name": "EYESCX",
+    "address": "0xC89053D5B509571ea55dDbD89437Fe45Ac37fc57"
+  },
+  {
+    "name": "dao",
+    "address": "0x7724D962822Cdc30FeF80cBBCaE5c3853B0f6985"
+  },
+  {
+    "name": "flashGovernanceArbiter",
+    "address": "0x17BfcE067872Fd4A1AE607A41Bd776f24133A69a"
+  },
+  {
+    "name": "flan",
+    "address": "0x4276950fd9cd0251ac947ca910b6c2F0874222dE"
+  },
+  {
+    "name": "flanSCXPair",
+    "address": "0x3BFd2fF94eE353Eb6c69F4A1b8aa3113b894D98d"
+  },
+  {
+    "name": "limbo",
+    "address": "0x37eb867992739A1c9d0F5206633a000D1B19Adc3"
+  },
+  {
+    "name": "uniswapHelper",
+    "address": "0x91C7817988d0af2F652e37438b636b9e6799895e"
+  },
+  {
+    "name": "mockMorgothTokenApprover",
+    "address": "0xe7E12C3A8558adA7ABeE4a5974E4A033356f3D22"
+  },
+  {
+    "name": "whiteList",
+    "address": "0xE69db6c073bfc319F3030560954F662Ce7Ab02b2"
+  },
+  {
+    "name": "updateMultipleSoulConfigProposal",
+    "address": "0xadEF4DEB9591a6241620632186C33e015F16495d"
+  },
+  {
+    "name": "proposalFactory",
+    "address": "0xdf88d7e5A98ebB7cC2050fd86C4714368A828c5e"
+  },
+  {
+    "name": "angband",
+    "address": "0x2c34511d7BBf60Cdf19907C36DD48B84198c3c76"
+  },
+  {
+    "name": "migrationPower",
+    "address": "0x7B43701FE60A93596f6b9104ed06590FF556d52a"
+  },
+  {
+    "name": "soulReader",
+    "address": "0xb17FBBF726A0Dbdd940772a5bbc7bb657763801e"
+  }
+]

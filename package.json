@@ -15,7 +15,11 @@
     "setup:dev": "yarn scripts:addresses && yarn scripts:setup",
     "dev": "hardhat --network localhost",
     "update:contracts": "cp addresses.json ../LimboUI/src/constants/addresses",
-    "update:ui": "node -e 'setTimeout(()=>{},20000)' && yarn scripts:addresses && yarn scripts:setup && yarn update:contracts && rm -rf ../LimboUI/src/constants/contracts && cp -R build/contracts/ ../LimboUI/src/constants/contracts"
+    "update:ui": "node -e 'setTimeout(()=>{},20000)' && yarn scripts:addresses && yarn scripts:setup && yarn update:contracts && rm -rf ../LimboUI/src/constants/contracts && cp -R build/contracts/ ../LimboUI/src/constants/contracts",
+    "deploy:ropsten": "sudo npx hardhat run --network ropsten scripts/testnet-deploy.ts",
+    "deploy:local": "sudo npx hardhat run  scripts/testnet-deploy.ts",
+    "deploy:ropsten2": "sudo npx hardhat run --network ropsten scripts/testnet/orchestrate.ts",
+    "deploy:local2": "sudo touch scripts/testnet/addresses/hardhat.json && sudo rm scripts/testnet/addresses/hardhat.json && sudo npx hardhat run scripts/testnet/orchestrate.ts"
   },
   "repository": {
     "type": "git",
@@ -32,7 +36,7 @@
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@typechain/ethers-v5": "^7.0.1",
-    "@typechain/hardhat": "^2.3.0",
+    "@typechain/hardhat": "^3.1.0",
     "@types/chai": "^4.2.21",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.7.1",
@@ -45,8 +49,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.1.0",
-    "hardhat": "^2.7.0",
-    "hardhat-deploy": "^0.9.14",
+    "hardhat": "^2.8.2",
+    "hardhat-deploy": "^0.9.24",
     "truffle-contract-size": "^2.0.1"
   }
 }
