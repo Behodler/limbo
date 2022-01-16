@@ -22,6 +22,7 @@ async function main() {
   if (!chainId) {
     throw "unknown chain";
   }
+
   const networkName = nameNetwork(chainId);
   deployments.pausePromiseFactory(networkName);
   const recognizedTestNet = networkName !== "hardhat";
@@ -53,6 +54,7 @@ async function main() {
     updater("deployLiquidityReceiver", liquidityReceiverAddresses);
   }
 
+  
   let wethAddresses = addressLoader("deployWeth");
   if (!wethAddresses) {
     wethAddresses = await deployments.deployWeth(
@@ -71,6 +73,11 @@ async function main() {
     uniswapAddresses = await deployments.deployUniswap(deployer, tokens, recognizedTestNet);
     updater("deployUniswap", uniswapAddresses);
   }
+
+  await deployments.seedUniswap(deployer, tokens["EYE"],tokens["DAI"],
+  tokens["SCX"],wethAddresses["WETH"],uniswapAddresses["EYEDAI"],uniswapAddresses["EYESCX"],
+  uniswapAddresses["SCXWETH"]
+  );
 
   let limboDaoAddresses = addressLoader("deployLimboDAO");
   if (!limboDaoAddresses) {
