@@ -132,3 +132,4 @@ addresses.json
 .VSCodeCounter
 
 scripts/testnet/addresses/hardhat.json
+/flat
