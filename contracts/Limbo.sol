@@ -18,23 +18,36 @@ import "./DAO/Governable.sol";
 import "./facades/FlashGovernanceArbiterLike.sol";
 
 /*
-LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
-To give a high level overview, each token listed on Limbo is hoping to be listed on Behodler. In order to be listed, it must meet a minimum threshold of liquidity.
-This creates a sharp distinction between the lifecycle of a listed token on Limbo vs Onsen which is why we don't just fork and run Masterchef. In particular:
-1. By definition, tokens listed on Limbo are temporary visitors to the dapp, as the name Limbo implies. An array of tokens is therefore not sustainable
-2. The migrator does not swap like for like. Instead, when the listing period is over, stakers must be made whole with more flan
+Contract: LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
+Context: Limbo is a part of the Behodler ecosystem. All dapps within the Behodler ecosystem either support or are supported by the Behodler AMM.
+Purpose: As a single contract store of liquidity, Behodler AMM requires new tokens be initiated with the a TVL equal to the average TVL of existing tokens. 
+         In Behodler nomenclature, the total value of all tokens in the AMM is the total value bonded (TVB) and the value of individual tokens is the average value bonded (AVB). 
+         The primary goal of Limbo is to raise capital for prospective AMM tokens in order to meet the AVB threshold. 
+Secondary goals: since Limbo possesses staking mechanics, a secondary goal is to encourage lockup of protocol tokens.
+Types of staking: Staked tokens are either for migration to Behodler or for lockup. The former pools are threshold and the latter are perpetual.
+Primary incentive: users staking on Limbo receive the perpetually minted Flan token. 
+Economics: When the staked value of a threshold token is migrated to Behodler, SCX is generated. The SCX is used via an external AMM such as Uniswap to prop up the liquidity and value of Flan. 
+           Rather than being used to purchase Flan on the open market, the generated SCX is paired with newly minted Flan in a ratio that steers the price of Flan toward parity with Dai.
+           This mechanism of pairing and steering the price through minting is known in Behodler as price tilting and effectively doubles the liquidity raised. For instance, suppose we list
+           $10000 of a new token on Behodler. We then take $10000 worth of SCX and pair it with $10000 of newly minted Flan, adding $20000 of token liquidity to an external AMM. The extra 
+           $10000 will form the price support for newly minted FLlan which can be used to encourage future migrations.
+           In addition to migration driven liquidity growth, Flan will be rewarded for token lockup. For lockup of Flan, the price support pressure of reduced circulating supply will provide additional 
+           runway from which to mint more Flan. For external AMM pair contracts involving SCX or Pyrotokens, the lockup will raise liquidity for those pairs which will promote arbitrage trading of the pairs which will
+           lead to additional burning of those tokens. For direct lockup of SCX, additional minting of SCX corresponds algorithmically to increased liquidity on Behodler and an increased SCX price. This raises the AVB of Behodler which creates 
+           additional liquidity for Flan during the next migration. Flan therefore has 4 supporting vectors: SCX from migration, price support for SCX via lockup, price support via PyroFlan and indirect price support of Flan and SCX via trading on external pairs (automining).
+Nomenclature: Since words like token are incredibly generic, we need to provide context through naming. Sticking to an overall metaphor, to paraphrase MakerDao documentation, reduces code smells.
+          1. A token listed on Limbo is a Soul
+          2. When a token lists on Behodler, we say the soul is crossing over. The event is a crossing.
+          3. A token crosses over when the TVL on Limbo exceeds a threshold.
+          4. Tokens which do not cross over such as existing tokens listed on Behodler or the protocol tokens are perpetual souls.
 
-Nomenclature:
-Since words like token are incredibly generic, we need to provide context through naming.
-Sticking to the overall metaphor, to paraphrase makerdao documentation, reduces code smells.
-1. A token listed on Limbo is a Soul
-2. When a token lists on Behodler, we say the soul is crossing over. The event is a crossing.
+Security note: Since the migration steps generate value transfers between protocols, forced delays should be instituted to close any flash loan or dominant miner ttack vectors.
 
-Security note: the designers of the crossing event and the payment of locked stakers 
-should be cognizant of potential flash loan vectors
+Bsaic staking incentives:
+For both perpatual and threshold souls, a flan per second statistic is divided proportionately amongst the existing stakers.
 
 Late stakers considerations:
-Suppose you're the last person to stake. That is, your stake takes the soul over the crossing threshold and the soul is locked.
+Suppose you're the last person to stake on a threshold soul. That is, your stake takes the soul over the crossing threshold and the soul is locked.
 In this instance, you would have earned no Flan, creating a declining incentive for stakers to arrive and in the extreme leading
 to a situation of never crossing the threshold for any soul. This is a tragedy of the commons situation that leads to an overly 
 inflated and essentially worthless Flan. We need a strategy to ameliorate this. The strategy needs to:
@@ -42,11 +55,19 @@ inflated and essentially worthless Flan. We need a strategy to ameliorate this. 
 2. Not punish early stakers and ideally reward them for being early.
 3. Not disproportionately inflate the supply of flan.
 
-Incentives:
-When a soul is staking, the crossover bonus begins growing: Flan per soul.
-Governance sets the rate of bonus growth and the target. 
-
-Phases:
+Crossing incentives:
+After a crossing, stakers are no longer able to withdraw their tokens as they'll now be sent to Behodler. They'll therefore need to be compensated for loss of tokens. 
+Governance can calibrate two variables on a soul to encourage prospective stakers in threshold souls to breach the threshold:
+1. Initial crossing bonus (ICB) is the Flan per token paid to all stakers and is a positive integer.
+2. Crossing bonus delta (CBD) is the Flan per token for every second the soul is live. For instance suppose the CBD is 2. From the very first token staked to
+the point at which the threshold was crossed, the soul records 10000 seconds passing. This amounts to 2*10000 = 20000 Flan per token.
+The ICB and CBD are combined to forma Total Flan Per Token (TF) and the individual user balance is multiplied by TF. For instance, using the example above, suppose the ICB is 10 Flan per token.
+This means the total Flan per token paid out is 10 + 20000 = 20010 Flan per token. If a user has 3 T staked, they receive 3*20010 = 60030 Flan as reward for having their T migrated to Behodler.
+This is in addition to any Flan their received during the staking phase.
+Note: CBD can be negative. This creates a situation where the initial bonus per token is at its highest when the staking round begins. 
+For negative CBD, the intent is to create a sense of urgency amongst prospective stakers to push the pool over the threshold. For positive CBD, the intent is to draw marginal stakers into the soul in a desire to receive the crossing bonus while the opportunity still exists.
+A negative CBD benefits from strong communal coordination. For instance, if the token listed has a large, active and well heeled community, a negative CBD might act as a rallying cry to ape in. A positive CBD benefits from individually uncoordinated motivations (classical market setting)
+States of migration:
 1. calibration
 No staking/unstaking.
 2. Staking
@@ -65,6 +86,14 @@ If it isn't, they can slash the deposit by betwen 1 and 100%. Flash gov can only
 Eg. suppose we vote on snapshot to raise the mimimum soul for Sushi to 1200 Sushi from 1180, 1.69%.
 We have s maximum of 4% per day. So some flash staker comes along and moves it 3%. They are now 
 elligible to be slashed. If they try to move it 5%, the operations reverts.
+
+Rectangle of Fairness:
+When new lquidity is added to Behodler, SCX is generated. The fully undiluted price of the new quantity of SCX far exceeds the value of the tokens migrated. Because of the dynamics of Behodler's bonding curve, the 
+current value of the AVB is always equal to about 25 SCX. If the AVB increases, the increase shows up as in increase in the SCX price so that the 25 SCX metric still holds. For this reason, only 25 SCX is used to prop up
+the liquidity of Flan. The surplus SCX generated is burnt. Because multiplying 25 SCX by the current market price gives us a value equal to the AVB and because we wish to strike a balance between boosting Flan and not over diluting the 
+market with too much SCX, this value is known as the Rectangle of Fairness. While 25 SCX is the value of AVB, it's usually desirable to hold back a bit more than 25 for 2 reasons:
+1. SCX burns on transfer so that after all open market operations are complete, we'd have less than 25 remaining. 
+2. CPMMs such as Uniswap impose hyperbolic price slippage so that trying to withdraw the full balance of SCX results in paying an assymptotically high Flan price. As such we can deploy a bit more than 25 SCX per migrations without worrying about added dilution 
 */
 enum SoulState {
   calibration,
@@ -80,31 +109,31 @@ enum SoulType {
 
 /*
 Error string legend:
- token not recognized as valid soul.	        E1
- invalid state	                                E2
- unstaking locked	                            E3
- balance exceeded	                            E4
- bonus already claimed.	                        E5
- crossing bonus arithmetic invariant.	        E6
- token accounted for.	                        E7
- burning excess SCX failed.	                    E8
- Invocation reward failed.	                    E9
- only threshold souls can be migrated           EB
- not enough time between crossing and migration EC
- bonus must be positive                         ED
- Unauthorized call                              EE
- Protocol disabled                              EF
- Reserve divergence tolerance exceeded          EG
- not enough time between reserve stamps         EH
- Minimum APY only applicable to threshold souls EI
- Governance action failed.                      EJ
- Access Denied                                  EK
- ERC20 Transfer Failed                          EL
- Incorrect SCX transfer to AMMHelper            EM
+token not recognized as valid soul.	           E1
+invalid state	                                 E2
+unstaking locked	                             E3
+balance exceeded	                             E4
+bonus already claimed.	                       E5
+crossing bonus arithmetic invariant.	         E6
+token accounted for.	                         E7
+burning excess SCX failed.	                   E8
+Invocation reward failed.	                     E9
+only threshold souls can be migrated           EB
+not enough time between crossing and migration EC
+bonus must be positive                         ED
+Unauthorized call                              EE
+Protocol disabled                              EF
+Reserve divergence tolerance exceeded          EG
+not enough time between reserve stamps         EH
+Minimum APY only applicable to threshold souls EI
+Governance action failed.                      EJ
+Access Denied                                  EK
+ERC20 Transfer Failed                          EL
+Incorrect SCX transfer to AMMHelper            EM
 */
 
 struct Soul {
-  uint256 lastRewardTimestamp; //I know masterchef counts by block but this is less reliable than timestamp.
+  uint256 lastRewardTimestamp;
   uint256 accumulatedFlanPerShare;
   uint256 crossingThreshold; //the value at which this soul is elligible to cross over to Behodler
   SoulType soulType;
@@ -116,14 +145,14 @@ struct CrossingParameters {
   uint256 stakingBeginsTimestamp; //to calculate bonus
   uint256 stakingEndsTimestamp;
   int256 crossingBonusDelta; //change in teraFlanPerToken per second
-  uint256 initialCrossingBonus; //measured in teraflanPerToken
+  uint256 initialCrossingBonus; //measured in teraFlanPerToken
   bool burnable;
 }
 
 struct CrossingConfig {
   address behodler;
   uint256 SCX_fee;
-  uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in flan.
+  uint256 migrationInvocationReward; //calling migrate is expensive. The caller should be rewarded in Flan.
   uint256 crossingMigrationDelay; // this ensures that if Flan is successfully attacked, governance will have time to lock Limbo and prevent bogus migrations
   address morgothPower;
   address angband;
@@ -209,11 +238,16 @@ library MigrationLib {
   }
 }
 
+/// @title The main staking contract for the Limbo Dapp
+/// @author Justin Goro
+/// @notice Tokens are either staked for locking (perpetual) or for migration to the Behodler AMM (threshold).
+/// @dev The governance functions are initially unguarded to allow the deploying dev to rapidly set up without having to endure governance imposed time limits on proposals. Ending the config period is a irreversible action.
 contract Limbo is Governable {
   using SafeERC20 for IERC20;
   using SoulLib for Soul;
   using MigrationLib for address;
   using CrossingLib for CrossingParameters;
+
   event SoulUpdated(address soul, uint256 fps);
   event Staked(address staker, address soul, uint256 amount);
   event Unstaked(address staker, address soul, uint256 amount);
@@ -230,15 +264,26 @@ contract Limbo is Governable {
   }
 
   uint256 constant TERA = 1E12;
-  uint256 constant SCX_calc = TERA * 10000 * (1 ether); //112 bits added, still leaves plenty room to spare
-  uint256 constant RectangleOfFairness = 30 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 28 is the result of scaling factors on Behodler.
+  uint256 constant RectangleOfFairness = 30 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 25 is the result of scaling factors on Behodler.
   bool protocolEnabled = true;
+
+  ///@notice protocol settings for migrating threshold tokens to Behodler
   CrossingConfig public crossingConfig;
+
+  ///@notice Since a token can be listed more than once on Behodler, we index each listing to separate the rewards from each staking event.
+  ///@dev tokenAddress->index->stakingInfo
   mapping(address => mapping(uint256 => Soul)) public souls;
+
+  ///@notice Each token maintains its own index to allow Limbo to keep rewards for each staking event separate
   mapping(address => uint256) public latestIndex;
-  mapping(address => mapping(address => mapping(uint256 => User))) public userInfo; //tokenAddress->userAddress->soulIndex->Userinfo
-  mapping(address => mapping(uint256 => CrossingParameters)) public tokenCrossingParameters; //token->index->data
-  mapping(address => mapping(address => mapping(address => uint256))) unstakeApproval; //soul->owner->unstaker->amount
+
+  ///@dev tokenAddress->userAddress->soulIndex->Userinfo
+  mapping(address => mapping(address => mapping(uint256 => User))) public userInfo;
+  ///@dev token->index->data
+  mapping(address => mapping(uint256 => CrossingParameters)) public tokenCrossingParameters;
+
+  ///@dev soul->owner->unstaker->amount
+  mapping(address => mapping(address => mapping(address => uint256))) unstakeApproval;
   FlanLike Flan;
 
   modifier enabled() {
@@ -246,6 +291,10 @@ contract Limbo is Governable {
     _;
   }
 
+  ///@notice helper function for approximating a total dollar value APY for a threshold soul.
+  ///@param token threshold soul
+  ///@param desiredAPY because values may be out of sync with the market, this function can only ever approximate an APY
+  ///@param daiThreshold user can select a Behodler AVB in Dai. 0 indicates the migration oracle value for AVB should be used.
   function attemptToTargetAPY(
     address token,
     uint256 desiredAPY,
@@ -258,6 +307,7 @@ contract Limbo is Governable {
     soul.flanPerSecond = fps;
   }
 
+  ///@notice refreshes current state of soul.
   function updateSoul(address token) public {
     Soul storage s = currentSoul(token);
     updateSoul(token, s);
@@ -284,6 +334,7 @@ contract Limbo is Governable {
     Flan = FlanLike(flan);
   }
 
+  ///@notice configure global migration settings such as the address of Behodler and the minumum delay between end of staking and migration
   function configureCrossingConfig(
     address behodler,
     address angband,
@@ -303,14 +354,21 @@ contract Limbo is Governable {
     crossingConfig.rectangleOfFairnessInflationFactor = rectInflationFactor;
   }
 
+  ///@notice if an exploit in any part of Limbo or its souls is detected, anyone with sufficient EYE balance can disable the protocol instantly
   function disableProtocol() public governanceApproved(true) {
     protocolEnabled = false;
   }
 
+  ///@notice Once disabled, the only way to reenable is via a formal proposal. This forces the community to deliberate on the legitimacy of the disabling that lead to this state. A malicious call to disable can have its EYE slashed.
   function enableProtocol() public onlySuccessfulProposal {
     protocolEnabled = true;
   }
 
+  ///@notice Governance function for rapidly calibrating a soul. Useful for responding to large price movements quickly
+  ///@param token Soul to calibrate
+  ///@param initialCrossingBonus Of the crossing bonus flan payout, this represents the fixed Flan per token component
+  ///@param crossingBonusDelta Of the crossing bonus flan payout, this represents the payout per flan per second that the soul is in staking state
+  ///@param fps Flan Per Second staked.
   function adjustSoul(
     address token,
     uint256 initialCrossingBonus,
@@ -333,10 +391,12 @@ contract Limbo is Governable {
     params.crossingBonusDelta = crossingBonusDelta;
   }
 
-  /*
-    Unguarded total access only available to true proposals.
-    Tread carefully.
-     */
+  ///@notice Configuration of soul through formal proposal. Should only be called infrequently.
+  ///@dev Unlike with flash governance, variable movements are unguarded
+  ///@param crossingThreshold The token balance on Behodler that triggers the soul to enter into waitingToCross state
+  ///@param soulType Indicates whether the soul is perpetual or threshold
+  ///@param state a threshold soul can be either staking, waitingToCross, or CrossedOver. Both soul types can be in calibration state.
+  ///@param index a token could be initially liste as a threshold soul and then later added as perpetual. An index helps distinguish these two events so that user late to claim rewards have no artificial time constraints imposed on their behaviour
   function configureSoul(
     address token,
     uint256 crossingThreshold,
@@ -357,6 +417,12 @@ contract Limbo is Governable {
     emit SoulUpdated(token, fps);
   }
 
+  ///@notice We need to know how to handle threshold souls at the point of crossing
+  ///@param token The soul to configure
+  ///@param initialCrossingBonus Of the crossing bonus flan payout, this represents the fixed Flan per token component
+  ///@param crossingBonusDelta Of the crossing bonus flan payout, this represents the payout per flan per second that the soul is in staking state
+  ///@param burnable For listing on Behodler, is this token going to burn on trade or does it get its own Pyrotoken
+  ///@param crossingThreshold The token balance on Behodler that triggers the soul to enter into waitingToCross state 
   function configureCrossingParameters(
     address token,
     uint256 initialCrossingBonus,
@@ -369,6 +435,14 @@ contract Limbo is Governable {
     params.set(flashGoverner, soul, initialCrossingBonus, crossingBonusDelta, burnable, crossingThreshold);
   }
 
+  ///@notice User facing stake function for handling both types of souls
+  ///@param token The soul to stake
+  ///@param amount The amount of tokens to stake
+  /**@dev Can handle fee on transfer tokens but for more exotic tokens such as rebase tokens, use a proxy wrapper. See the TokenProxyRegistry for logistics.
+  *The purpose of balance checking before and after transfer of tokens is to account for fee-on-transfer discrepencies so that tokens like SCX can be listed without inducing
+  *broken states. The community is encouraged to use proxy wrappers for tokens which may open up Limbo or Beholer exploit vulnerabilities.
+  *Security enforcement of tokens listed on Limbo is offloaded to governance so that Limbo isn't required to anticipate every attack vector.
+  */
   function stake(address token, uint256 amount) public enabled {
     Soul storage soul = currentSoul(token);
     updateSoul(token, soul);
@@ -382,14 +456,12 @@ contract Limbo is Governable {
         Flan.mint(msg.sender, pending);
       }
 
-      //Note to auditors: exotic tokens such as rebase are handled via token proxies.
+      //Balance checking accounts for FOT discrepencies
       uint256 oldBalance = IERC20(token).balanceOf(address(this));
-
       IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-
       uint256 newBalance = IERC20(token).balanceOf(address(this));
 
-      user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true differenc accounts for FOT tokens
+      user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true difference accounts for FOT tokens
       if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
         soul.state = SoulState.waitingToCross;
         tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
@@ -397,14 +469,18 @@ contract Limbo is Governable {
     }
 
     user.rewardDebt = (user.stakedAmount * soul.accumulatedFlanPerShare) / TERA;
-    emit Staked(msg.sender, token, amount);
+    emit Staked(msg.sender, token, user.stakedAmount);
   }
 
+  ///@notice User facing unstake function for handling both types of souls. For threshold souls, can only be called during staking phase.
+  ///@param token The soul to unstake
+  ///@param amount The amount of tokens to unstake
   function unstake(address token, uint256 amount) public enabled {
     _unstake(token, amount, msg.sender, msg.sender);
   }
 
-  //Allows for Limbo to be upgraded 1 user at a time without introducing a system wide security risk
+  ///@notice Allows for Limbo to be upgraded 1 user at a time without introducing a system wide security risk. Anticipates moving tokens to Limbo2 (wen Limbo2??)
+  ///@dev similar to ERC20.transferFrom, this function allows a user to approve an upgrade contract migrate their staked tokens safely.
   function unstakeFor(
     address token,
     uint256 amount,
@@ -438,6 +514,9 @@ contract Limbo is Governable {
     }
   }
 
+  ///@notice accumulated flan rewards from staking can be claimed
+  ///@param token The soul for which to claim rewards
+  ///@param index souls no longer listed may still have unclaimed rewards.
   function claimReward(address token, uint256 index) public enabled {
     Soul storage soul = souls[token][index];
     updateSoul(token, soul);
@@ -451,16 +530,10 @@ contract Limbo is Governable {
     }
   }
 
-  function rewardAdjustDebt(
-    address recipient,
-    uint256 pending,
-    uint256 accumulatedFlanPerShare,
-    User storage user
-  ) internal {
-    Flan.mint(recipient, pending);
-    user.rewardDebt = (user.stakedAmount * accumulatedFlanPerShare) / TERA;
-  }
-
+  ///@notice for threshold souls only, claiming the compensation for migration tokens known as the Crossing Bonus
+  ///@param token The soul for which to claim rewards
+  ///@param index souls no longer listed may still have an unclaimed bonus.
+  ///@dev The tera factor is to handle fixed point calculations without significant loss of precision.
   function claimBonus(address token, uint256 index) public enabled {
     Soul storage soul = souls[token][index];
     CrossingParameters storage crossing = tokenCrossingParameters[token][index];
@@ -486,8 +559,11 @@ contract Limbo is Governable {
     emit BonusPaid(token, index, msg.sender, flanBonus);
   }
 
-  //reward user for calling with percentage. require no active or waiting souls for withdrawal
-  // We don't want airdrops, rebased growth or pooltogether winnings to be stuck in Limbo
+  /**@notice some tokens may be sent to Limbo by mistake or unhandled in some manner. For instance, if a Pooltogether token is listed and Limbo wins,
+  the reward token may not have relevance on Limbo. If the token exists as a pair with Flan on the external AMM
+  this function buys Flan from the AMM and burns it. A small percentage of the purchased Flan is sent to the caller to incentivize 
+  flushing Limbo of stuck tokens. A secondary incentive exists to create new pairs for Flan.
+  */
   function claimSecondaryRewards(address token) public {
     SoulState state = currentSoul(token).state;
     require(state == SoulState.calibration || state == SoulState.crossedOver, "E7");
@@ -496,12 +572,11 @@ contract Limbo is Governable {
     AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(token, balance, msg.sender);
   }
 
-  function currentSoul(address token) internal view returns (Soul storage) {
-    return souls[token][latestIndex[token]];
-  }
-
-  //anyone can call migrate for a soul ready to be migrated
-  //callers will be rewarded with flan to compensate gas
+  ///@notice migrates threshold token from Limbo to Behodler and orchestrates Flan boosting mechanics. Callers of this function are rewared to compensate for gas expenditure
+  /**@dev this function depends on a Morgoth Power. For those unfamiliar, a power is similar to a spell on other DAOs. Morgoth owns Behodler and so the only way to list
+  * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
+  * permission on Morgoth to execute migrations to Behodler. The other big depenency is the AMM helper which contains the bulk of the migration logic.
+  */
   function migrate(address token) public enabled {
     Soul storage soul = currentSoul(token);
     require(soul.soulType == SoulType.threshold, "EB");
@@ -522,12 +597,27 @@ contract Limbo is Governable {
     emit TokenListed(token, tokenBalance, lpMinted);
   }
 
+  ///@notice analogous to ERC20 approve, this function gives third party contracts permission to migrate token balances on Limbo. Useful for both upgrades and third party integrations into Limbo
   function approveUnstake(
     address soul,
     address unstaker,
     uint256 amount
   ) external {
     unstakeApproval[soul][msg.sender][unstaker] = amount; //soul->owner->unstaker->amount
+  }
+
+  function rewardAdjustDebt(
+    address recipient,
+    uint256 pending,
+    uint256 accumulatedFlanPerShare,
+    User storage user
+  ) internal {
+    Flan.mint(recipient, pending);
+    user.rewardDebt = (user.stakedAmount * accumulatedFlanPerShare) / TERA;
+  }
+
+  function currentSoul(address token) internal view returns (Soul storage) {
+    return souls[token][latestIndex[token]];
   }
 
   function getPending(User memory user, Soul memory soul) internal pure returns (uint256) {
