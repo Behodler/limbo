@@ -3,14 +3,19 @@ pragma solidity 0.8.4;
 import "./facades/UniPairLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "./ERC677/ERC20Burnable.sol";
 import "./facades/FlanLike.sol";
 import "./testing/realUniswap/interfaces/IUniswapV2Factory.sol";
+import "./facades/AMMHelper.sol";
 
 contract BlackHole {}
 
-contract UniswapHelper is Governable {
+///@author Justin Goro
+/**@notice Flan liquidity is boosted on Uniswap (or Sushiswap) via open market operations at the point of a token migration.
+  * UniswapHelper handles all the mechanics as well managing a just-in-time (Justin Time?) oracle
+ */
+contract UniswapHelper is Governable, AMMHelper {
   address limbo;
 
   struct UniVARS {
@@ -31,10 +36,22 @@ contract UniswapHelper is Governable {
     uint256 DaiBalanceOnBehodler;
     uint256 blockProduced;
   }
+
+  /**@dev the Dai SCX price and the Dai balance on Behodler are both sampled twice before a migration can occur. 
+  * The two samples have to be spaced a minimum duration and have to be the same values (within an error threshold). The objective here is to make price manipulation untenably expensive for an attacker
+  * so that the mining power expended (or the opportunity cost of eth staked) far exceeds the benefit to manipulating Limbo.
+  * The assumption of price stability isn't a bug because migrations aren't required to happen frequently. Instead if natural price drift occurs for non malicious reasons,
+  * the migration can be reattempted until a period of sufficient calm allows for migration. If a malicious actor injects volatility in order to prevent migration, by the principle
+  * of antifragility, they're doing the entire Ethereum ecosystem a service at their own expense.
+  */
   FlanQuote[2] public latestFlanQuotes; //0 is latest
 
   UniVARS VARS;
+
+  //not sure why codebases don't use keyword ether but I'm reluctant to entirely part with that tradition for now.
   uint256 constant EXA = 1e18;
+
+  //needs to be updated for future Martian, Lunar and Venusian blockchains although I suspect Lunar colonies will be very Terracentric because of low time lag.
   uint256 constant year = (1 days * 365);
 
   /*
@@ -49,7 +66,6 @@ contract UniswapHelper is Governable {
     of this is just having to snapshot again when the market is calmer. Since migration is not not time sensitive,
     this is a cost worth bearing.
     */
-
   modifier ensurePriceStability() {
     _ensurePriceStability();
     _;
@@ -67,20 +83,33 @@ contract UniswapHelper is Governable {
     VARS.DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   }
 
+  ///@notice LP tokens minted during migration are discarded.
   function blackHole() public view returns (address) {
     return VARS.blackHole;
   }
 
+  ///@notice Uniswap factory contract
   function setFactory(address factory) public {
     require(block.chainid != 1, "Uniswap factory hardcoded on mainnet");
     VARS.factory = IUniswapV2Factory(factory);
   }
 
+  ///@dev Only for testing: On mainnet Dai has a fixed address.
   function setDAI(address dai) public {
     require(block.chainid != 1, "DAI hardcoded on mainnet");
     VARS.DAI = dai;
   }
 
+  ///@notice main configuration function.
+  ///@dev We prefer to use configuration functions rather than a constructor for a number of reasons.
+  ///@param _limbo Limbo contract
+  ///@param FlanSCXPair The Uniswap flan/SCX pair
+  ///@param behodler Behodler AMM
+  ///@param flan The flan token
+  ///@param divergenceTolerance The amount of price difference between the two quotes that is tolerated before a migration is attempted 
+  ///@param minQuoteWaitDuration The minimum duration between the sampling of oracle data used for migration
+  ///@param precision In order to query the tokens redeemed by a quantity of SCX, Behodler performs a binary search. Precision refers to the max iterations of the search.
+  ///@param priceBoostOvershoot Flan targets parity with Dai. If we set Flan to equal Dai then between migrations, it will always be below Dai. Overshoot gives us some runway by intentionally "overshooting" the price
   function configure(
     address _limbo,
     address FlanSCXPair,
@@ -104,11 +133,10 @@ contract UniswapHelper is Governable {
     VARS.priceBoostOvershoot = priceBoostOvershoot;
   }
 
-  //First punch this and then wait a c
-  function generateFLNQuote() public {
+  ///@notice Samples the two values required for migration. Must be called twice before migration can occur.
+  function generateFLNQuote() public override {
     latestFlanQuotes[1] = latestFlanQuotes[0];
     (
-      // block delay
       latestFlanQuotes[0].DaiScxSpotPrice,
       latestFlanQuotes[0].DaiBalanceOnBehodler
     ) = getLatestFLNQuote();
@@ -127,9 +155,14 @@ contract UniswapHelper is Governable {
     daiBalanceOnBehodler = IERC20(VARS.DAI).balanceOf(VARS.behodler);
   }
 
-  function stabilizeFlan(uint256 rectangleOfFairness) public onlyLimbo ensurePriceStability returns (uint256 lpMinted) {
+  ///@notice When tokens are migrated to Behodler, SCX is generated. This SCX is used to boost Flan liquidity and nudge the price of Flan back to parity with Dai
+  ///@param rectangleOfFairness refers to the quantity of SCX held back to be used for open market Flan stabilizing operations
+  ///@dev makes use of price tilting. Be sure to understand the concept of price tilting before trying to understand the final if statement.
+  function stabilizeFlan(uint256 rectangleOfFairness) public override onlyLimbo ensurePriceStability returns (uint256 lpMinted) {
     uint256 localSCXBalance = IERC20(VARS.behodler).balanceOf(address(this));
 
+    //SCX transfers incur a 2% fee. Checking that SCX balance === rectangleOfFairness must take this into account.
+    //Note that for hardcoded values, this contract can be upgraded through governance so we're not ignoring potential Behodler configuration changes
     require((localSCXBalance * 100) / rectangleOfFairness == 98, "EM");
     rectangleOfFairness = localSCXBalance;
 
@@ -158,27 +191,33 @@ contract UniswapHelper is Governable {
       IERC20(VARS.behodler).transfer(pair, rectangleOfFairness);
       lpMinted = VARS.Flan_SCX_tokenPair.mint(VARS.blackHole);
     }
+    //Don't allow future migrations to piggy back off the data collected by recent migrations. Forces attackers to face the same cryptoeconomic barriers each time.
     _zeroOutQuotes();
   }
 
-  /* 
-  Take APY of threshold and divide it down into seconds
-    */
+  ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
+  ///@param minAPY Here APY refers to the dollar value of flan relative to the dollar value of the threshold
+  ///@param daiThreshold The dai value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
   function minAPY_to_FPS(
     uint256 minAPY, //divide by 10000 to get percentage
     uint256 daiThreshold
-  ) public view ensurePriceStability returns (uint256 fps) {
+  ) public override view ensurePriceStability returns (uint256 fps) {
     daiThreshold = daiThreshold == 0 ? latestFlanQuotes[0].DaiBalanceOnBehodler : daiThreshold;
-    console.log("dai threshold %s", daiThreshold);
+    // console.log("dai threshold %s", daiThreshold);
     uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
     fps = returnOnThreshold / (year);
   }
 
+  ///@notice Buys Flan with a specified token, apportions 1% of the purchased Flan to the caller and burns the rest.
+  ///@param inputToken The token used to buy Flan
+  ///@param amount amount of input token used to buy Flan
+  ///@param recipient receives 1% of Flan purchased as an incentive to call this function regularly
+  ///@dev Assumes a pair for Flan/InputToken exists on Uniswap
   function buyFlanAndBurn(
     address inputToken,
     uint256 amount,
     address recipient
-  ) public {
+  ) public override {
     address pair = VARS.factory.getPair(inputToken, VARS.flan);
 
     uint256 flanBalance = IERC20(VARS.flan).balanceOf(pair);
@@ -234,7 +273,7 @@ contract UniswapHelper is Governable {
       ? (localFlanQuotes[0].DaiBalanceOnBehodler * 100) / localFlanQuotes[1].DaiBalanceOnBehodler
       : (localFlanQuotes[1].DaiBalanceOnBehodler * 100) / localFlanQuotes[0].DaiBalanceOnBehodler;
 
-    console.log("dai balance divergence %s", daiBalanceDivergence);
+    // console.log("dai balance divergence %s", daiBalanceDivergence);
     require(
       daiSCXSpotPriceDivergence < VARS.divergenceTolerance && daiBalanceDivergence < VARS.divergenceTolerance,
       "EG"
