@@ -3,7 +3,8 @@ pragma solidity 0.8.4;
 import "../facades/LimboDAOLike.sol";
 import "./Governable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+///@author Justin Goro
+///@notice suggested base contract for proposals on Limbo. Not strictly enforced but strongly recommended 
 abstract contract Proposal {
     string public description;
     LimboDAOLike DAO;
@@ -33,6 +34,9 @@ abstract contract Proposal {
     function execute() internal virtual returns (bool);
 }
 
+///@author Justin Goro
+///@notice authenticates and gatekeeps proposals up for vote on LimboDAO.
+///@dev constructors are prefered to initializers when an imporant base contract exists.
 contract ProposalFactory is Governable, Ownable {
     mapping(address => bool) public whitelistedProposalContracts;
     address public soulUpdateProposal;
@@ -42,16 +46,21 @@ contract ProposalFactory is Governable, Ownable {
         address whitelistingProposal,
         address _soulUpdateProposal
     ) Governable(_dao) {
+        //in order for proposals to be white listed, an initial whitelisting proposal needs to be whitelisted at deployment
         whitelistedProposalContracts[whitelistingProposal] = true;
         whitelistedProposalContracts[_soulUpdateProposal] = true;
         soulUpdateProposal = _soulUpdateProposal;
     }
 
-    //MorgothDAO is the ultimate rule maker
+
+    ///@notice SoulUpdateProposal is one of the most important proposals and governs the creation of new staking souls.
+    ///@dev onlyOwner denotes that this important function is overseen by MorgothDAO.
+    ///@param newProposal new update soul
     function changeSoulUpdateProposal(address newProposal) public onlyOwner {
         soulUpdateProposal = newProposal;
     }
 
+    ///@notice there is no formal onchain enforcement of proposal structure and compliance. Proposal contracts must first be white listed for usage
     function toggleWhitelistProposal(address proposal)
         public
         onlySuccessfulProposal
@@ -61,6 +70,8 @@ contract ProposalFactory is Governable, Ownable {
         ];
     }
 
+///@notice user facing function to vote on a new proposal. Note that the proposal contract must first be whitelisted for usage
+///@param proposal whitelisted popular contract
     function lodgeProposal(address proposal) public {
         require(
             whitelistedProposalContracts[proposal],

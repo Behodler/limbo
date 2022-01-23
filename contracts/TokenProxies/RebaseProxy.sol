@@ -3,8 +3,10 @@ pragma solidity 0.8.4;
 import "../facades/TokenProxyLike.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-//Note: very large rebase down movement tokens are still discouraged as this could cause threshold instability
-
+/**@notice expresses the balance changes of a rebase token as a fluctuating redeem rate, allowing for balanceOf stability. Useful for dapps which maintain their own balance values
+* Very large rebase down movement tokens are still discouraged as this could cause threshold instability.
+*/
+///@dev TokenProxyRegistry contract maps this token to a base token.
 contract RebaseProxy is ERC20, TokenProxyLike {
     constructor(
         address _baseToken,

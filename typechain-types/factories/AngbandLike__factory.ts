@@ -8,51 +8,14 @@ import type { AngbandLike, AngbandLikeInterface } from "../AngbandLike";
 
 const _abi = [
   {
-    inputs: [],
-    name: "POWERREGISTRY",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "_key",
-        type: "bytes32",
-      },
-    ],
-    name: "getAddress",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [
       {
         internalType: "address",
-        name: "behodler",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "lachesis",
+        name: "powerInvoker",
         type: "address",
       },
     ],
-    name: "setBehodler",
+    name: "executePower",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

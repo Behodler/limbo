@@ -30,7 +30,7 @@ Economics: When the staked value of a threshold token is migrated to Behodler, S
            Rather than being used to purchase Flan on the open market, the generated SCX is paired with newly minted Flan in a ratio that steers the price of Flan toward parity with Dai.
            This mechanism of pairing and steering the price through minting is known in Behodler as price tilting and effectively doubles the liquidity raised. For instance, suppose we list
            $10000 of a new token on Behodler. We then take $10000 worth of SCX and pair it with $10000 of newly minted Flan, adding $20000 of token liquidity to an external AMM. The extra 
-           $10000 will form the price support for newly minted FLlan which can be used to encourage future migrations.
+           $10000 will form the price support for newly minted Flan which can be used to encourage future migrations.
            In addition to migration driven liquidity growth, Flan will be rewarded for token lockup. For lockup of Flan, the price support pressure of reduced circulating supply will provide additional 
            runway from which to mint more Flan. For external AMM pair contracts involving SCX or Pyrotokens, the lockup will raise liquidity for those pairs which will promote arbitrage trading of the pairs which will
            lead to additional burning of those tokens. For direct lockup of SCX, additional minting of SCX corresponds algorithmically to increased liquidity on Behodler and an increased SCX price. This raises the AVB of Behodler which creates 
@@ -43,7 +43,7 @@ Nomenclature: Since words like token are incredibly generic, we need to provide 
 
 Security note: Since the migration steps generate value transfers between protocols, forced delays should be instituted to close any flash loan or dominant miner ttack vectors.
 
-Bsaic staking incentives:
+Basic staking incentives:
 For both perpatual and threshold souls, a flan per second statistic is divided proportionately amongst the existing stakers.
 
 Late stakers considerations:
@@ -78,14 +78,16 @@ Can claim rewards. Can't unstake.
 Injected into Behodler
 
 Flash governance:
-Since there might be many souls staking, we don't want to have to go through long to confirm proposals.
-Instead, we want to have the opportunity to flash a governance action quickly. What we can do is require
-a stake of EYE. Then the staker can trigger some governance unilaterally but their EYE remains locked for a few days.
+Since there might be many souls staking, we don't want to have to go through long-to-confirm proposals.
+Instead, we want to have the opportunity to flash a governance action quickly. Flash governance happens in the span of 1 transaction.
+To protect the community and the integrity of the DAO, all flash governance decisions must be accompanied by a large EYE deposit that presumably is more costly to give up
+than the most profitable attack vector. The deposit is locked for a duration long enough for a long form burn proposal to be voted on.
+
 The community can then decide if their governance action was in accord with the wellbeing of Limbo.
 If it isn't, they can slash the deposit by betwen 1 and 100%. Flash gov can only move a variable some percentage per day.
-Eg. suppose we vote on snapshot to raise the mimimum soul for Sushi to 1200 Sushi from 1180, 1.69%.
-We have s maximum of 4% per day. So some flash staker comes along and moves it 3%. They are now 
-elligible to be slashed. If they try to move it 5%, the operations reverts.
+Eg. suppose we vote on snapshot to raise the threshold for Sushi to 1200 Sushi from 1180, 1.69%. Some chosen community member flash sets the threshold to the new value.
+A malicious flash staker then sets the threshold down to 1150. The community believes that the latter user was acting against the will of the community and a formal proposal is deployed onchain which slashes the user's staked EYE.
+The community votes on the proposal and the EYE is slashed. After a fixed timeout, the EYE belonging to the original flash staker.
 
 Rectangle of Fairness:
 When new lquidity is added to Behodler, SCX is generated. The fully undiluted price of the new quantity of SCX far exceeds the value of the tokens migrated. Because of the dynamics of Behodler's bonding curve, the 

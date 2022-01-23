@@ -8,13 +8,8 @@ import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
 import "../facades/UniPairLike.sol";
 import "./Governable.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
-/*
-This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having 
-control over existential functionality. This is not to say that some of the decisions taken are not critical but that the domain
-of influence is confined to the local Dapp - Limbo in this case.
-*/
 
 library TransferHelper {
     function ERC20NetTransfer(
@@ -49,6 +44,19 @@ enum ProposalDecision {
     rejected
 }
 
+///@author Justin Goro
+/**@notice
+*This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having 
+*control over existential functionality. This is not to say that some of the decisions taken are not critical but that the domain
+*of influence is confined to the local Dapp - Limbo in this case.
+* LimboDAO has two forms of decision making: proposals and flash governance. For proposals, voting power is required. Voting power in LimboDAO is measured
+* by a points system called Fate. Staking EYE or an EYE based LP earns Fate at a quadratic rate. Fate can be used to list a proposal for voting or to vote. 
+* Using Fate to make a governance decisions spens it out of existince. So Fate reflects the opportunity cost of staking.
+* Flash governance is for instant decision making that cannot wait for voting to occur. Best used for small tweaks to parameters or emergencies.
+* Flash governance requires a governance asset (EYE) be staked at the time of the execution. The asset cannot be withdrawn for a certain period of time,
+* allowing for Fate holders to vote on the legitimacy of the decision. If the decision is considered maliious, the staked EYE is bunrnt.
+*/
+///@dev Contracts subject to LimboDAO must inherit the Governable abstract contract.
 contract LimboDAO is Ownable {
     event daoKilled(address newOwner);
     event proposalLodged(address proposal, address proposer);
@@ -100,13 +108,22 @@ contract LimboDAO is Ownable {
 
     DomainConfig public domainConfig;
     ProposalConfig public proposalConfig;
+
+    /**@notice for staking EYE, we simply take the square root of staked amount. 
+    * For LP tokens, only half the value of the token is EYE so it's tempting to take the square root for the EYE balance. However this punishes the holder by ignoring the cost incurred by supplying the other asset. Since the other asset at rest is equal in value to the EYE balance, we just multiply the calculation by 2.
+    */
     mapping(address => FateGrowthStrategy) public fateGrowthStrategy;
     mapping(address => bool) public assetApproved;
     mapping(address => FateState) public fateState; //lateDate
+    
+    //Fate is earned per day. Keeping track of relative staked values, we can increment user balance
     mapping(address => mapping(address => AssetClout))
         public stakedUserAssetWeight; //user->asset->weight
+
     ProposalState public currentProposalState;
     ProposalState public previousProposalState;
+
+    // Since staking EYE precludes it from earning Flan on Limbo, fateToFlan can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
     uint256 public fateToFlan;
 
     modifier isLive() {
@@ -130,6 +147,7 @@ contract LimboDAO is Ownable {
         //nextProposal();
     }
 
+    ///@notice has a proposal successfully been approved?
     function successfulProposal(address proposal) public view returns (bool) {
         return
             currentProposalState.decision == ProposalDecision.approved &&
@@ -176,6 +194,16 @@ contract LimboDAO is Ownable {
         state.lastDamnAdjustment = block.timestamp;
     }
 
+    ///@param limbo address of Limbo
+    ///@param flan address of Flan
+    ///@param eye address of EYE token
+    ///@param proposalFactory authenticates and instantiates valid proposals for voting
+    ///@param sushiFactory is the SushiSwap Factory contract
+    ///@param uniFactory is the UniSwapV2 Factory contract
+    ///@param flashGoverner oversees flash governance cryptoeconomics
+    ///@param precisionOrderOfMagnitude when comparing fractional values, it's not necessary to get every last digit right
+    ///@param sushiLPs valid EYE containing LP tokens elligible for earning Fate through staking
+    ///@param uniLPs valid EYE containing LP tokens elligible for earning Fate through staking
     function seed(
         address limbo,
         address flan,
@@ -215,6 +243,8 @@ contract LimboDAO is Ownable {
         }
     }
 
+    ///@notice allows Limbo to be governed by a new DAO
+    ///@dev functions marked by onlyOwner are governed by MorgothDAO
     function killDAO(address newOwner) public onlyOwner isLive {
         domainConfig.live = false;
         Governable(domainConfig.flan).setDAO(newOwner);
@@ -222,10 +252,12 @@ contract LimboDAO is Ownable {
         emit daoKilled(newOwner);
     }
 
+    ///@notice optional conversion rate of Fate to Flan
     function setFateToFlan(uint256 rate) public onlySuccessfulProposal {
         fateToFlan = rate;
     }
 
+    ///@notice caller spends their Fate to earn Flan
     function convertFateToFlan(uint256 fate) public returns (uint flan) {
         require(fateToFlan>0, "LimboDAO: Fate conversion to Flan disabled.");
         fateState[msg.sender].fateBalance -= fate;
@@ -233,6 +265,8 @@ contract LimboDAO is Ownable {
         Flan(domainConfig.flan).mint(msg.sender, flan);
     }
 
+    ///@notice handles proposal lodging logic.
+    ///@dev not for external calling. Use the proposalFactory to lodge a proposal instead.
     function makeProposal(address proposal, address proposer)
         public
         updateCurrentProposal
@@ -259,6 +293,9 @@ contract LimboDAO is Ownable {
         emit proposalLodged(proposal, proposer);
     }
 
+    ///@notice handles proposal voting logic.
+    ///@param proposal contract to be voted on
+    ///@param fate positive is YES, negative is NO. Absolute value is deducted from caller.
     function vote(address proposal, int256 fate) public incrementFate isLive {
         require(
             proposal == address(currentProposalState.proposal), //this is just to protect users with out of sync UIs
@@ -284,6 +321,7 @@ contract LimboDAO is Ownable {
                 fate * currentFate < 0 && //sign different
                 (fate + currentFate) * fate > 0 //fate flipped current fate onto the same side of zero as fate
             ) {
+                //extend voting duration when vote flips decision. Suggestion made by community member
                 currentProposalState.start =
                     currentProposalState.start +
                     2 hours;
@@ -298,8 +336,13 @@ contract LimboDAO is Ownable {
         emit voteCast(_msgSender(), proposal, fate);
     }
 
+    ///@notice pushes the decision to execute a successful proposal. For convenience only
     function executeCurrentProposal() public updateCurrentProposal {}
 
+    ///@notice parameterizes the voting
+    ///@param requiredFateStake the amount of Fate required to lodge a proposal
+    ///@param votingDuration the duration of voting in seconds
+    ///@param proposalFactory the address of the proposal factory
     function setProposalConfig(
         uint256 votingDuration,
         uint256 requiredFateStake,
@@ -310,6 +353,7 @@ contract LimboDAO is Ownable {
         proposalConfig.proposalFactory = proposalFactory;
     }
 
+    ///@notice Assets approved for earning Fate
     function setApprovedAsset(address asset, bool approved)
         public
         onlySuccessfulProposal
@@ -319,6 +363,11 @@ contract LimboDAO is Ownable {
         emit assetApproval(asset, approved);
     }
 
+    ///@notice handles staking logic for EYE and EYE based assets so that correct rate of fate is earned. 
+    ///@param finalAssetBalance after staking, what is the final user balance on LimboDAO of the asset in question
+    ///@param finalEYEBalance if EYE is being staked, this value is the same as finalAssetBalance but for LPs it's about half
+    ///@param rootEYE offload high gas arithmetic to the client. Cheap to verify. Square root in fixed point requires Babylonian algorithm
+    ///@param asset the asset being staked
     function setEYEBasedAssetStake(
         uint256 finalAssetBalance,
         uint256 finalEYEBalance,
@@ -328,6 +377,8 @@ contract LimboDAO is Ownable {
         require(assetApproved[asset], "LimboDAO: illegal asset");
         address sender = _msgSender();
         FateGrowthStrategy strategy = fateGrowthStrategy[asset];
+       
+        //verifying that rootEYE value is accurate within precision.
         uint256 rootEYESquared = rootEYE * rootEYE;
         uint256 rootEYEPlusOneSquared = (rootEYE + 1) * (rootEYE + 1);
         require(
@@ -404,6 +455,7 @@ contract LimboDAO is Ownable {
         emit assetBurnt(_msgSender(), asset, fateCreated);
     }
 
+    ///@notice grants unlimited Flan minting power to an address.
     function approveFlanMintingPower(address minter, bool enabled)
         public
         onlySuccessfulProposal
@@ -415,6 +467,7 @@ contract LimboDAO is Ownable {
         );
     }
 
+    ///@notice call this after initial config is complete.
     function makeLive() public onlyOwner {
         require(
             Governable(domainConfig.limbo).DAO() == address(this) &&
@@ -424,7 +477,7 @@ contract LimboDAO is Ownable {
         domainConfig.live = true;
     }
 
-    //if the DAO is being dismantled.
+    ///@notice if the DAO is being dismantled, it's necessary to transfer any owned items
     function transferOwnershipOfThing(address thing, address destination)
         public
         onlySuccessfulProposal
@@ -442,6 +495,9 @@ contract LimboDAO is Ownable {
         return proposalConfig.votingDuration - elapsed;
     }
 
+    /**@notice seed is a goro idiom for initialize that you tend to find in all the dapps I've written. 
+    * I prefer initialization funcitons to parameterized solidity constructors for reasons beyond the scope of this comment.
+    */
     function _seed(
         address limbo,
         address flan,
