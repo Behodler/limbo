@@ -3,8 +3,15 @@ pragma solidity 0.8.4;
 import "../facades/LimboLike.sol";
 import "../facades/LimboDAOLike.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
+// import "hardhat/console.sol";
+
+/**
+ *@title SoulReader
+ * @author Justin Goro
+ * @notice Coneptually similar to the Router contracts in Uniswap, this is a helper contract for reading Limbo data in a manner more friendly to a UI
+ * @dev passing the limbo contract address in allows the SoulReader to remain stateless and also allows front end devs to perform comparisons and experiments in real time.
+ */
 contract SoulReader {
   uint256 constant TERA = 1E12;
   struct Soul {
@@ -20,6 +27,10 @@ contract SoulReader {
     return LimboLike(_limbo);
   }
 
+  /**
+   *@param token the token contract address
+   *@param _limbo the limbo contract address
+   */
   function SoulStats(address token, address _limbo)
     public
     view
@@ -36,6 +47,10 @@ contract SoulReader {
     return (state, stakeBalance, fps);
   }
 
+  /**
+   *@param token the token contract address
+   *@param _limbo the limbo contract address
+   */
   function CrossingParameters(address token, address _limbo)
     public
     view
@@ -53,6 +68,13 @@ contract SoulReader {
     return (initialCrossingBonus, crossingBonusDelta, flanPerSecond);
   }
 
+  /**
+   *@notice Query the pending rewards for a given soul by a given staked user
+   *@dev performing these calculations client side is difficult and frought with bugs.
+   *@param account staked user
+   *@param token the token contract address
+   *@param _limbo the limbo contract address
+   */
   function GetPendingReward(
     address account,
     address token,
@@ -83,6 +105,12 @@ contract SoulReader {
 
   //For rebase tokens, make the appropriate adjustments on the front end, not here.
   //Only call this on live souls.
+  /**
+   * @notice For threshold souls, calculate the crossing bonus for a given staked user
+   * @param holder user staked
+   * @param token the soul
+   * @param _limbo the limbo contract address
+   */
   function ExpectedCrossingBonus(
     address holder,
     address token,
@@ -113,13 +141,13 @@ contract SoulReader {
     stakingBegins = stakingBegins == 0 ? block.timestamp - 1 : stakingBegins;
 
     int256 accumulatedFlanPerTeraToken = crossingBonusDelta * int256(stakingEnds - stakingBegins);
-    console.log("token: %d", token);
-    console.log("time elapsed %d", stakingEnds - stakingBegins);
-    console.log(
-      "accumulatedFlanPerTeraToken %d, initialCrossingBonus %d",
-      uint256(accumulatedFlanPerTeraToken),
-      uint256(initialCrossingBonus)
-    );
+    // console.log("token: %d", token);
+    // console.log("time elapsed %d", stakingEnds - stakingBegins);
+    // console.log(
+    //   "accumulatedFlanPerTeraToken %d, initialCrossingBonus %d",
+    //   uint256(accumulatedFlanPerTeraToken),
+    //   uint256(initialCrossingBonus)
+    // );
     int256 finalFlanPerTeraToken = int256(initialCrossingBonus) +
       (stakedAmount > 0 ? accumulatedFlanPerTeraToken : int256(0));
     bonusRate = finalFlanPerTeraToken > 0 ? uint256(finalFlanPerTeraToken) : 0;

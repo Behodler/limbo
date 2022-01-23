@@ -3,6 +3,11 @@ pragma solidity 0.8.4;
 import "./ERC677/ERC677.sol";
 import "../contracts/DAO/Governable.sol";
 
+///@author Justin Goro
+///@title Flan
+/**
+ *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on the price of DAI via various external incentives
+ */
 contract Flan is ERC677("Flan", "FLN"), Governable {
     event burnOnTransferFeeAdjusted(uint8 oldFee, uint8 newFee);
     mapping(address => uint256) public mintAllowance; //type(uint).max == whitelist
@@ -11,10 +16,14 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
 
     constructor(address dao) Governable(dao) {}
 
+    /**
+    * @param fee - % between 1 and 100, recipient pays
+     */
     function setBurnOnTransferFee(uint8 fee) public onlySuccessfulProposal {
         _setBurnOnTransferFee(fee);
     }
 
+    ///@notice flash governance technique for FOT change.
     function incrementBurnOnTransferFee(int8 change)
         public
         governanceApproved(false)
@@ -30,6 +39,9 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         emit burnOnTransferFeeAdjusted(priorFee, burnOnTransferFee);
     }
 
+    ///@notice grants unlimited minting power to a contract
+    ///@param minter contract to be given unlimited minting power
+    ///@param enabled minting power enabled or disabled
     function whiteListMinting(address minter, bool enabled)
         public
         onlySuccessfulProposal
@@ -37,6 +49,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         mintAllowance[minter] = enabled ? type(uint256).max : 0;
     }
 
+    ///@notice metered minting power. Useful for once off minting
     function increaseMintAllowance(address minter, uint256 _allowance)
         public
         onlySuccessfulProposal
@@ -44,6 +57,9 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         mintAllowance[minter] = mintAllowance[minter] + _allowance;
     }
 
+    ///@notice minting of flan open to approved minters and LimboDAO
+    ///@param recipient address to receive flan
+    ///@param amount amount of flan to be minted 
     function mint(address recipient, uint256 amount) public returns (bool) {
         uint256 allowance = mintAllowance[_msgSender()];
         require(

@@ -5,6 +5,7 @@ import "../facades/LimboDAOLike.sol";
 import "../facades/FlashGovernanceArbiterLike.sol";
 import "../facades/ProposalFactoryLike.sol";
 
+///@title Governable
 ///@author Justin Goro
 /**@dev Contracts that implement this can be governed by LimboDAO.
  * Depending on the importance and context, you can enforce governance oversight with one of two modifiers:

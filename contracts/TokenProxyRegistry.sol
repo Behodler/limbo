@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 import "./DAO/Governable.sol";
 
 ///@author Justin Goro
+///@title Token Proxy Registry for exotic token registration on Limbo
 /**@notice
 Exotic tokens may cause Limbo to act unpredictably. The token type that inspired the writing of this class is the rebase token.
 Since Limbo keeps track of balances, a token who's balance changes dynamically will fall our of sync with Limbo balances.

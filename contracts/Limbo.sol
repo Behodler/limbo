@@ -240,7 +240,7 @@ library MigrationLib {
   }
 }
 
-/// @title The main staking contract for the Limbo Dapp
+/// @title Limbo
 /// @author Justin Goro
 /// @notice Tokens are either staked for locking (perpetual) or for migration to the Behodler AMM (threshold).
 /// @dev The governance functions are initially unguarded to allow the deploying dev to rapidly set up without having to endure governance imposed time limits on proposals. Ending the config period is a irreversible action.

@@ -38,6 +38,7 @@ enum ProposalDecision {
   rejected
 }
 
+///@title Limbo DAO
 ///@author Justin Goro
 /**@notice
  *This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having

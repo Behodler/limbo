@@ -323,9 +323,10 @@ describe("Limbo", function () {
 
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     console.log((await this.flan.balanceOf(owner.address)).toString());
-    expect(flanBalanceAfter.sub(flanBalanceBefore).toString()).to.equal(
-      "900010000210" //crossing bonus * staked tokens.
-    );
+    const lowerLimit = BigInt("900000000210");
+    const upperLimit = BigInt("900020000210");
+    const difference = BigInt(flanBalanceAfter.sub(flanBalanceBefore).toString());
+    assert.isTrue(difference >= lowerLimit && difference <= upperLimit);
   });
 
   it("old souls can be bonus claimed from (DELTA > 0)", async function () {

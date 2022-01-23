@@ -4,6 +4,7 @@ import "../facades/LimboDAOLike.sol";
 import "./Governable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+///@title Proposal
 ///@author Justin Goro
 ///@notice suggested base contract for proposals on Limbo. Not strictly enforced but strongly recommended
 abstract contract Proposal {
@@ -37,6 +38,7 @@ abstract contract Proposal {
   function execute() internal virtual returns (bool);
 }
 
+///@title Proposal Factory
 ///@author Justin Goro
 ///@notice authenticates and gatekeeps proposals up for vote on LimboDAO.
 ///@dev constructors are prefered to initializers when an imporant base contract exists.

@@ -11,6 +11,7 @@ import "./facades/AMMHelper.sol";
 
 contract BlackHole {}
 
+///@Title Uniswap V2 helper for managing Flan liquidity on Uniswap V2, Sushiswap and any other compatible AMM
 ///@author Justin Goro
 /**@notice Flan liquidity is boosted on Uniswap (or Sushiswap) via open market operations at the point of a token migration.
   * UniswapHelper handles all the mechanics as well managing a just-in-time (Justin Time?) oracle
@@ -166,7 +167,7 @@ contract UniswapHelper is Governable, AMMHelper {
     require((localSCXBalance * 100) / rectangleOfFairness == 98, "EM");
     rectangleOfFairness = localSCXBalance;
 
-    //get dai per scx
+    //get DAI per scx
     uint256 existingSCXBalanceOnLP = IERC20(VARS.behodler).balanceOf(address(VARS.Flan_SCX_tokenPair));
     uint256 finalSCXBalanceOnLP = existingSCXBalanceOnLP + rectangleOfFairness;
 
@@ -197,13 +198,13 @@ contract UniswapHelper is Governable, AMMHelper {
 
   ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
   ///@param minAPY Here APY refers to the dollar value of flan relative to the dollar value of the threshold
-  ///@param daiThreshold The dai value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
+  ///@param daiThreshold The DAI value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
   function minAPY_to_FPS(
     uint256 minAPY, //divide by 10000 to get percentage
     uint256 daiThreshold
   ) public override view ensurePriceStability returns (uint256 fps) {
     daiThreshold = daiThreshold == 0 ? latestFlanQuotes[0].DaiBalanceOnBehodler : daiThreshold;
-    // console.log("dai threshold %s", daiThreshold);
+    // console.log("DAI threshold %s", daiThreshold);
     uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
     fps = returnOnThreshold / (year);
   }

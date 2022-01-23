@@ -4,6 +4,7 @@ import "./Governable.sol";
 import "hardhat/console.sol";
 import "../facades/Burnable.sol";
 
+///@title Flash Governance Arbiter
 ///@author Justin Goro
 /**@notice LimboDAO offers two forms of governance: flash and proposal. Proposals are contracts that have authorization to execute guarded functions on contracts that implement the Governable abstract contract.
  * Proposals require Fate to be put forward for voting and Fate is the spendable voting token.

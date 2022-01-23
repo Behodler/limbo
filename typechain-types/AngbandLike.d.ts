@@ -21,16 +21,31 @@ import { TypedEventFilter, TypedEvent, TypedListener } from "./commons";
 
 interface AngbandLikeInterface extends ethers.utils.Interface {
   functions: {
-    "executePower(address)": FunctionFragment;
+    "POWERREGISTRY()": FunctionFragment;
+    "getAddress(bytes32)": FunctionFragment;
+    "setBehodler(address,address)": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "executePower",
-    values: [string]
+    functionFragment: "POWERREGISTRY",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getAddress",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setBehodler",
+    values: [string, string]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "executePower",
+    functionFragment: "POWERREGISTRY",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getAddress", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setBehodler",
     data: BytesLike
   ): Result;
 
@@ -81,20 +96,35 @@ export class AngbandLike extends BaseContract {
   interface: AngbandLikeInterface;
 
   functions: {
-    executePower(
-      powerInvoker: string,
+    POWERREGISTRY(overrides?: CallOverrides): Promise<[string]>;
+
+    getAddress(_key: BytesLike, overrides?: CallOverrides): Promise<[string]>;
+
+    setBehodler(
+      behodler: string,
+      lachesis: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
 
-  executePower(
-    powerInvoker: string,
+  POWERREGISTRY(overrides?: CallOverrides): Promise<string>;
+
+  getAddress(_key: BytesLike, overrides?: CallOverrides): Promise<string>;
+
+  setBehodler(
+    behodler: string,
+    lachesis: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    executePower(
-      powerInvoker: string,
+    POWERREGISTRY(overrides?: CallOverrides): Promise<string>;
+
+    getAddress(_key: BytesLike, overrides?: CallOverrides): Promise<string>;
+
+    setBehodler(
+      behodler: string,
+      lachesis: string,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -102,15 +132,28 @@ export class AngbandLike extends BaseContract {
   filters: {};
 
   estimateGas: {
-    executePower(
-      powerInvoker: string,
+    POWERREGISTRY(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getAddress(_key: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
+
+    setBehodler(
+      behodler: string,
+      lachesis: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    executePower(
-      powerInvoker: string,
+    POWERREGISTRY(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    getAddress(
+      _key: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    setBehodler(
+      behodler: string,
+      lachesis: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
