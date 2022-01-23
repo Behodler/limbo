@@ -3,6 +3,10 @@ pragma solidity 0.8.4;
 import "../ProposalFactory.sol";
 import "../../facades/FlashGovernanceArbiterLike.sol";
 
+/**
+* @author Justin Goro
+* @notice Flash governance decisions are accompanied by staked collateral that can be slashed by LimboDAO. This proposal is responsible for slashing
+*/
 contract BurnFlashStakeDeposit is Proposal {
     struct Parameters {
         address user;

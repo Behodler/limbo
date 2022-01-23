@@ -2,6 +2,10 @@
 pragma solidity 0.8.4;
 import "../ProposalFactory.sol";
 
+/**
+* @author Justin Goro
+* @notice Each proposal is subject to a fate cost and a duration of voting. These values are themselves subject to governance
+*/
 contract UpdateProposalConfigProposal is Proposal {
     struct Parameters {
         uint256 votingDuration;

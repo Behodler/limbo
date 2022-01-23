@@ -5,6 +5,10 @@ import "../../facades/LimboLike.sol";
 import "../../facades/AMMHelper.sol";
 import "../../facades/MorgothTokenApproverLike.sol";
 
+/**
+* @author Justin Goro
+* @notice For adding a list of new souls to Limbo for staking 
+*/
 contract UpdateMultipleSoulConfigProposal is Proposal {
   struct Parameters {
     address token;

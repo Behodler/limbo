@@ -5,6 +5,10 @@ import "../../facades/LimboLike.sol";
 import "../../facades/MorgothTokenApproverLike.sol";
 import "hardhat/console.sol";
 
+/**
+* @author Justin Goro
+* @notice The singular form of UpdateMultiplSoulConfig
+*/
 contract UpdateSoulConfigProposal is Proposal {
     struct Parameters {
         address token;

@@ -4,6 +4,10 @@ import "../ProposalFactory.sol";
 import "../../facades/FlashGovernanceArbiterLike.sol";
 import "../../facades/LimboDAOLike.sol";
 
+/**
+* @author Justin Goro
+* @notice Earning Fate precludes owners of EYE based assets from earning Flan on Limbo. This proposal makes Fate monetizable into Flan in order to compensate users for the opportunity cost.
+*/
 contract TurnOnFateMintingProposal is Proposal {
     constructor(address dao, string memory _description)
         Proposal(dao, description)
