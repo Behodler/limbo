@@ -122,6 +122,7 @@ build/
 demo*
 usageReadme.txt
 typechain/
+typechain-types/
 deployments/
 deployed.json
 addresses.json
