@@ -673,7 +673,7 @@ describe("Limbo", function () {
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
-  it("staking/unstaking only possible in staking state", async function () {
+  it("staking only possible in staking state, unstaking possible in staking and config", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       1000, //crossingThreshold
@@ -727,6 +727,66 @@ describe("Limbo", function () {
     expect(soulStats[0].toNumber()).to.equal(2);
 
     await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("E2");
+    await expect(this.limbo.unstake(this.aave.address, "10000")).to.be.revertedWith("E2");
+
+    await updateSoulConfigProposal.parameterize(
+      this.aave.address, //token
+      10000000, //threshold
+      1, //type
+      1, //state = staking
+      0, //index
+      10 //fps
+    );
+
+    await this.eye.approve(this.limboDAO.address, requiredFate);
+    await this.eye.mint(requiredFate);
+    await this.limboDAO.burnAsset(this.eye.address, requiredFate);
+    await this.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
+
+    await this.limboDAO.vote(updateSoulConfigProposal.address, 1000);
+
+    await advanceTime(6048010);
+    await this.limboDAO.executeCurrentProposal();
+
+    const balanceCheck = async () => {
+      const aaveBalanceOnLimbo = await this.aave.balanceOf(this.limbo.address);
+      const userStakedAaveOnLimbo = await this.limbo.userInfo(this.aave.address, owner.address, 0);
+
+      console.log(
+        `aave on Limbo: ${aaveBalanceOnLimbo}\t user staked aave on Limbo: ${userStakedAaveOnLimbo[0].toString()}`
+      );
+    };
+
+    await this.aave.approve(this.limbo.address, "1000000");
+    this.limbo.stake(this.aave.address, "10000");
+    await balanceCheck();
+    await this.limbo.unstake(this.aave.address, "500");
+    await balanceCheck();
+    await updateSoulConfigProposal.parameterize(
+      this.aave.address, //token
+      10000000, //threshold
+      1, //type
+      0, //state = calibration
+      0, //index
+      10 //fps
+    );
+
+    await this.eye.approve(this.limboDAO.address, requiredFate);
+    await this.eye.mint(requiredFate);
+    await this.limboDAO.burnAsset(this.eye.address, requiredFate);
+    await this.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
+
+    await this.limboDAO.vote(updateSoulConfigProposal.address, 1000);
+
+    await advanceTime(6048010);
+    await this.limboDAO.executeCurrentProposal();
+
+    await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("E2");
+    const aaveBalance = await this.aave.balanceOf(this.limbo.address);
+    console.log("remaining aave " + aaveBalance.toString());
+
+    await balanceCheck();
+    await this.limbo.unstake(this.aave.address, "500");
   });
 
   it("staking an invalid token fails", async function () {
@@ -734,6 +794,14 @@ describe("Limbo", function () {
 
     //stake tokens
     await this.titan.approve(this.limbo.address, "10000001");
+    await this.limbo.configureSoul(
+      this.titan.address,
+      10000000, //crossingThreshold
+      0, //soulType
+      1, //state
+      0,
+      10000000
+    );
     await expect(this.limbo.stake(this.titan.address, "10000")).to.be.revertedWith("E1");
   });
 
@@ -2007,4 +2075,5 @@ describe("Limbo", function () {
     const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
+  
 });

@@ -317,7 +317,6 @@ contract Limbo is Governable {
 
   function updateSoul(address token, Soul storage soul) internal {
     require(soul.soulType != SoulType.uninitialized, "E1");
-    require(soul.state != SoulState.calibration, "E2");
     uint256 finalTimeStamp = block.timestamp;
     if (soul.state != SoulState.staking) {
       finalTimeStamp = tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp;
@@ -411,9 +410,13 @@ contract Limbo is Governable {
       latestIndex[token] = index > latestIndex[token] ? latestIndex[token] + 1 : latestIndex[token];
 
       Soul storage soul = currentSoul(token);
+      bool fallingBack = soul.state != SoulState.calibration && SoulState(state) == SoulState.calibration;
       soul.set(crossingThreshold, soulType, state, fps);
       if (SoulState(state) == SoulState.staking) {
         tokenCrossingParameters[token][latestIndex[token]].stakingBeginsTimestamp = block.timestamp;
+      }
+      if(fallingBack){
+         tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
       }
     }
     emit SoulUpdated(token, fps);
@@ -424,7 +427,7 @@ contract Limbo is Governable {
   ///@param initialCrossingBonus Of the crossing bonus flan payout, this represents the fixed Flan per token component
   ///@param crossingBonusDelta Of the crossing bonus flan payout, this represents the payout per flan per second that the soul is in staking state
   ///@param burnable For listing on Behodler, is this token going to burn on trade or does it get its own Pyrotoken
-  ///@param crossingThreshold The token balance on Behodler that triggers the soul to enter into waitingToCross state 
+  ///@param crossingThreshold The token balance on Behodler that triggers the soul to enter into waitingToCross state
   function configureCrossingParameters(
     address token,
     uint256 initialCrossingBonus,
@@ -441,14 +444,14 @@ contract Limbo is Governable {
   ///@param token The soul to stake
   ///@param amount The amount of tokens to stake
   /**@dev Can handle fee on transfer tokens but for more exotic tokens such as rebase tokens, use a proxy wrapper. See the TokenProxyRegistry for logistics.
-  *The purpose of balance checking before and after transfer of tokens is to account for fee-on-transfer discrepencies so that tokens like SCX can be listed without inducing
-  *broken states. The community is encouraged to use proxy wrappers for tokens which may open up Limbo or Beholer exploit vulnerabilities.
-  *Security enforcement of tokens listed on Limbo is offloaded to governance so that Limbo isn't required to anticipate every attack vector.
-  */
+   *The purpose of balance checking before and after transfer of tokens is to account for fee-on-transfer discrepencies so that tokens like SCX can be listed without inducing
+   *broken states. The community is encouraged to use proxy wrappers for tokens which may open up Limbo or Beholer exploit vulnerabilities.
+   *Security enforcement of tokens listed on Limbo is offloaded to governance so that Limbo isn't required to anticipate every attack vector.
+   */
   function stake(address token, uint256 amount) public enabled {
     Soul storage soul = currentSoul(token);
-    updateSoul(token, soul);
     require(soul.state == SoulState.staking, "E2");
+    updateSoul(token, soul);
     uint256 currentIndex = latestIndex[token];
     User storage user = userInfo[token][msg.sender][currentIndex];
     if (amount > 0) {
@@ -501,8 +504,8 @@ contract Limbo is Governable {
       unstakeApproval[token][holder][unstaker] -= amount;
     }
     Soul storage soul = currentSoul(token);
+    require(soul.state == SoulState.calibration || soul.state == SoulState.staking, "E2");
     updateSoul(token, soul);
-    require(soul.state == SoulState.staking, "E2");
     User storage user = userInfo[token][holder][latestIndex[token]];
     require(user.stakedAmount >= amount, "E4");
 
@@ -576,9 +579,9 @@ contract Limbo is Governable {
 
   ///@notice migrates threshold token from Limbo to Behodler and orchestrates Flan boosting mechanics. Callers of this function are rewared to compensate for gas expenditure
   /**@dev this function depends on a Morgoth Power. For those unfamiliar, a power is similar to a spell on other DAOs. Morgoth owns Behodler and so the only way to list
-  * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
-  * permission on Morgoth to execute migrations to Behodler. The other big depenency is the AMM helper which contains the bulk of the migration logic.
-  */
+   * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
+   * permission on Morgoth to execute migrations to Behodler. The other big depenency is the AMM helper which contains the bulk of the migration logic.
+   */
   function migrate(address token) public enabled {
     Soul storage soul = currentSoul(token);
     require(soul.soulType == SoulType.threshold, "EB");
