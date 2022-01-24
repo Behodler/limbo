@@ -1,0 +1,90 @@
+# What is Limbo
+
+Limbo is a yield farming dapp for crowdfunding liquidity on the Behodler AMM. 
+
+# How is Limbo different from other liquidity mining dapps?
+
+The primary purpose of Limbo is to raise liquidity for tokens before they list on Behodler whereas most farms reward staking on the target AMM, Limbo's purpose is to crowdfund liquidity to meet a threshold requirement to be listed on Behodler. Limbo offers a secondary feature of rewarding lockup of tokens listed on Behodler. Consequently there are two types of pools on Limbo, each subject to different staking rules:
+    1. Threshold pools are for tokens not yet listed on Behodler. These tokens require a staking threshold in order to be migrated to Behodler.
+    2. Perpetual pools are for tokens already listed on Behodler where lockup adds benefit to the ecosystem. 
+
+# Context: The Behodler Ecosystem
+
+## The economic challenges of single sided token listing
+
+Behodler is a single sided AMM with a single pool of liquidity. This means that when you add liquidity, you only add one token at a time, rather than in a pair. For pair based AMMs, tokens must be added in a ratio that reflects their relative price. For instance, if the market price of Eth is 4000 USDC then creating a USDC/WETH pair requires adding tokens to the pair in a ratio of 4000 USDC for every 1 WETH. Adding in any other ratio creates arbitrage opportunities which vigilant traders and bots can exploit. The result is a transfer of wealth from the depositor to the trader in the form of instant impermanent loss.
+For Behodler, tokens also need to be added in the correct ratio but unlike in Pair based AMMs, there is already a set of tokens with pre-existing liquidity. When listing a new token to Behodler, the incoming token must be added in the same ratio to the other tokens such that market prices are maintained AND it has to be added with the same value of liquidity. Suppose that Behodler has 3 tokens listed: Aave, Dai, Uni and Weth. The dollar prices are $300, $1, $2000 and $4000 respectively. Now let's add Sushi with a market price of $30. We know then that the quantity of Sushi should be 10 times the quantity of Aave liquidity, 1/30th times the Dai liquidity, 67 times the Uni and 133 times the Weth liquidity.
+This means that if there is say 100,000 Dai at rest then we require 3333 Sushi to be listed.
+As the liquidity on Behodler rises, the minimum requirement for new tokens listings rises as well. Beyond some point, it becomes infeasible for individuals to raise the requisite liquidity unilaterally. This is where a liquidity crowdfunding dapp comes.
+
+## The security challenges of listing tokens on a single sided AMM with a single pool of liquidity
+AMMs on Ethereum almost universally operate under the premise of segregated liquidity. The most common instance of this is the token pair Uniswap model where tokens pairs are stitched together with system of both contact and front end routing. some AMMs extend the number beyond 2 such as Balancer and Curve but there the limit is never significantly higher than 2. 
+
+### Fakecoin
+
+From a security perspective, a token pair (or pool) contract can be thought of as a micro exchange. If something goes wrong in the pair because of the misbehaviour of one of the tokens, the damage is contained to a handful of tokens and the providers of that liquidity. For instance, suppose a token pair exists on Uniswap between Dai and a fictional token Carpet. Carpet gives the deployer of the Carpet contract unlimited minting power. However, this feature is overlooked during a typical hypecycle and many holders of Dai are drawn in and begin adding liquidity to the pair. At some point, the Carpet admin mints a huge amount of Carpet and effectively drains the pair of Dai. From here they may attempt to spread their damage elsewhere but the rugpull has effectively set the price of Carpet to zero so the rest of is now under no influence from Carpet. The owner only has the stolen Dai which is a legitimate token and so spending it elsewhere on Uniswap does not spread any contagion. This is what allows Uniswap to accept permissionless creation of token pair.
+
+If the attack were conducted on a Balancer pool that contains 7 other tokens then the damage is more extensive as the infinite mint of Carpet would lift the liquidity on 7 types of tokens.
+For Behodler, such a fakecoin attack would allow an attacker to plunder the entire AMM. Any token added on Limbo would have to be scrutinized and audited for Behodler attack vectors before being migrated.
+
+Limbo offers a token proxy registry that allows the wrapping of problematic tokens into proxy tokens that behave well on Behodler. This is the first step to allowing permissionless (or at least very low barrier) listing of new tokens both on Limbo and Behodler. As the dapp matures, the list of proxy types will expand and the need for deep audits of every new token listed will decline.
+
+### Early Bird attack
+In any AMM, token reserve ratios must reflect their relative price. If Eth is worth 4000 dai and you're aiming to add 6 Eth to a pair then you need to add 24000 Dai in order to avoid losing Eth to an opportunistic arbitrage bot. The same is true of Behodler but unlike Uniswap pairs which can be initiated with minimal liquidity and later added to, Behodler has pre-existing liquidity that must be matched. Beyond some prohibitively high level of liquidity, adding new token listings requires collective capital pooling. Limbo is the crowdfunding mechanism that coordinates this pooling through a game theoretically compelling rewards system presented as a familiar yield farming experience.
+
+There is an attack vector peculiar to Behodler that inspired the creation of the Flan token in particular. Scarcity is the liquidity token on Behodler but it is priced differently to traditional liquidity tokens. Whereas a standard LP token is a simple share on reserves, Scarcity is a claim on the marginal value of the next trade. SCX is priced along a logarithmic curve that represents one half of a constant function AMM swap. The mathematical derivation can be found in the white paper (https://docs.behodler.io/further-reading/whitepaper). What this means is that the price of SCX is proportional to the existing liquidity on Behodler and that the curvature of this function is quite dramatic. For instance, adding the first unit of a token to Behodler will generate about 366 SCX. The next unit will only generate 24 SCX. When all liquidity is balanced on Behodler, then the discrepancies between SCX generated by various tokens is not disruptive but when there's a large imbalance then the SCX generated by correcting the balance has a market price far in excess of the liquidity added. 
+To take an extreme example, suppose we want to list a new dollar stablecoin on Behodler with 18 decimal places and suppose the current market price of SCX is $100. If we list the stablecoin and add 1 unit of it, we receive 366 SCX which means than in dollar terms, we've spent $1 and received $36,600 worth of SCX. If a second user adds the next unit, they receive 24 SCX which is $2400, still far above the cost of adding but clearly there's an inequality of reward that needs to be smoothed over. Perhaps if we flatten then inequality between users, the value added will match the SCX generated. A solution to this problem is discussed further in the following section but a digression on staking mechanics is first required.
+
+# Reward token
+The nature of the staking reward token on Limbo is unique in the yield farming space and understanding the cryptoeconomics behind its value will allow assist in understanding the motivation behind the various modules of logic found throughout Limbo.
+
+The most common technique for legitimate liquidity mining is to issue the governance token of the platform as a staking reward. The issuance can either be from a fixed pool, implying a finite mining period, or from unlimited linear inflation such as with Sushi and Curve. This latter class is more interesting as it requires a demand base to be constantly growing to offset the unlimited inflation. In other words, sustainable mining requires necessitates the need not just for a market but for an economy. 
+
+Economies have a subtle, circular quality to them in the form of feedback loops. To take the example of Curve.fi, the governance token is issued as an additional reward for pooling liquidity. As an AMM, Curve users experience quadratic benefits to increased liquidity. That is, for every $2 of liquidity added, the Curve ecosystem benefits by approximately $4. The Curve token is minted without limit which would lead one to expect its value to decline to zero over time. However, the governance token is the voting power required to create new token pools. Prospective projects have an incentive to bid up demand for CRV. To the extent that this increases the CRV price, the rewards for mining increase which brings in more liquidity, increasing the value to all users and projects listed on Curve which creates further demand for CRV in order to partake in the networked economic bounty. The result is pereptual demand for CRV which outstrips supply so that the mining rewards are sustainably permanent.
+This is the fundamental principle explaining the governance token economy in DeFi.
+
+Most consumers of DeFi and finance in general are vaguely aware of the circularity of economies but do not have a fleshed out mental model or a set of axioms with which they can use to scrutinize the sustainability of a prospective DeFi economy. Instead, they rely on heuristics and familiar marketing language to identify cryptoeconomies. The fuzzy realm between reality and perception where human-powered pattern recognition is the primary filter for profit opportunities is where all rugpulls live.
+
+Limbo does not use a governance token to create a sustainable economy but the token issued is an infinite mint token like Sushi and Crv and so it's important to understand how the loop is closed on sustainability without the traditional governance/reward token model.
+
+
+## Flan and Scarcity
+The easiest way to understand the value of the reward token, Flan (FLN), is to conceptually iterate over potential versions of Limbo until we arrive at the final version.
+
+#### Version 1: Crowdfunding
+Suppose we write a contract that gathers deposits for a new token listed on Behodler. A threshold is specified that equals the existing AVB on Behodler. Sticking with the stablecoin example, we determine that the average value of reserve liquidity (AVB) on Behodler is $5000. 4 users send in their tokens and about 600 SCX is generated. The 600 is then distributed in direct proportion to the quantities sent in by each user. 
+We know from the bonding curve logic that these numbers imply a price for Scarcity of about $200. This means that the market value of the SCX generated is (200x600) = $120000, well in excess of the AVB of $5000.
+
+Another problem emerges: because of the nature of SCX, a unit of SCX does not represent a dollar value but a proportion of existing liquidity. This means that the same fixed units of SCX will redeem the same proportion of reserve liquidity. For instance, 18 SCX is enough to redeem half of the reserve for a given token, no matter the initial reserve number. 25 SCX is about the sum required to empty a bonding curve entirely. So while the simple SCX crowdfunding model increases fairness, it doesn't resolve the issue of too much SCX being minted.
+
+#### Version 2: migrate and burn
+This is the same as version 1 but the SCX generated by the addition of the new token is mostly burnt. Since 25 SCX is enough to redeem a bonding curve, only 25 SCX is held back. The remaining 575 SCX is burnt. The 25 SCX is then distributed to the crowdfunding users.
+
+This solves the problem of SCX-value mismatch but the user experience of providing liquidity and then waiting for potential rewards that may not come, depending on the popularity of the pool, suffers in comparison to tradition yield farm experiences that issue reward tokens immediately upon staking.
+
+#### Version 3: Flan minting
+Here, we immediately issue a reward token (Flan). Upon successful token migration, the SCX generated is used to buy Flan on an external AMM such as Uniswap. If we use the entire SCX, we undermine the price of SCX by releasing too much onto the market. However, the swap curve on Uniswap does ensure that the SCX will become increasingly difficult to acquire because of slippage. What this means is that we again need to burn most SCX but probably not as much as before, giving us a bit of leeway to boost the price of Flan. 
+
+In order to create sufficient incentives to stake, we need to pay users on an ongoing basis during the staking phase. In addition, we need to compensate them for having their tokens migrated. If we do not compensate them as close to the market value of the token as possible then we can't attract the final users required to push the pool over the threshold.
+
+So it would appear that for Y dollars of a token listed on Limbo, we require more than Y dollars of Flan. However, we have only a little more than Y dollars of SCX from migration with which to boost the price of Flan. Given infinite minting, the price of Flan will slowly decline and we'll end up with an unsustainable economy. This assumes the price of SCX remains stable. If the utility of Flan and Behodler is enough to raise liquidity on Behodler then the incremental price boosts from SCX generated during migration will be enough to see demand for Flan surpass supply growth. 
+However, the liquidity of Flan is not being affected by each migration so unless users voluntarily add liquidity to a Flan/SCX pair on an external AMM, the price movements of Flan between migrations will be volatile, creating uncertainty around mining incentives.
+
+#### Version 4: Price tilting
+Uniswap version 2 and its forks all price swaps as the current ratio of liquidity at the time of the trade. The prior history of trades has no impact on the current price. The reason trading alters the price is because it alters the ratio of reserves. This means that the price can be set merely by setting the ratio of liquidity. For instance, suppose a pair exists with 10 Dai and 10 USDC. This implies a price of 1. Now send 5 Dai and 20 USDC to the pair so that the reserves are now 15 Dai and 30 USDC. This immediately implies a price of 1 Dai = 2 USDC. This is the principle of price tilting.
+
+When a migration on Limbo occurs, a quantity of SCX is generated. If we keep back 25 SCX then we can buy a value of Flan on the open market equal to approximately the value of the AVB of Behodler and no dilution of SCX will occur. However, we can use price tilting to effectively double the value created. Suppose that instead of buying Flan with SCX, we sample the price of Flan in terms of SCX and mint it. For instance, suppose the Uniswap price of Flan is 0.1 SCX. Then at the point of migration, we mint 250 Flan in response to the 25 SCX generated from migration. We then send those 2 quantities to the Flan/SCX Uniswap pair. The liquidity of Flan/SCX has now increases by twice the AVB of Behodler and no SCX dilution has occurred. This provides a far greater runway of Flan minting available to issue as rewards for the subsequent migration. So long as the value of Flan distributed between migrations is less than than twice the AVB of Behodler, we can expect a degree of sustainable minting. The curvature of Uniswap provides some additional price protection.
+
+#### Version 5: Stable Flan
+When issuing a reward token, the more stable the reward token in price, the more predictable rewards and therefore the more likely marginal stakers are to ape in. Most yield farms suffer from the need to create a token that grows in price which implies a certain level of volatility. By decoupling Flan from governance, Limbo can be designed in such a way that Flan converges on being a dollar stable coin. To do this, at the point of migration, we require an oracle sampling of the Dai/SCX price and the SCX/Flan price. We then mint Flan sufficient to set the ratio of SCX/Flan such that Flan will approximately equal 1 Dai. Since Flan is intended to boost the price of SCX, this implies that every successive migration will see more Flan minted for price tilting than in the previous migration. The end result will be not only a more user friendly reward token but one with fast growing liquidity.
+Flan backed by large liquidity pool means that more of it can be minted for rewards which acts to boost the rest of the Behodler ecosystem which is reflected as a higher SCX price which in subsequent migrations leads to increased Flan liquidity depth.
+
+#### Version 6: Lockup incentives
+In addition to token migrations, Limbo offers traditional staking pools. These can be used to both curtail the circulating supply of Flan and to boost demand for Flan. For instance, a Flan pool with an attractive APY will lead to Flan lockup. PyroFlan is a natural hold incentive on Flan and as Flan converges on stablecoin status, PyroFlan will become a thriftcoin, a stablecoin with positive yield.
+A pool on Pyroflan would provide a free source of APY on Flan locked in Limbo. However offering a Flan reward on a Uniswap pool of PyroFlan/SCX or PyroFlan/<stablecoin> would lead to an increase lockup of PyroFlan across two AMMs and would lead to PyroFlan burning from increased trade activity which itself would add to the APY of an accompanying PyroFlan pool on Limbo. 
+Finally, the convergence on Dai parity creates fertile soil for concentrated liquidity trading of Flan with other stablecoins. Uniswap 3 pools of Dai, USDC, USDT, MIM etc coupled with Flan will cement the stablecoin status of Flan. Since LimboDAO can arbitrarily mint Flan, at this point it may be worth minting a great deal of Flan in order to bribe CRV holders to list Flan on Curve. 
+
+## Migration economics
+
+
+# Governance
