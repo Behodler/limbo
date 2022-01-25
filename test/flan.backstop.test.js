@@ -172,9 +172,54 @@ describe("FlanBackStop", function () {
     await this.liquidityReceiver.registerPyroToken(this.MIM.address, "PyroMIM", "PMIM");
     await this.liquidityReceiver.registerPyroToken(this.dai.address, "PyroDAI", "PDAI");
     await this.liquidityReceiver.registerPyroToken(this.USDC.address, "PyroUSDC", "PUSDC");
+
+    const FlanBackStop = await ethers.getContractFactory("FlanBackstop");
+    const pyroFlanAddress = await this.liquidityReceiver.getPyroToken(this.flan.address);
+
+    const PyroTokenFactory = await ethers.getContractFactory("PyroToken");
+    this.pyroFlan = await PyroTokenFactory.attach(pyroFlanAddress);
+
+    this.flanBackStop = await FlanBackStop.deploy(this.limboDAO.address, this.flan.address, this.pyroFlan.address);
+    const UniswapFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    this.uniswapFactory = await UniswapFactory.deploy(owner.address);
+
+    await this.uniswapFactory.createPair(this.MIM.address, this.flan.address);
+    await this.uniswapFactory.createPair(this.MIM.address, this.pyroFlan.address);
+
+    await this.uniswapFactory.createPair(this.dai.address, this.flan.address);
+    await this.uniswapFactory.createPair(this.dai.address, this.pyroFlan.address);
+
+    await this.uniswapFactory.createPair(this.USDC.address, this.flan.address);
+    await this.uniswapFactory.createPair(this.USDC.address, this.pyroFlan.address);
+
+    const TokenPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+
+    //Mim/flan and Mim/PyroFlan LPs
+    const mimFlanAddress = await this.uniswapFactory.getPair(this.MIM.address, this.flan.address);
+    this.mimFlanLP = await TokenPairFactory.attach(mimFlanAddress);
+    const mimPyroFlanAddress = await this.uniswapFactory.getPair(this.MIM.address, this.pyroFlan.address);
+    this.mimPyroFlanLP = await TokenPairFactory.attach(mimPyroFlanAddress);
+
+    //dai/flan and dai/PyroFlan LPs
+    const daiFlanAddress = await this.uniswapFactory.getPair(this.dai.address, this.flan.address);
+    this.daiFlanLP = await TokenPairFactory.attach(daiFlanAddress);
+    const daiPyroFlanAddress = await this.uniswapFactory.getPair(this.dai.address, this.pyroFlan.address);
+    this.daiPyroFlanLP = await TokenPairFactory.attach(daiPyroFlanAddress);
+
+    //usdc/flan and usdc/PyroFlan LPs
+    const usdcFlanAddress = await this.uniswapFactory.getPair(this.USDC.address, this.flan.address);
+    this.usdcFlanLP = await TokenPairFactory.attach(usdcFlanAddress);
+    const usdcPyroFlanAddress = await this.uniswapFactory.getPair(this.USDC.address, this.pyroFlan.address);
+    this.usdcPyroFlanLP = await TokenPairFactory.attach(usdcPyroFlanAddress);
+
+    const ONE = "1000000000000000000";
+    await this.flanBackStop.setBacker(this.MIM.address, this.mimFlanLP.address, this.mimPyroFlanLP.address, ONE);
+    await this.flanBackStop.setBacker(this.dai.address, this.daiFlanLP.address, this.daiPyroFlanLP.address, ONE);
+    await this.flanBackStop.setBacker(this.USDC.address, this.usdcFlanLP.address, this.usdcPyroFlanLP.address, ONE);
+    
   });
 
-  var toggleWhiteListFactory = (eye, dao, whiteListingProposal, proposalFactory) => {
+  var toggleWhiteListFactory = (eye, dao, whiteListingProposal, roposalFactory) => {
     return async function (contractToToggle) {
       await whiteListingProposal.parameterize(proposalFactory.address, contractToToggle);
       const requiredFateToLodge = (await dao.proposalConfig())[1];
@@ -192,8 +237,7 @@ describe("FlanBackStop", function () {
 
   it("bad config fails", async function () {
     const FlanBackStop = await ethers.getContractFactory("FlanBackstop");
-    const pyroFlanAddress = await this.liquidityReceiver.getPyroToken(this.flan.address);
-    flanBackStop = await FlanBackStop.deploy(this.limboDAO.address, pyroFlanAddress, this.flan.address);
+    flanBackStop = await FlanBackStop.deploy(this.limboDAO.address, this.flan.address, this.pyroFlan.address);
 
     await this.MIM.approve(flanBackStop.address, "1000000000");
     await this.MIM.mint("2000000000");

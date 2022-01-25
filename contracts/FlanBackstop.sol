@@ -9,8 +9,8 @@ import "./facades/UniPairLike.sol";
 contract FlanBackstop is Governable {
   constructor(
     address dao,
-    address pyroFlan,
-    address flan
+    address flan,
+    address pyroFlan
   ) Governable(dao) {
     config.pyroFlan = pyroFlan;
     config.flan = flan;
