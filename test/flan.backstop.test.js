@@ -9,7 +9,10 @@ describe("FlanBackStop", function () {
   let dao, proposalFactory, updateProposalConfigProposal;
   let toggleWhiteList;
   const zero = "0x0000000000000000000000000000000000000000";
-
+  const ONE = "1000000000000000000";
+  const TWO = "2000000000000000000";
+  const TEN = "10000000000000000000";
+  const THOUSAND = "1000000000000000000000";
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
 
@@ -194,7 +197,7 @@ describe("FlanBackStop", function () {
 
     const TokenPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
 
-    //Mim/flan and Mim/PyroFlan LPs
+    //Mim/flan and mim/PyroFlan LPs
     const mimFlanAddress = await this.uniswapFactory.getPair(this.MIM.address, this.flan.address);
     this.mimFlanLP = await TokenPairFactory.attach(mimFlanAddress);
     const mimPyroFlanAddress = await this.uniswapFactory.getPair(this.MIM.address, this.pyroFlan.address);
@@ -212,11 +215,54 @@ describe("FlanBackStop", function () {
     const usdcPyroFlanAddress = await this.uniswapFactory.getPair(this.USDC.address, this.pyroFlan.address);
     this.usdcPyroFlanLP = await TokenPairFactory.attach(usdcPyroFlanAddress);
 
-    const ONE = "1000000000000000000";
+    await this.flan.mint(owner.address,TEN);
+    await this.flan.approve(this.pyroFlan.address,THOUSAND)
+    await this.pyroFlan.mint(owner.address,TWO)
+
+    const initialAmount = "10000000000000000"
+
+    //initialize liquidity on mimFlan and mimPyroFlan
+    await this.MIM.mint("100000000000");
+    await this.MIM.approve(this.mimFlanLP.address, ONE);
+    await this.flan.approve(this.mimFlanLP.address, ONE);
+    await this.MIM.transfer(this.mimFlanLP.address,initialAmount)
+    await this.flan.transfer(this.mimFlanLP.address,initialAmount)
+    await this.pyroFlan.approve(this.mimPyroFlanLP.address,ONE)
+    await this.MIM.approve(this.mimPyroFlanLP.address,ONE)
+    await this.pyroFlan.transfer(this.mimPyroFlanLP.address,initialAmount)
+    await this.MIM.transfer(this.mimPyroFlanLP.address,initialAmount)
+    await this.mimFlanLP.mint(owner.address)
+    await this.mimPyroFlanLP.mint(owner.address)
+
+    //initialize liquidity on daiFlan and daiPyroFlan
+    await this.dai.mint("100000000000");
+    await this.dai.approve(this.daiFlanLP.address, ONE);
+    await this.flan.approve(this.daiFlanLP.address, ONE);
+    await this.dai.transfer(this.daiFlanLP.address,initialAmount)
+    await this.flan.transfer(this.daiFlanLP.address,initialAmount)
+    await this.pyroFlan.approve(this.daiPyroFlanLP.address,ONE)
+    await this.dai.approve(this.daiPyroFlanLP.address,ONE)
+    await this.pyroFlan.transfer(this.daiPyroFlanLP.address,initialAmount)
+    await this.dai.transfer(this.daiPyroFlanLP.address,initialAmount)
+    await this.daiFlanLP.mint(owner.address)
+    await this.daiPyroFlanLP.mint(owner.address)
+
+    //initialize liquidity on usdcFlan and usdcPyroFlan
+    await this.USDC.mint("100000000000");
+    await this.USDC.approve(this.usdcFlanLP.address, ONE);
+    await this.flan.approve(this.usdcFlanLP.address, ONE);
+    await this.USDC.transfer(this.usdcFlanLP.address,initialAmount)
+    await this.flan.transfer(this.usdcFlanLP.address,initialAmount)
+    await this.pyroFlan.approve(this.usdcPyroFlanLP.address,ONE)
+    await this.USDC.approve(this.usdcPyroFlanLP.address,ONE)
+    await this.pyroFlan.transfer(this.usdcPyroFlanLP.address,initialAmount)
+    await this.USDC.transfer(this.usdcPyroFlanLP.address,initialAmount)
+    await this.usdcFlanLP.mint(owner.address)
+    await this.usdcPyroFlanLP.mint(owner.address)
+
     await this.flanBackStop.setBacker(this.MIM.address, this.mimFlanLP.address, this.mimPyroFlanLP.address, ONE);
     await this.flanBackStop.setBacker(this.dai.address, this.daiFlanLP.address, this.daiPyroFlanLP.address, ONE);
     await this.flanBackStop.setBacker(this.USDC.address, this.usdcFlanLP.address, this.usdcPyroFlanLP.address, ONE);
-    
   });
 
   var toggleWhiteListFactory = (eye, dao, whiteListingProposal, roposalFactory) => {
