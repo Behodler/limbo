@@ -49,7 +49,7 @@ enum ProposalDecision {
  * Using Fate to make a governance decisions spens it out of existince. So Fate reflects the opportunity cost of staking.
  * Flash governance is for instant decision making that cannot wait for voting to occur. Best used for small tweaks to parameters or emergencies.
  * Flash governance requires a governance asset (EYE) be staked at the time of the execution. The asset cannot be withdrawn for a certain period of time,
- * allowing for Fate holders to vote on the legitimacy of the decision. If the decision is considered maliious, the staked EYE is burnt.
+ * allowing for Fate holders to vote on the legitimacy of the decision. If the decision is considered malicious, the staked EYE is burnt.
  */
 ///@dev Contracts subject to LimboDAO must inherit the Governable abstract contract.
 contract LimboDAO is Ownable {
