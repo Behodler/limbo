@@ -25,8 +25,7 @@ contract ERC677 is ERC20Burnable, Ownable {
         uint256 _value,
         bytes memory _data
     ) public returns (bool success) {
-        super.transfer(_to, _value);
-        _transfer(msg.sender, _to, _value);
+        _transfer(_msgSender(), _to, _value);
         if (isContract(_to)) {
             contractFallback(_to, _value, _data);
         }
@@ -39,7 +38,7 @@ contract ERC677 is ERC20Burnable, Ownable {
         bytes memory _data
     ) private {
         IERC677Receiver receiver = IERC677Receiver(_to);
-        receiver.onTokenTransfer(msg.sender, _value, _data);
+        receiver.onTokenTransfer(_msgSender(), _value, _data);
     }
 
     function isContract(address _addr) private view returns (bool hasCode) {
