@@ -26,17 +26,17 @@ contract FlashGovernanceArbiter is Governable {
   constructor(address dao) Governable(dao) {}
 
   struct FlashGovernanceConfig {
-    address asset;
     uint256 amount;
     uint256 unlockTime;
+    address asset;
     bool assetBurnable;
   }
 
   //Note: epoch settings prevent DOS attacks. Change tolerance curtails the damage of bad flash governance.
   struct SecurityParameters {
-    uint8 maxGovernanceChangePerEpoch; //prevents flash governance from wrecking the incentives.
     uint256 epochSize; //only one flash governance action can happen per epoch to prevent governance DOS
     uint256 lastFlashGovernanceAct;
+    uint8 maxGovernanceChangePerEpoch; //prevents flash governance from wrecking the incentives.
     uint8 changeTolerance; //1-100 maximum percentage any numeric variable can be changed through flash gov
   }
 

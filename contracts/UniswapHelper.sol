@@ -14,22 +14,22 @@ contract BlackHole {}
 ///@Title Uniswap V2 helper for managing Flan liquidity on Uniswap V2, Sushiswap and any other compatible AMM
 ///@author Justin Goro
 /**@notice Flan liquidity is boosted on Uniswap (or Sushiswap) via open market operations at the point of a token migration.
-  * UniswapHelper handles all the mechanics as well managing a just-in-time (Justin Time?) oracle
+ * UniswapHelper handles all the mechanics as well managing a just-in-time (Justin Time?) oracle
  */
 contract UniswapHelper is Governable, AMMHelper {
   address limbo;
 
   struct UniVARS {
     UniPairLike Flan_SCX_tokenPair;
-    address behodler;
-    address blackHole;
-    address flan;
     uint256 divergenceTolerance;
     uint256 minQuoteWaitDuration;
-    address DAI;
-    uint8 precision; // behodler uses a binary search. The higher this number, the more precise
     IUniswapV2Factory factory;
+    address behodler;
+    uint8 precision; // behodler uses a binary search. The higher this number, the more precise
     uint8 priceBoostOvershoot; //percentage (0-100) for which the price must be overcorrected when strengthened to account for other AMMs
+    address blackHole;
+    address flan;
+    address DAI;
   }
 
   struct FlanQuote {
@@ -38,13 +38,13 @@ contract UniswapHelper is Governable, AMMHelper {
     uint256 blockProduced;
   }
 
-  /**@dev the Dai SCX price and the Dai balance on Behodler are both sampled twice before a migration can occur. 
-  * The two samples have to be spaced a minimum duration and have to be the same values (within an error threshold). The objective here is to make price manipulation untenably expensive for an attacker
-  * so that the mining power expended (or the opportunity cost of eth staked) far exceeds the benefit to manipulating Limbo.
-  * The assumption of price stability isn't a bug because migrations aren't required to happen frequently. Instead if natural price drift occurs for non malicious reasons,
-  * the migration can be reattempted until a period of sufficient calm allows for migration. If a malicious actor injects volatility in order to prevent migration, by the principle
-  * of antifragility, they're doing the entire Ethereum ecosystem a service at their own expense.
-  */
+  /**@dev the Dai SCX price and the Dai balance on Behodler are both sampled twice before a migration can occur.
+   * The two samples have to be spaced a minimum duration and have to be the same values (within an error threshold). The objective here is to make price manipulation untenably expensive for an attacker
+   * so that the mining power expended (or the opportunity cost of eth staked) far exceeds the benefit to manipulating Limbo.
+   * The assumption of price stability isn't a bug because migrations aren't required to happen frequently. Instead if natural price drift occurs for non malicious reasons,
+   * the migration can be reattempted until a period of sufficient calm allows for migration. If a malicious actor injects volatility in order to prevent migration, by the principle
+   * of antifragility, they're doing the entire Ethereum ecosystem a service at their own expense.
+   */
   FlanQuote[2] public latestFlanQuotes; //0 is latest
 
   UniVARS VARS;
@@ -107,7 +107,7 @@ contract UniswapHelper is Governable, AMMHelper {
   ///@param FlanSCXPair The Uniswap flan/SCX pair
   ///@param behodler Behodler AMM
   ///@param flan The flan token
-  ///@param divergenceTolerance The amount of price difference between the two quotes that is tolerated before a migration is attempted 
+  ///@param divergenceTolerance The amount of price difference between the two quotes that is tolerated before a migration is attempted
   ///@param minQuoteWaitDuration The minimum duration between the sampling of oracle data used for migration
   ///@param precision In order to query the tokens redeemed by a quantity of SCX, Behodler performs a binary search. Precision refers to the max iterations of the search.
   ///@param priceBoostOvershoot Flan targets parity with Dai. If we set Flan to equal Dai then between migrations, it will always be below Dai. Overshoot gives us some runway by intentionally "overshooting" the price
@@ -137,10 +137,7 @@ contract UniswapHelper is Governable, AMMHelper {
   ///@notice Samples the two values required for migration. Must be called twice before migration can occur.
   function generateFLNQuote() public override {
     latestFlanQuotes[1] = latestFlanQuotes[0];
-    (
-      latestFlanQuotes[0].DaiScxSpotPrice,
-      latestFlanQuotes[0].DaiBalanceOnBehodler
-    ) = getLatestFLNQuote();
+    (latestFlanQuotes[0].DaiScxSpotPrice, latestFlanQuotes[0].DaiBalanceOnBehodler) = getLatestFLNQuote();
     latestFlanQuotes[0].blockProduced = block.number;
   }
 
@@ -159,7 +156,13 @@ contract UniswapHelper is Governable, AMMHelper {
   ///@notice When tokens are migrated to Behodler, SCX is generated. This SCX is used to boost Flan liquidity and nudge the price of Flan back to parity with Dai
   ///@param rectangleOfFairness refers to the quantity of SCX held back to be used for open market Flan stabilizing operations
   ///@dev makes use of price tilting. Be sure to understand the concept of price tilting before trying to understand the final if statement.
-  function stabilizeFlan(uint256 rectangleOfFairness) public override onlyLimbo ensurePriceStability returns (uint256 lpMinted) {
+  function stabilizeFlan(uint256 rectangleOfFairness)
+    public
+    override
+    onlyLimbo
+    ensurePriceStability
+    returns (uint256 lpMinted)
+  {
     uint256 localSCXBalance = IERC20(VARS.behodler).balanceOf(address(this));
 
     //SCX transfers incur a 2% fee. Checking that SCX balance === rectangleOfFairness must take this into account.
@@ -202,7 +205,7 @@ contract UniswapHelper is Governable, AMMHelper {
   function minAPY_to_FPS(
     uint256 minAPY, //divide by 10000 to get percentage
     uint256 daiThreshold
-  ) public override view ensurePriceStability returns (uint256 fps) {
+  ) public view override ensurePriceStability returns (uint256 fps) {
     daiThreshold = daiThreshold == 0 ? latestFlanQuotes[0].DaiBalanceOnBehodler : daiThreshold;
     // console.log("DAI threshold %s", daiThreshold);
     uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
