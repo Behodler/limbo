@@ -54,7 +54,6 @@ async function main() {
     updater("deployLiquidityReceiver", liquidityReceiverAddresses);
   }
 
-  
   let wethAddresses = addressLoader("deployWeth");
   if (!wethAddresses) {
     wethAddresses = await deployments.deployWeth(
@@ -74,10 +73,33 @@ async function main() {
     updater("deployUniswap", uniswapAddresses);
   }
 
-  await deployments.seedUniswap(deployer, tokens["EYE"],tokens["DAI"],
-  tokens["SCX"],wethAddresses["WETH"],uniswapAddresses["EYEDAI"],uniswapAddresses["EYESCX"],
-  uniswapAddresses["SCXWETH"]
+  let sushiAddresses = addressLoader("deploySushiswap");
+  if (!sushiAddresses) {
+    sushiAddresses = await deployments.deploySushiswap(deployer, tokens, recognizedTestNet);
+    updater("deploySushiswap", sushiAddresses);
+  }
+
+  await deployments.seedUniswap(
+    deployer,
+    tokens["EYE"],
+    tokens["DAI"],
+    tokens["SCX"],
+    wethAddresses["WETH"],
+    uniswapAddresses["EYEDAI"],
+    uniswapAddresses["EYESCX"],
+    uniswapAddresses["SCXWETH"]
   );
+
+  await deployments.seedUniswap(
+    deployer,
+    tokens["EYE"],
+    tokens["DAI"],
+    tokens["SCX"],
+    wethAddresses["WETH"],
+    sushiAddresses["EYEDAISLP"],
+    sushiAddresses["EYESCXSLP"],
+    sushiAddresses["SCXWETHSLP"]
+  )
 
   let limboDaoAddresses = addressLoader("deployLimboDAO");
   if (!limboDaoAddresses) {
@@ -183,6 +205,8 @@ async function main() {
     updater("deployMultiCall", multicallAddress);
   }
 
+  
+
   const flatOutput: OutputAddress = {};
 
   for (const key in behodler) {
@@ -202,6 +226,10 @@ async function main() {
 
   for (const key in uniswapAddresses) {
     flatOutput[key] = uniswapAddresses[key];
+  }
+
+  for (const key in sushiAddresses) {
+    flatOutput[key] = sushiAddresses[key];
   }
 
   for (const key in limboDaoAddresses) {
