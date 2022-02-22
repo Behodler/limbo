@@ -4,7 +4,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
 import { BigNumber, Contract, ContractFactory } from "ethers";
 import { write, writeFileSync } from "fs";
 import { OutputAddress, AddressFileStructure } from "./common";
-// const hre = require("hardhat");
 type address = string;
 const nullAddress = "0x0000000000000000000000000000000000000000";
 
@@ -72,8 +71,7 @@ export async function deployMorgothDAO(
 export async function deploy(factory: ContractFactory, args?: any[], gasOverride?: boolean): Promise<Contract> {
   let gasArgs = args || [];
   if (gasOverride) gasArgs.push({ gasLimit: 2000000 });
-  //  gasArgs.push({ gasLimit: 2000000 });
-  // const gasArgs = [...args,gas:20000000]
+
   const contract = await factory.deploy(...gasArgs);
   console.log("pausing for deployment");
   await pausePromise(contract.address);
@@ -88,7 +86,7 @@ export function pausePromiseFactory(networkName: string) {
           console.log(message);
           return resolve(message);
         },
-        networkName === "hardhat" ? 0 : 90000
+        networkName === "hardhat" ? 0 : 120000
       );
     });
   };
@@ -494,10 +492,12 @@ export async function deployWeth(
   return addressList;
 }
 
-export async function deployUniswap(
+async function uniclone(
   deployer: SignerWithAddress,
   tokenAddresses: OutputAddress,
-  recognizedTestNet: boolean
+  recognizedTestNet: boolean,
+  name: string,
+  factory: string
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
   const UniswapV2Factory = await ethers.getContractFactory("RealUniswapV2Factory");
@@ -505,7 +505,7 @@ export async function deployUniswap(
     console.log("WARNING: NETWORK DETECTED NOT PUBLIC TESTNET");
   }
   const uniswapFactory = recognizedTestNet
-    ? await UniswapV2Factory.attach("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f")
+    ? await UniswapV2Factory.attach(factory)
     : await UniswapV2Factory.deploy(deployer.address);
   await pausePromise("uniswapFactory deploy");
 
@@ -515,20 +515,44 @@ export async function deployUniswap(
 
   const scxAddress = tokenAddresses["SCX"];
 
-  uniswapFactory.createPair(daiAddress, eyeAddress);
-  await pausePromise("uniswapFactory createPair");
-  uniswapFactory.createPair(wethAddress, scxAddress);
-  await pausePromise("uniswapFactory createPair");
-  uniswapFactory.createPair(eyeAddress, scxAddress);
-  await pausePromise("uniswapFactory createPair");
-
   const pair = await ethers.getContractFactory("RealUniswapV2Pair");
 
-  const EYEDAI = await pair.attach(await uniswapFactory.getPair(daiAddress, eyeAddress));
-  const SCXWETH = await pair.attach(await uniswapFactory.getPair(wethAddress, scxAddress));
-  const EYESCX = await pair.attach(await uniswapFactory.getPair(eyeAddress, scxAddress));
+  let eyeDaiAddress = await uniswapFactory.getPair(daiAddress, eyeAddress);
+  let scxWethAddress = await uniswapFactory.getPair(wethAddress, scxAddress);
+  let eyeScxAddress = await uniswapFactory.getPair(scxAddress, eyeAddress);
 
-  //TODO: break this function up at this point so that we can record contract addresses
+  console.log({
+    eyeDaiAddress,
+    scxWethAddress,
+    eyeScxAddress,
+  });
+
+  let EYEDAI = await pair.attach(eyeDaiAddress);
+  let SCXWETH = await pair.attach(scxWethAddress);
+  let EYESCX = await pair.attach(eyeScxAddress);
+  if (name === "sushi") {
+    console.log("EYEDAI: " + EYEDAI.address);
+    console.log("SCXWETH: " + SCXWETH.address);
+    console.log("EYESCX: " + EYESCX.address);
+  }
+  if (EYEDAI.address === "0x0000000000000000000000000000000000000000")
+    await uniswapFactory.createPair(daiAddress, eyeAddress);
+  await pausePromise("uniswapFactory createPair");
+  if (SCXWETH.address === "0x0000000000000000000000000000000000000000")
+    await uniswapFactory.createPair(wethAddress, scxAddress);
+  await pausePromise("uniswapFactory createPair");
+  if (EYESCX.address === "0x0000000000000000000000000000000000000000")
+    await uniswapFactory.createPair(eyeAddress, scxAddress);
+  await pausePromise("uniswapFactory createPair");
+
+  eyeDaiAddress = await uniswapFactory.getPair(daiAddress, eyeAddress);
+  scxWethAddress = await uniswapFactory.getPair(wethAddress, scxAddress);
+  eyeScxAddress = await uniswapFactory.getPair(scxAddress, eyeAddress);
+
+  EYEDAI = await pair.attach(eyeDaiAddress);
+  SCXWETH = await pair.attach(scxWethAddress);
+  EYESCX = await pair.attach(eyeScxAddress);
+
   console.log(
     JSON.stringify({
       EYEDAI: EYEDAI.address,
@@ -536,12 +560,28 @@ export async function deployUniswap(
       EYESCX: EYESCX.address,
     })
   );
-
-  addressList["uniswapFactory"] = uniswapFactory.address;
-  addressList["EYEDAI"] = EYEDAI.address;
-  addressList["EYESCX"] = EYESCX.address;
-  addressList["SCXWETH"] = SCXWETH.address;
+  const suffix = name === "sushi" ? "SLP" : "";
+  addressList[`${name}Factory`] = uniswapFactory.address;
+  addressList["EYEDAI" + suffix] = EYEDAI.address;
+  addressList["EYESCX" + suffix] = EYESCX.address;
+  addressList["SCXWETH" + suffix] = SCXWETH.address;
   return addressList;
+}
+
+export async function deploySushiswap(
+  deployer: SignerWithAddress,
+  tokenAddresses: OutputAddress,
+  recognizedTestNet: boolean
+) {
+  return uniclone(deployer, tokenAddresses, recognizedTestNet, "sushi", "0xc35DADB65012eC5796536bD9864eD8773aBc74C4");
+}
+
+export async function deployUniswap(
+  deployer: SignerWithAddress,
+  tokenAddresses: OutputAddress,
+  recognizedTestNet: boolean
+) {
+  return uniclone(deployer, tokenAddresses, recognizedTestNet, "uniswap", "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
 }
 
 export async function seedUniswap(
@@ -572,13 +612,13 @@ export async function seedUniswap(
   const EYEDAIBalance = await EYEDAI.balanceOf(deployer.address);
   const SCXWETHBalance = await SCXWETH.balanceOf(deployer.address);
   const EYESCXBalance = await EYESCX.balanceOf(deployer.address);
-  console.log({
-    EYEDAIBalance,
-    SCXWETHBalance,
-    EYESCXBalance
-  })
+  console.log([
+    EYEDAIBalance.toString(),
+    SCXWETHBalance.toString(),
+    EYESCXBalance.toString(),
+  ]);
   if (EYEDAIBalance.eq(0)) {
-    console.log('eyedai')
+    console.log("eyedai");
     await eyeInstance.transfer(EYEDAI.address, tokenAmount);
     await pausePromise("eye transfer");
 
@@ -590,7 +630,7 @@ export async function seedUniswap(
   }
 
   if (SCXWETHBalance.eq(0)) {
-    console.log('scxweth')
+    console.log("scxweth");
     const wethbalance = await wethInstance.balanceOf(deployer.address);
     console.log("WETH balance: " + wethbalance);
     await wethInstance.transfer(SCXWETH.address, wethbalance.div(5));
@@ -599,33 +639,28 @@ export async function seedUniswap(
     await scxInstance.transfer(SCXWETH.address, seedAmount);
     await pausePromise("scx transfer");
 
-
     await SCXWETH.mint(deployer.address);
     await pausePromise("SCXWETH mint");
   }
 
   if (EYESCXBalance.eq(0)) {
-    console.log('eyescx')
+    console.log("eyescx");
     await scxInstance.transfer(EYESCX.address, seedAmount);
     await pausePromise("scx transfer");
     await eyeInstance.transfer(EYESCX.address, tokenAmount);
     await pausePromise("eye transfer");
 
-        //underflow on sub here. Console.log?
     await EYESCX.mint(deployer.address);
     await pausePromise("EYESCX mint");
   }
 }
 
 export async function deployBehodler(deployer: SignerWithAddress): Promise<OutputAddress> {
-  //const openBehodler = await ethers.getContractFactory("AddressBalanceCheck")
-
   const AddressBalanceCheck = await ethers.getContractFactory("AddressBalanceCheck");
   const ABDK = await ethers.getContractFactory("ABDK", deployer);
   const addressBalanceCheckDeployment = await deploy(AddressBalanceCheck);
   console.log("address balance check");
   const addressBalanceCheckAddress = addressBalanceCheckDeployment.address;
-  // await addressBalanceCheckDeployment.deployed();
   const abdkAddress = await deploy(ABDK, []);
   const BehodlerLite = await ethers.getContractFactory("BehodlerLite", {
     libraries: { AddressBalanceCheck: addressBalanceCheckAddress },

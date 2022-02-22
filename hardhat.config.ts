@@ -34,7 +34,7 @@ export default {
         mnemonic,
       },
       from: "0xD8d8632Bb8C8b199e43faDf7205749dd34C4B8c9", 
-      gaslLimit: "2000000",
+      gaslLimit: "20000000",
       gasMultiplier:1.4
     },
   },
