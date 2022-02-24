@@ -64,6 +64,7 @@ const nullAddress = "0x0000000000000000000000000000000000000000";
 async function main() {
   const [deployer] = await ethers.getSigners();
   const chainId = (await deployer.provider?.getNetwork())?.chainId;
+  const pauseUntilNextBlock = pauseUntilNextBlockFactory();
 
   //validate chain
   if (!chainId) throw "unknown chain";
@@ -79,10 +80,43 @@ async function main() {
     },
   });
   const limbo = await LimboFactory.attach(addresses.deployLimbo.limbo);
+  await pauseUntilNextBlock();
+  //load tokens
+  const { KNC, Mana, REP, rDAI, ZRX } = addresses.unlistedTokens;
 
-  const crossingConfig = await limbo.crossingConfig();
+  //configure tokens for migration
+  await limbo.configureSoul(KNC, parseEther("3000"), 1, 1, 0, parseEther("0.00001289"));
+  await pauseUntilNextBlock();
+  //configure existing behodler tokens for perpetual
 
-  console.log("test data " + JSON.stringify(crossingConfig, null, 4));
+  //load souls to confirm configuration success
+  const soulReaderFactory = await ethers.getContractFactory("SoulReader");
+  const soulReader = await soulReaderFactory.attach(addresses.deploySoulReader.soulReader);
+
+  const crossingParamsOfKNC = await soulReader.CrossingParameters(KNC, limbo.address);
+  console.log("KNC fps " + crossingParamsOfKNC[2].toString());
+}
+
+function pauseUntilNextBlockFactory() {
+  let provider = ethers.getDefaultProvider("ropsten");
+  const duration = 5000;
+  return async function () {
+    const initialBlock = await provider.getBlockNumber();
+    let currentBlock = await provider.getBlockNumber();
+    while (currentBlock === initialBlock) {
+      console.log(`current block number: ${currentBlock}. Pausing for ${duration / 1000} seconds`);
+      await pause(duration);
+      currentBlock = await provider.getBlockNumber();
+    }
+  };
+}
+
+function pause(duration: number) {
+  return new Promise(function (resolve, error) {
+    setTimeout(() => {
+      return resolve(duration);
+    }, duration);
+  });
 }
 
 const ethers = hre.ethers;
