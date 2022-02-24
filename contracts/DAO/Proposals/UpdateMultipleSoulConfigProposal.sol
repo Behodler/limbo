@@ -72,7 +72,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
         fps
       );
     }
-
+  //TODO: add configure crossing config
     return true;
   }
 }

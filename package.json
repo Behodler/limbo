@@ -19,6 +19,7 @@
     "deploy:ropsten": "sudo npx hardhat run --network ropsten scripts/testnet-deploy.ts",
     "deploy:local": "sudo npx hardhat run  scripts/testnet-deploy.ts",
     "deploy:ropsten2": "sudo npx hardhat run --network ropsten scripts/testnet/orchestrate.ts",
+    "configureSouls:ropsten": "sudo npx hardhat run --network ropsten scripts/testnet/configureRopsten.ts",
     "deploy:local2": "sudo touch scripts/testnet/addresses/hardhat.json && sudo rm scripts/testnet/addresses/hardhat.json && sudo npx hardhat run scripts/testnet/orchestrate.ts"
   },
   "repository": {
