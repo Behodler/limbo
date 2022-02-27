@@ -31,6 +31,11 @@ describe("Limbo", function () {
 
     this.limboDAO = await LimboDAOFactory.deploy();
 
+    const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
+    this.flashGovernance = await flashGovernanceFactory.deploy(this.limboDAO.address);
+
+    await this.limboDAO.setFlashGoverner(this.flashGovernance.address);
+
     this.TokenFactory = await ethers.getContractFactory("MockToken");
     this.eye = await this.TokenFactory.deploy("eye", "eye", [], []);
 
@@ -38,9 +43,6 @@ describe("Limbo", function () {
     this.dai = await this.TokenFactory.deploy("DAI", "DAI", [], []);
     await this.dai.mint("600000000");
     await this.dai.transfer(this.mockBehodler.address, "600000000");
-
-    const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
-    this.flashGovernance = await flashGovernanceFactory.deploy(this.limboDAO.address);
 
     await this.flashGovernance.configureSecurityParameters(10, 100, 30);
     // await this.eye.approve(this.limbo.address, 2000);
@@ -84,7 +86,6 @@ describe("Limbo", function () {
     this.morgothTokenApprover = await morgothTokenApproverFactory.deploy();
 
     const soulUpdateProposalFactory = await ethers.getContractFactory("UpdateSoulConfigProposal");
-
     this.soulUpdateProposal = await soulUpdateProposalFactory.deploy(
       this.limboDAO.address,
       "hello",
@@ -107,7 +108,6 @@ describe("Limbo", function () {
       this.proposalFactory.address,
       sushiSwapFactory.address,
       uniswapFactory.address,
-      this.flashGovernance.address,
       9,
       [],
       []
@@ -186,7 +186,7 @@ describe("Limbo", function () {
       await dao.executeCurrentProposal();
     };
   };
-
+  /*
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -476,7 +476,7 @@ describe("Limbo", function () {
 
     expect(eyeBalanceAfter.sub(eyeBalanceBefore).toString()).to.equal("21000000");
   });
-
+*/
   it("burn asset for flashGov decision", async function () {
     //set flash loan params
     await this.flashGovernance.configureFlashGovernance(
@@ -512,7 +512,12 @@ describe("Limbo", function () {
 
     await toggleWhiteList(burnFlashStakeProposal.address);
 
+    const eyeBefore = await this.eye.balanceOf(owner.address);
     await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
+    const eyeAfter = await this.eye.balanceOf(owner.address);
+
+    expect(eyeBefore.sub(eyeAfter).toString()).to.equal("21000000");
+
     await this.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
     let currentProposal = (await this.limboDAO.currentProposalState())[4];
     console.log("proposal: " + currentProposal);
@@ -525,14 +530,14 @@ describe("Limbo", function () {
     await this.limboDAO.vote(burnFlashStakeProposal.address, "10000");
 
     const flashGovConfig = await this.flashGovernance.flashGovernanceConfig();
-    const advancement = flashGovConfig[2].sub(1000);
+    const advancement = flashGovConfig[1].sub(1000);
     console.log("advancement: " + advancement.toString());
     //fast forward time to after voting round finishes but before flash asset unlocked
     await advanceTime(advancement.toNumber()); //more time
 
     //assert eye locked for user
     const pendingBeforeAttempt = await this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address);
-    expect(pendingBeforeAttempt[1].toString()).to.equal("21000000");
+    expect(pendingBeforeAttempt[0].toString()).to.equal("21000000");
 
     //try to withdraw flash gov asset and fail. Assert money still there
     await expect(this.flashGovernance.withdrawGovernanceAsset(this.limbo.address, this.eye.address)).to.be.revertedWith(
@@ -550,7 +555,7 @@ describe("Limbo", function () {
     const eyeTotalsupplyAfter = await this.eye.totalSupply();
     const pendingAfterAttempt = await this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address);
 
-    expect(pendingAfterAttempt[1].toString()).to.equal("21000000");
+    expect(pendingAfterAttempt[0].toString()).to.equal("21000000");
     //assert eye has declined by 21000000
     expect(eyeInFlashGovBefore.sub(eyeInFlashGovAfter).toString()).to.equal("21000000");
     expect(eyeTotalsupplyBefore.sub(eyeTotalsupplyAfter).toString()).to.equal("21000000");
@@ -2075,5 +2080,4 @@ describe("Limbo", function () {
     const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
-  
 });

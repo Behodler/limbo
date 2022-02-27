@@ -13,7 +13,7 @@ import "../facades/ProposalFactoryLike.sol";
  *       -onlySuccessfulProposals will only execute if a proposal passes with a yes vote.
  */
 abstract contract Governable {
-  FlashGovernanceArbiterLike internal flashGoverner;
+  FlashGovernanceArbiterLike public governer;
 
   bool public configured;
   address public DAO;
@@ -46,14 +46,14 @@ abstract contract Governable {
   function _governanceApproved(bool emergency) internal {
     bool successfulProposal = LimboDAOLike(DAO).successfulProposal(msg.sender);
     if (successfulProposal) {
-      flashGoverner.setEnforcement(false);
-    } else if (configured) flashGoverner.assertGovernanceApproved(msg.sender, address(this), emergency);
+      flashGoverner().setEnforcement(false);
+    } else if (configured) flashGoverner().assertGovernanceApproved(msg.sender, address(this), emergency);
   }
 
   modifier governanceApproved(bool emergency) {
     _governanceApproved(emergency);
     _;
-    flashGoverner.setEnforcement(true);
+    flashGoverner().setEnforcement(true);
   }
 
   function assertSuccessfulProposal(address sender) internal view {
@@ -64,10 +64,16 @@ abstract contract Governable {
     setDAO(dao);
   }
 
+  //singleton pattern to resolve circularity of dependency without impacting gas significantly
+  function flashGoverner() internal returns (FlashGovernanceArbiterLike) {
+    if (address(governer) == address(0)) governer = FlashGovernanceArbiterLike(LimboDAOLike(DAO).getFlashGoverner());
+    return governer;
+  }
+
   ///@param dao The LimboDAO contract address
   function setDAO(address dao) public {
     require(DAO == address(0) || msg.sender == DAO || !configured, "EK");
     DAO = dao;
-    flashGoverner = FlashGovernanceArbiterLike(LimboDAOLike(dao).getFlashGoverner());
+    delete governer;
   }
 }

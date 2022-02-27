@@ -16,9 +16,8 @@
     "dev": "hardhat --network localhost",
     "update:contracts": "cp addresses.json ../LimboUI/src/constants/addresses",
     "update:ui": "node -e 'setTimeout(()=>{},20000)' && yarn scripts:addresses && yarn scripts:setup && yarn update:contracts && rm -rf ../LimboUI/src/constants/contracts && cp -R build/contracts/ ../LimboUI/src/constants/contracts",
-    "deploy:ropsten": "sudo npx hardhat run --network ropsten scripts/testnet-deploy.ts",
     "deploy:local": "sudo npx hardhat run  scripts/testnet-deploy.ts",
-    "deploy:ropsten2": "sudo npx hardhat run --network ropsten scripts/testnet/orchestrate.ts",
+    "deploy:ropsten": "sudo npx hardhat run --network ropsten scripts/testnet/orchestrate.ts",
     "configureSouls:ropsten": "sudo npx hardhat run --network ropsten scripts/testnet/configureRopsten.ts",
     "deploy:local2": "sudo touch scripts/testnet/addresses/hardhat.json && sudo rm scripts/testnet/addresses/hardhat.json && sudo npx hardhat run scripts/testnet/orchestrate.ts"
   },

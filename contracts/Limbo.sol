@@ -305,7 +305,7 @@ contract Limbo is Governable {
     Soul storage soul = currentSoul(token);
     require(soul.soulType == SoulType.threshold, "EI");
     uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(desiredAPY, daiThreshold);
-    flashGoverner.enforceTolerance(soul.flanPerSecond, fps);
+    flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
     soul.flanPerSecond = fps;
   }
 
@@ -377,13 +377,13 @@ contract Limbo is Governable {
     uint256 fps
   ) public governanceApproved(false) {
     Soul storage soul = currentSoul(token);
-    flashGoverner.enforceTolerance(soul.flanPerSecond, fps);
+    flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
     soul.flanPerSecond = fps;
 
     CrossingParameters storage params = tokenCrossingParameters[token][latestIndex[token]];
 
-    flashGoverner.enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
-    flashGoverner.enforceTolerance(
+    flashGoverner().enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
+    flashGoverner().enforceTolerance(
       uint256(params.crossingBonusDelta < 0 ? params.crossingBonusDelta * -1 : params.crossingBonusDelta),
       uint256(crossingBonusDelta < 0 ? crossingBonusDelta * -1 : crossingBonusDelta)
     );
@@ -437,7 +437,7 @@ contract Limbo is Governable {
   ) public governanceApproved(false) {
     CrossingParameters storage params = tokenCrossingParameters[token][latestIndex[token]];
     Soul storage soul = currentSoul(token);
-    params.set(flashGoverner, soul, initialCrossingBonus, crossingBonusDelta, burnable, crossingThreshold);
+    params.set(flashGoverner(), soul, initialCrossingBonus, crossingBonusDelta, burnable, crossingThreshold);
   }
 
   ///@notice User facing stake function for handling both types of souls

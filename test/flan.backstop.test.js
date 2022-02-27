@@ -56,6 +56,7 @@ describe("FlanBackStop", function () {
 
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
     this.flashGovernance = await flashGovernanceFactory.deploy(this.limboDAO.address);
+    this.limboDAO.setFlashGoverner(this.flashGovernance.address);
 
     await this.flashGovernance.configureSecurityParameters(10, 100, 30);
     // await this.eye.approve(this.limbo.address, 2000);
@@ -122,7 +123,6 @@ describe("FlanBackStop", function () {
       this.proposalFactory.address,
       sushiSwapFactory.address,
       uniswapFactory.address,
-      this.flashGovernance.address,
       9,
       [],
       []

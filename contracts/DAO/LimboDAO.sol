@@ -38,33 +38,7 @@ enum ProposalDecision {
   rejected
 }
 
-///@title Limbo DAO
-///@author Justin Goro
-/**@notice
- *This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having
- *control over existential functionality. This is not to say that some of the decisions taken are not critical but that the domain
- *of influence is confined to the local Dapp - Limbo in this case.
- * LimboDAO has two forms of decision making: proposals and flash governance. For proposals, voting power is required. Voting power in LimboDAO is measured
- * by a points system called Fate. Staking EYE or an EYE based LP earns Fate at a quadratic rate. Fate can be used to list a proposal for voting or to vote.
- * Using Fate to make a governance decisions spens it out of existince. So Fate reflects the opportunity cost of staking.
- * Flash governance is for instant decision making that cannot wait for voting to occur. Best used for small tweaks to parameters or emergencies.
- * Flash governance requires a governance asset (EYE) be staked at the time of the execution. The asset cannot be withdrawn for a certain period of time,
- * allowing for Fate holders to vote on the legitimacy of the decision. If the decision is considered malicious, the staked EYE is burnt.
- */
-///@dev Contracts subject to LimboDAO must inherit the Governable abstract contract.
-contract LimboDAO is Ownable {
-  event daoKilled(address newOwner);
-  event proposalLodged(address proposal, address proposer);
-  event voteCast(address voter, address proposal, int256 fateCast);
-  event assetApproval(address asset, bool appoved);
-  event proposalExecuted(address proposal, bool approved);
-  event assetBurnt(address burner, address asset, uint256 fateCreated);
-
-  using TransferHelper for address;
-  uint256 constant ONE = 1 ether;
-  uint256 precision = 1e9;
-
-  struct DomainConfig {
+struct DomainConfig {
     address limbo;
     address flan;
     address eye;
@@ -101,6 +75,32 @@ contract LimboDAO is Ownable {
     uint256 balance;
   }
 
+///@title Limbo DAO
+///@author Justin Goro
+/**@notice
+ *This is the first MicroDAO associated with MorgothDAO. A MicroDAO manages parameterization of running dapps without having
+ *control over existential functionality. This is not to say that some of the decisions taken are not critical but that the domain
+ *of influence is confined to the local Dapp - Limbo in this case.
+ * LimboDAO has two forms of decision making: proposals and flash governance. For proposals, voting power is required. Voting power in LimboDAO is measured
+ * by a points system called Fate. Staking EYE or an EYE based LP earns Fate at a quadratic rate. Fate can be used to list a proposal for voting or to vote.
+ * Using Fate to make a governance decisions spens it out of existince. So Fate reflects the opportunity cost of staking.
+ * Flash governance is for instant decision making that cannot wait for voting to occur. Best used for small tweaks to parameters or emergencies.
+ * Flash governance requires a governance asset (EYE) be staked at the time of the execution. The asset cannot be withdrawn for a certain period of time,
+ * allowing for Fate holders to vote on the legitimacy of the decision. If the decision is considered malicious, the staked EYE is burnt.
+ */
+///@dev Contracts subject to LimboDAO must inherit the Governable abstract contract.
+contract LimboDAO is Ownable {
+  event daoKilled(address newOwner);
+  event proposalLodged(address proposal, address proposer);
+  event voteCast(address voter, address proposal, int256 fateCast);
+  event assetApproval(address asset, bool appoved);
+  event proposalExecuted(address proposal, bool approved);
+  event assetBurnt(address burner, address asset, uint256 fateCreated);
+
+  using TransferHelper for address;
+  uint256 constant ONE = 1 ether;
+  uint256 precision = 1e9;
+
   DomainConfig public domainConfig;
   ProposalConfig public proposalConfig;
 
@@ -123,6 +123,11 @@ contract LimboDAO is Ownable {
   modifier isLive() {
     require(domainConfig.live, "LimboDAO: DAO is not live.");
     _;
+  }
+
+  ///@param flashGovernor oversees flash governance cryptoeconomics
+  function setFlashGoverner(address flashGovernor) public onlyOwner {
+    domainConfig.flashGoverner = flashGovernor;
   }
 
   function nextProposal() internal {
@@ -188,7 +193,6 @@ contract LimboDAO is Ownable {
   ///@param proposalFactory authenticates and instantiates valid proposals for voting
   ///@param sushiFactory is the SushiSwap Factory contract
   ///@param uniFactory is the UniSwapV2 Factory contract
-  ///@param flashGoverner oversees flash governance cryptoeconomics
   ///@param precisionOrderOfMagnitude when comparing fractional values, it's not necessary to get every last digit right
   ///@param sushiLPs valid EYE containing LP tokens elligible for earning Fate through staking
   ///@param uniLPs valid EYE containing LP tokens elligible for earning Fate through staking
@@ -199,12 +203,11 @@ contract LimboDAO is Ownable {
     address proposalFactory,
     address sushiFactory,
     address uniFactory,
-    address flashGoverner,
     uint256 precisionOrderOfMagnitude,
     address[] memory sushiLPs,
     address[] memory uniLPs
   ) public onlyOwner {
-    _seed(limbo, flan, eye, sushiFactory, uniFactory, flashGoverner);
+    _seed(limbo, flan, eye, sushiFactory, uniFactory);
     proposalConfig.votingDuration = 2 days;
     proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
     proposalConfig.proposalFactory = proposalFactory;
@@ -434,20 +437,20 @@ contract LimboDAO is Ownable {
     address flan,
     address eye,
     address sushiFactory,
-    address uniFactory,
-    address flashGoverner
+    address uniFactory
   ) internal {
+    require(domainConfig.flashGoverner != address(0), "LimboDAO: flashGovernor not initialized.");
     domainConfig.limbo = limbo;
     domainConfig.flan = flan;
     domainConfig.eye = eye;
     domainConfig.uniFactory = uniFactory;
     domainConfig.sushiFactory = sushiFactory;
-    domainConfig.flashGoverner = flashGoverner;
     assetApproved[eye] = true;
     fateGrowthStrategy[eye] = FateGrowthStrategy.directRoot;
   }
 
   function getFlashGoverner() external view returns (address) {
+    require(domainConfig.flashGoverner != address(0), "LimboDAO: no flash governer");
     return domainConfig.flashGoverner;
   }
 }
