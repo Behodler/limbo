@@ -4,8 +4,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-deploy";
 import "./tasks/index";
-
-const mnemonic = "eight fun oak spot hip pencil matter domain bright fiscal nurse easy";
+import * as mnemonic from "./private/testmnemonic.json";
 
 task("accounts", "Prints the list of accounts", async (_, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -13,9 +12,6 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
   for (const account of accounts) {
     console.log(account.address);
   }
-
-  const wallet = hre.ethers.Wallet.fromMnemonic(mnemonic);
-  console.log(wallet.privateKey);
 });
 
 export default {
@@ -24,18 +20,18 @@ export default {
     hardhat: {
       chainId: 1337,
       accounts: {
-        mnemonic,
+        mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
       },
     },
     ropsten: {
       url: `https://nd-564-762-624.p2pify.com/41adb4b5065ff74a971a8bf5e85947c7`,
       chainId: 3,
       accounts: {
-        mnemonic,
+        mnemonic: mnemonic.phrase,
       },
-      from: "0xD8d8632Bb8C8b199e43faDf7205749dd34C4B8c9", 
+      from: mnemonic.primary,
       gaslLimit: "20000000",
-      gasMultiplier:1.4
+      gasMultiplier: 3,
     },
   },
   namedAccounts: {

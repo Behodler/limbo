@@ -24,7 +24,6 @@ async function main() {
   }
 
   const networkName = nameNetwork(chainId);
-  deployments.pausePromiseFactory(networkName);
   const recognizedTestNet = networkName !== "hardhat";
   const networkLoader = (network: string) => (domain: string) => loadAddresses(network, domain);
   const addressLoader = networkLoader(networkName);
@@ -49,7 +48,6 @@ async function main() {
     liquidityReceiverAddresses = await deployments.deployLiquidityReceiver(
       deployer,
       tokens,
-      behodler["addressBalanceCheck"]
     );
     updater("deployLiquidityReceiver", liquidityReceiverAddresses);
   }
@@ -65,7 +63,12 @@ async function main() {
   }
   tokens["WETH"] = wethAddresses["WETH"];
   updater("deployTokens", tokens);
-  await deployments.mintOnBehodler(deployer, tokens, behodler["addressBalanceCheck"]);
+  await deployments.mintOnBehodler(
+    deployer,
+    tokens,
+    behodler["addressBalanceCheck"],
+    liquidityReceiverAddresses["lachesis"]
+  );
 
   let uniswapAddresses = addressLoader("deployUniswap");
   if (!uniswapAddresses) {
@@ -86,8 +89,8 @@ async function main() {
     tokens["SCX"],
     wethAddresses["WETH"],
     uniswapAddresses["EYEDAI"],
-    uniswapAddresses["EYESCX"],
-    uniswapAddresses["SCXWETH"]
+    uniswapAddresses["SCXWETH"],
+    uniswapAddresses["EYESCX"]
   );
 
   await deployments.seedUniswap(
@@ -97,9 +100,9 @@ async function main() {
     tokens["SCX"],
     wethAddresses["WETH"],
     sushiAddresses["EYEDAISLP"],
-    sushiAddresses["EYESCXSLP"],
-    sushiAddresses["SCXWETHSLP"]
-  )
+    sushiAddresses["SCXWETHSLP"],
+    sushiAddresses["EYESCXSLP"]
+  );
 
   let limboDaoAddresses = addressLoader("deployLimboDAO");
   if (!limboDaoAddresses) {
@@ -163,7 +166,6 @@ async function main() {
     tokens["EYE"],
     proposalFactoryAddresses["proposalFactory"],
     uniswapAddresses["uniswapFactory"],
-    limboDaoAddresses["flashGovernanceArbiter"],
     [uniswapAddresses["EYEDAI"], uniswapAddresses["EYESCX"]],
     limboDaoAddresses["transferHelper"]
   );
@@ -204,8 +206,6 @@ async function main() {
     multicallAddress = await deployments.deployMultiCall();
     updater("deployMultiCall", multicallAddress);
   }
-
-  
 
   const flatOutput: OutputAddress = {};
 

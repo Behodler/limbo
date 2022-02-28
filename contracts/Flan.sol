@@ -29,7 +29,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         governanceApproved(false)
     {
         uint8 newFee = uint8(int8(burnOnTransferFee) + change);
-        flashGoverner.enforceTolerance(newFee, burnOnTransferFee);
+        flashGoverner().enforceTolerance(newFee, burnOnTransferFee);
         _setBurnOnTransferFee(newFee);
     }
 

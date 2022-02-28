@@ -134,3 +134,4 @@ addresses.json
 
 scripts/testnet/addresses/hardhat.json
 /flat
+private/

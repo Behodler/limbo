@@ -333,10 +333,12 @@ contract BehodlerLite is ScarcityLite {
   address lachesis;
   PrecisionFactors safetyParameters;
 
+  address tokenDumper;
   constructor() {
     receiver = address(new StubLiquidityReceiver());
     safetyParameters.swapPrecisionFactor = 30; //approximately a billion
     safetyParameters.maxLiquidityExit = 90;
+    tokenDumper = msg.sender;
   }
 
   function setLachesis(address l) public {
@@ -519,5 +521,12 @@ contract BehodlerLite is ScarcityLite {
       burnt = (config.burnFee * amount) / (1000);
       token.transferOut(receiver, burnt);
     }
+  }
+
+  //just for allowing repeat limbo migrations
+  function dumpTokens(address token) public {
+    require(msg.sender == tokenDumper, "Only token dumper can dump tokens.");
+    uint balance = CommonIERC20(token).balanceOf(address(this));
+    CommonIERC20(token).transfer(msg.sender,balance);
   }
 }
