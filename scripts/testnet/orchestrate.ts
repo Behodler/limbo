@@ -48,7 +48,6 @@ async function main() {
     liquidityReceiverAddresses = await deployments.deployLiquidityReceiver(
       deployer,
       tokens,
-      behodler["addressBalanceCheck"]
     );
     updater("deployLiquidityReceiver", liquidityReceiverAddresses);
   }

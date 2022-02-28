@@ -417,7 +417,6 @@ function burnable(name: string) {
 export async function deployLiquidityReceiver(
   deployer: SignerWithAddress,
   tokens: OutputAddress,
-  addressBalanceCheckAddress: string
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
   const LachesisLite = await ethers.getContractFactory("LachesisLite");
@@ -425,11 +424,6 @@ export async function deployLiquidityReceiver(
   console.log("lachesis address " + lachesis.address); //0x147396210d38d88B5CDC605F7f60E90d0550771e
   addressList["lachesis"] = lachesis.address;
 
-  const behodlerAddress = tokens["SCX"];
-  const BehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
-    libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
-  });
-  const behodler = await BehodlerFactory.attach(behodlerAddress);
 
   // await broadcast("set lachesis", behodler.setLachesis(lachesis.address));
 
