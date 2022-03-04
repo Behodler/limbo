@@ -5,7 +5,7 @@ import "./facades/PyroTokenLike.sol";
 import "./DAO/Governable.sol";
 import "./ERC677/ERC20Burnable.sol";
 import "./facades/UniPairLike.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 ///@title FlanBackstop (placeholder name)
 ///@author Justin Goro

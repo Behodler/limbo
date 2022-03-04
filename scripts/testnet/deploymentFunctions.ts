@@ -201,6 +201,15 @@ export async function deployLimbo(
 
   const limbo = await deploy(Limbo, [flan, dao.address]);
 
+  const FlanFactory = await ethers.getContractFactory("Flan");
+  const flanInstance = await FlanFactory.attach(flan);
+  console.log("white list minting of Flan on Limbo");
+  await flanInstance.whiteListMinting(limbo.address, true);
+  await pauseUntilNextBlock();
+  await flanInstance.whiteListMinting(daoAddress, true);
+  console.log("white list minting of Flan on LimboDAO");
+  await pauseUntilNextBlock();
+  
   const UniswapHelper = await ethers.getContractFactory("UniswapHelper");
   const uniswapHelper = await deploy(UniswapHelper, [limbo.address, dao.address]);
 
@@ -276,22 +285,6 @@ export async function configureLimboCrossingConfig(
 }
 
 export async function deployTokens(deployer: SignerWithAddress): Promise<OutputAddress> {
-  /*
-  EYE
-WETH
-SCX
-MAKER
-OXT	
-PNK
-LINK
-WEIDAI
-LOOM
-DAI
-EYEDAI 
-SCX/ETH
-SCX/EYE
-
-  */
   const Token = await ethers.getContractFactory("MockToken");
   console.log("about to deploy EYE");
   const eye = await deploy(Token, ["EYE", "EYE", [], []]);
@@ -416,14 +409,13 @@ function burnable(name: string) {
 
 export async function deployLiquidityReceiver(
   deployer: SignerWithAddress,
-  tokens: OutputAddress,
+  tokens: OutputAddress
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
   const LachesisLite = await ethers.getContractFactory("LachesisLite");
   const lachesis = await LachesisLite.attach("0x147396210d38d88B5CDC605F7f60E90d0550771e"); // deploy(LachesisLite);
   console.log("lachesis address " + lachesis.address); //0x147396210d38d88B5CDC605F7f60E90d0550771e
   addressList["lachesis"] = lachesis.address;
-
 
   // await broadcast("set lachesis", behodler.setLachesis(lachesis.address));
 
@@ -653,7 +645,7 @@ export async function seedUniswap(
     const wethbalance = await wethInstance.balanceOf(deployer.address);
     await pauseUntilNextBlock();
     console.log("WETH balance: " + wethbalance);
-    console.log (`transferring ${wethbalance.div(5).toString()} weth and ${seedAmount.toString()} scx`);
+    console.log(`transferring ${wethbalance.div(5).toString()} weth and ${seedAmount.toString()} scx`);
     await broadcast("weth transfer", wethInstance.transfer(SCXWETH.address, wethbalance.div(5)));
 
     await broadcast("scx transfer", scxInstance.transfer(SCXWETH.address, seedAmount));
