@@ -186,7 +186,7 @@ describe("Limbo", function () {
       await dao.executeCurrentProposal();
     };
   };
-  /*
+  
   it("governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -476,7 +476,7 @@ describe("Limbo", function () {
 
     expect(eyeBalanceAfter.sub(eyeBalanceBefore).toString()).to.equal("21000000");
   });
-*/
+
   it("burn asset for flashGov decision", async function () {
     //set flash loan params
     await this.flashGovernance.configureFlashGovernance(

@@ -7,11 +7,13 @@ import { OutputAddress, AddressFileStructure } from "./common";
 type address = string;
 const nullAddress = "0x0000000000000000000000000000000000000000";
 
-function pauseUntilNextBlockFactory() {
-  let provider = ethers.getDefaultProvider("ropsten");
-  const duration = 15000;
+function pauserFactory(duration: number, network: string) {
+  const networkToUse = network == "hardhat" ? "localhost" : network;
+  let provider = ethers.provider; //ethers.getDefaultProvider(networkToUse);
+
   return async function () {
     const initialBlock = await provider.getBlockNumber();
+
     let currentBlock = await provider.getBlockNumber();
     while (currentBlock - initialBlock < 2) {
       console.log(`current block number: ${currentBlock}. Pausing for ${duration / 1000} seconds`);
@@ -21,11 +23,8 @@ function pauseUntilNextBlockFactory() {
   };
 }
 
-async function broadcast(name: string, transaction: Promise<any>) {
-  const pauseUntilNextBlock = pauseUntilNextBlockFactory();
-  console.log("*****************executing " + name + "*****************");
-  const result = await transaction;
-  await pauseUntilNextBlock();
+export function getPauser(blockTime: number, network: string) {
+  return pauserFactory(blockTime, network);
 }
 
 function pause(duration: number) {
@@ -36,7 +35,11 @@ function pause(duration: number) {
   });
 }
 
-const pauseUntilNextBlock = pauseUntilNextBlockFactory();
+async function broadcast(name: string, transaction: Promise<any>, pauser: Function) {
+  console.log("*****************executing " + name + "*****************");
+  const result = await transaction;
+  await pauser();
+}
 
 interface Token {
   name: string;
@@ -50,9 +53,9 @@ const getTokenFactory =
     return tokens.filter((t) => t.name.toLowerCase() === name.toLowerCase())[0];
   };
 
-export async function deployMultiCall(): Promise<OutputAddress> {
+export async function deployMultiCall(pauser: Function): Promise<OutputAddress> {
   const Multicall = await ethers.getContractFactory("Multicall");
-  const multicall = await deploy(Multicall, []);
+  const multicall = await deploy(Multicall, pauser, []);
   const addressList: OutputAddress = {};
   addressList["multicall"] = multicall.address;
   return addressList;
@@ -64,7 +67,8 @@ export async function deployMorgothDAO(
   behodlerAddress: string,
   addressBalanceCheckAddress: string,
   limboAddress: string,
-  limboLibraries: string[]
+  limboLibraries: string[],
+  pauser: Function
 ): Promise<OutputAddress> {
   const LachesisFactory = await ethers.getContractFactory("LachesisLite");
   const lachesis = await LachesisFactory.attach(lachesisAddress);
@@ -84,9 +88,9 @@ export async function deployMorgothDAO(
   const limbo = await LimboFactory.attach(limboAddress);
 
   const Angband = await ethers.getContractFactory("Angband");
-  const angband = await deploy(Angband, []);
+  const angband = await deploy(Angband, pauser, []);
   const LimboAddTokenToBehodlerPower = await ethers.getContractFactory("LimboAddTokenToBehodlerTestNet");
-  const limboAddTokenToBehodlerPower = await deploy(LimboAddTokenToBehodlerPower, [
+  const limboAddTokenToBehodlerPower = await deploy(LimboAddTokenToBehodlerPower, pauser, [
     angband.address,
     lachesis.address,
     behodler.address,
@@ -99,19 +103,24 @@ export async function deployMorgothDAO(
   return addressList;
 }
 
-export async function deploy(factory: ContractFactory, args?: any[], gasOverride?: boolean): Promise<Contract> {
+export async function deploy(
+  factory: ContractFactory,
+  pauser: Function,
+  args?: any[],
+  gasOverride?: boolean
+): Promise<Contract> {
   let gasArgs = args || [];
   if (gasOverride) gasArgs.push({ gasLimit: 2000000 });
 
   const contract = await factory.deploy(...gasArgs);
   console.log("pausing for deployment");
-  await pauseUntilNextBlock();
+  await pauser();
   return contract;
 }
 
-export async function deploySoulReader(): Promise<OutputAddress> {
+export async function deploySoulReader(pauser: Function): Promise<OutputAddress> {
   const SoulReader = await ethers.getContractFactory("SoulReader");
-  const soulReader = await deploy(SoulReader, []);
+  const soulReader = await deploy(SoulReader, pauser, []);
   const addressList: OutputAddress = {};
   addressList["soulReader"] = soulReader.address;
   return addressList;
@@ -123,7 +132,8 @@ export async function deployProposalFactory(
   limboAddress: string,
   uniswapHelperAddress: string,
   transferHelperAddress: string,
-  limboLibraries: string[]
+  limboLibraries: string[],
+  pauser: Function
 ): Promise<OutputAddress> {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
     libraries: { TransferHelper: transferHelperAddress },
@@ -142,13 +152,13 @@ export async function deployProposalFactory(
   const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
   const uniswapHelper = await UniswapHelperFactory.attach(uniswapHelperAddress);
   const MockMorgothTokenApprover = await ethers.getContractFactory("MockMorgothTokenApprover");
-  const mockMorgothTokenApprover = await deploy(MockMorgothTokenApprover, []);
+  const mockMorgothTokenApprover = await deploy(MockMorgothTokenApprover, pauser, []);
 
   const WhiteList = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
-  const whiteList = await deploy(WhiteList, [dao.address, "WhiteListProposal"]);
+  const whiteList = await deploy(WhiteList, pauser, [dao.address, "WhiteListProposal"]);
 
   const UpdateMultipleSoulConfigProposal = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
-  const updateMultipleSoulConfigProposal = await deploy(UpdateMultipleSoulConfigProposal, [
+  const updateMultipleSoulConfigProposal = await deploy(UpdateMultipleSoulConfigProposal, pauser, [
     dao.address,
     "UpdateMultipleSoulConfigProposal",
     limbo.address,
@@ -157,7 +167,7 @@ export async function deployProposalFactory(
   ]);
 
   const ProposalFactory = await ethers.getContractFactory("ProposalFactory");
-  const proposalFactory = await deploy(ProposalFactory, [
+  const proposalFactory = await deploy(ProposalFactory, pauser, [
     dao.address,
     whiteList.address,
     updateMultipleSoulConfigProposal.address,
@@ -178,7 +188,8 @@ export async function deployLimbo(
   dai: string,
   behodler: string,
   daoAddress: string,
-  transferHelperAddress: address
+  transferHelperAddress: address,
+  pauser: Function
 ): Promise<OutputAddress> {
   const daoFactory: ContractFactory = await ethers.getContractFactory("LimboDAO", {
     libraries: { TransferHelper: transferHelperAddress },
@@ -187,9 +198,9 @@ export async function deployLimbo(
   const SoulLib = await ethers.getContractFactory("SoulLib");
   const CrossingLib = await ethers.getContractFactory("CrossingLib");
   const MigrationLib = await ethers.getContractFactory("MigrationLib");
-  const soulLib = await deploy(SoulLib, []);
-  const crossingLib = await deploy(CrossingLib, []);
-  const migrationLib = await deploy(MigrationLib, []);
+  const soulLib = await deploy(SoulLib, pauser, []);
+  const crossingLib = await deploy(CrossingLib, pauser, []);
+  const migrationLib = await deploy(MigrationLib, pauser, []);
 
   const Limbo = await ethers.getContractFactory("Limbo", {
     libraries: {
@@ -199,26 +210,27 @@ export async function deployLimbo(
     },
   });
 
-  const limbo = await deploy(Limbo, [flan, dao.address]);
+  const limbo = await deploy(Limbo, pauser, [flan, dao.address]);
 
   const FlanFactory = await ethers.getContractFactory("Flan");
   const flanInstance = await FlanFactory.attach(flan);
   console.log("white list minting of Flan on Limbo");
   await flanInstance.whiteListMinting(limbo.address, true);
-  await pauseUntilNextBlock();
+  await pauser();
   await flanInstance.whiteListMinting(daoAddress, true);
   console.log("white list minting of Flan on LimboDAO");
-  await pauseUntilNextBlock();
-  
+  await pauser();
+
   const UniswapHelper = await ethers.getContractFactory("UniswapHelper");
-  const uniswapHelper = await deploy(UniswapHelper, [limbo.address, dao.address]);
+  const uniswapHelper = await deploy(UniswapHelper, pauser, [limbo.address, dao.address]);
 
   await broadcast(
     "configure uniswaphelper",
-    uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 180, 3, 20, 10)
+    uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 180, 3, 20, 10),
+    pauser
   );
 
-  await broadcast("set dai", uniswapHelper.setDAI(dai));
+  await broadcast("set dai", uniswapHelper.setDAI(dai), pauser);
 
   let addressList: OutputAddress = {};
   addressList["limbo"] = limbo.address;
@@ -237,18 +249,19 @@ export async function seedLimboDAO(
   proposalFactory: address,
   uniswapFactory: address,
   uniLPs: address[],
-  transferHelperAddress: address
+  transferHelperAddress: address,
+  pauser: Function
 ) {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
     libraries: { TransferHelper: transferHelperAddress },
   });
   const dao = await LimboDAOFactory.attach(daoAddress);
-  await pauseUntilNextBlock();
+  await pauser();
   await dao.seed(limbo, flan, eye, proposalFactory, nullAddress, uniswapFactory, 9, [], uniLPs);
-  await pauseUntilNextBlock();
+  await pauser();
 
   await dao.makeLive();
-  await pauseUntilNextBlock();
+  await pauser();
 }
 
 export async function configureLimboCrossingConfig(
@@ -260,7 +273,8 @@ export async function configureLimboCrossingConfig(
   migrationInvocationReward: number,
   crossingMigrationDelay: number,
   rectInflationFactor: number,
-  limboLibraries: string[]
+  limboLibraries: string[],
+  pauser: Function
 ) {
   const LimboFactory = await ethers.getContractFactory("Limbo", {
     libraries: {
@@ -280,28 +294,29 @@ export async function configureLimboCrossingConfig(
       migrationInvocationReward,
       crossingMigrationDelay,
       rectInflationFactor
-    )
+    ),
+    pauser
   );
 }
 
-export async function deployTokens(deployer: SignerWithAddress): Promise<OutputAddress> {
+export async function deployTokens(deployer: SignerWithAddress, pauser: Function): Promise<OutputAddress> {
   const Token = await ethers.getContractFactory("MockToken");
   console.log("about to deploy EYE");
-  const eye = await deploy(Token, ["EYE", "EYE", [], []]);
+  const eye = await deploy(Token, pauser, ["EYE", "EYE", [], []]);
   console.log("about to deploy MAKER");
-  const maker = await deploy(Token, ["MAKER", "MKR", [], []]);
+  const maker = await deploy(Token, pauser, ["MAKER", "MKR", [], []]);
   console.log("about to deploy OXT");
-  const oxt = await deploy(Token, ["OXT", "OXT", [], []]);
+  const oxt = await deploy(Token, pauser, ["OXT", "OXT", [], []]);
   console.log("about to deploy PNK");
-  const pnk = await deploy(Token, ["PNK", "PNK", [], []]);
+  const pnk = await deploy(Token, pauser, ["PNK", "PNK", [], []]);
   console.log("about to deploy LINK");
-  const link = await deploy(Token, ["LINK", "LINK", [], []]);
+  const link = await deploy(Token, pauser, ["LINK", "LINK", [], []]);
   console.log("about to deploy WEIDAI");
-  const weidai = await deploy(Token, ["WEIDAI", "WDAI", [], []]);
+  const weidai = await deploy(Token, pauser, ["WEIDAI", "WDAI", [], []]);
   console.log("about to deploy LOOM");
-  const loom = await deploy(Token, ["LOOM", "LOOM", [], []]);
+  const loom = await deploy(Token, pauser, ["LOOM", "LOOM", [], []]);
   console.log("about to deploy DAI");
-  const dai = await deploy(Token, ["DAI", "DAI", [], []]);
+  const dai = await deploy(Token, pauser, ["DAI", "DAI", [], []]);
   let tokens: OutputAddress = {};
   tokens["EYE"] = eye.address;
   tokens["MAKER"] = maker.address;
@@ -322,7 +337,8 @@ export async function deployFlan(
   uniswapFactoryAddress: string,
   liquidityReceiverAddress: string,
   addressBalanceCheckAddress: string,
-  transferHelperAddress: string
+  transferHelperAddress: string,
+  pauser: Function
 ): Promise<OutputAddress> {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
     libraries: { TransferHelper: transferHelperAddress },
@@ -345,56 +361,81 @@ export async function deployFlan(
   const liquidityReceiver = await LiquidityReceiverFactory.attach(liquidityReceiverAddress);
 
   const Flan = await ethers.getContractFactory("Flan");
-  const flan = await deploy(Flan, [dao.address]);
+  const flan = await deploy(Flan, pauser, [dao.address]);
 
-  await broadcast("lachesis measure", lachesis.measure(flan.address, true, false));
+  await broadcast("lachesis measure", lachesis.measure(flan.address, true, false), pauser);
 
-  await broadcast("lachesis update behodler", lachesis.updateBehodler(flan.address));
+  await broadcast("lachesis update behodler", lachesis.updateBehodler(flan.address), pauser);
 
-  await broadcast("registerPyro", liquidityReceiver.registerPyroToken(flan.address, "PyroFlan", "PyroFLN"));
+  await broadcast("registerPyro", liquidityReceiver.registerPyroToken(flan.address, "PyroFlan", "PyroFLN"), pauser);
 
-  await broadcast("flan mint 10 ", flan.mint(deployer.address, parseEther("10")));
-  await broadcast("flan approve", flan.approve(behodler.address, parseEther("100")));
+  await broadcast("flan mint 10 ", flan.mint(deployer.address, parseEther("10")), pauser);
+  await broadcast("flan approve", flan.approve(behodler.address, parseEther("100")), pauser);
 
-  await broadcast("add liquidity", behodler.addLiquidity(flan.address, parseEther("10")));
+  await broadcast("add liquidity", behodler.addLiquidity(flan.address, parseEther("10")), pauser);
 
   const scxBalance = await behodler.balanceOf(deployer.address);
-  await pauseUntilNextBlock();
+  await pauser();
 
-  await broadcast("create Pair", uniswapFactory.createPair(flan.address, behodler.address));
+  await broadcast("create Pair", uniswapFactory.createPair(flan.address, behodler.address), pauser);
 
   const flanSCX = await uniswapFactory.getPair(flan.address, behodler.address);
-  await pauseUntilNextBlock();
+  await pauser();
 
-  await broadcast("scx transfer to flanSCX", behodler.transfer(flanSCX, scxBalance.div(4)));
-  await broadcast("flan mint", flan.mint(flanSCX, parseEther("200")));
+  await broadcast("scx transfer to flanSCX", behodler.transfer(flanSCX, scxBalance.div(4)), pauser);
+  await broadcast("flan mint", flan.mint(flanSCX, parseEther("200")), pauser);
   const UniswapPair = await ethers.getContractFactory("RealUniswapV2Pair");
   const flanSCXPair = UniswapPair.attach(flanSCX);
 
-  await broadcast("flanSCXPair mint", flanSCXPair.mint(deployer.address));
+  await broadcast("flanSCXPair mint", flanSCXPair.mint(deployer.address), pauser);
   let addressList: OutputAddress = {};
   addressList["FLAN"] = flan.address;
   addressList["flanSCX"] = flanSCX;
   return addressList;
 }
 
-export async function deployLimboDAO(deployer: SignerWithAddress, eyeAddress: string): Promise<OutputAddress> {
+//for hardhat only. In otherwords, on non persist.
+export async function deployFakeTokens (
+
+):Promise<OutputAddress>{
+const MockTokenFactory = await ethers.getContractFactory("MockToken");
+const Aave = await deploy(MockTokenFactory, ()=>{}, ["Aave", "Aave", [], []]);
+const Sushi = await deploy(MockTokenFactory, ()=>{}, ["Sushi", "SUSHI", [], []]);
+const Mana = await deploy(MockTokenFactory, ()=>{}, ["Mana", "MANA", [], []]);
+
+const addresses:OutputAddress = {};
+addresses["Aave"] = Aave.address;
+addresses["Sushi"] = Sushi.address;
+addresses["Mana"] = Mana.address;
+return addresses;
+}
+
+export async function deployLimboDAO(
+  deployer: SignerWithAddress,
+  eyeAddress: string,
+  pauser: Function
+): Promise<OutputAddress> {
   const TransferHelper = await ethers.getContractFactory("TransferHelper");
-  const transferHelper = await deploy(TransferHelper, []);
+  const transferHelper = await deploy(TransferHelper, pauser, []);
 
   const LimboDAO = await ethers.getContractFactory("LimboDAO", {
     libraries: { TransferHelper: transferHelper.address },
   });
-  const dao = await deploy(LimboDAO, []);
+  const dao = await deploy(LimboDAO, pauser, []);
   const FlashGovernanceArbiter = await ethers.getContractFactory("FlashGovernanceArbiter");
-  const flashGovernanceArbiter = await deploy(FlashGovernanceArbiter, [dao.address]);
-  await broadcast("set flash governer", dao.setFlashGoverner(flashGovernanceArbiter.address));
+  const flashGovernanceArbiter = await deploy(FlashGovernanceArbiter, pauser, [dao.address]);
+  await broadcast("set flash governer", dao.setFlashGoverner(flashGovernanceArbiter.address), pauser);
   await broadcast(
     "configure flash governance",
-    flashGovernanceArbiter.configureFlashGovernance(eyeAddress, parseEther("20000"), 86400, true)
+    flashGovernanceArbiter.configureFlashGovernance(eyeAddress, parseEther("20000"), 86400, true),
+    pauser
   );
 
-  await broadcast("configure security parameters", flashGovernanceArbiter.configureSecurityParameters(2, 10000, 20));
+  await broadcast(
+    "configure security parameters",
+    flashGovernanceArbiter.configureSecurityParameters(2, 10000, 20),
+    pauser
+  );
   let addressList: OutputAddress = {};
   addressList["transferHelper"] = transferHelper.address;
   addressList["dao"] = dao.address;
@@ -409,34 +450,42 @@ function burnable(name: string) {
 
 export async function deployLiquidityReceiver(
   deployer: SignerWithAddress,
-  tokens: OutputAddress
+  tokens: OutputAddress,
+  addressBalanceCheckAddress: string,
+  pauser: Function
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
   const LachesisLite = await ethers.getContractFactory("LachesisLite");
-  const lachesis = await LachesisLite.attach("0x147396210d38d88B5CDC605F7f60E90d0550771e"); // deploy(LachesisLite);
+  const lachesis = await deploy(LachesisLite, pauser);
   console.log("lachesis address " + lachesis.address); //0x147396210d38d88B5CDC605F7f60E90d0550771e
   addressList["lachesis"] = lachesis.address;
 
-  // await broadcast("set lachesis", behodler.setLachesis(lachesis.address));
+  const behodlerAddress = tokens["SCX"];
+  const BehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+    libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
+  });
+  const behodler = await BehodlerFactory.attach(behodlerAddress);
 
-  // await broadcast("set behodler", lachesis.setBehodler(behodler.address));
+  await broadcast("set lachesis", behodler.setLachesis(lachesis.address), pauser);
+
+  await broadcast("set behodler", lachesis.setBehodler(behodler.address), pauser);
 
   const LiquidityReceiver = await ethers.getContractFactory("LiquidityReceiver");
   //0xFB13c8ad2303F98F80931D06AFd1607744327F99
-  const liquidityReceiver = await LiquidityReceiver.attach("0xFB13c8ad2303F98F80931D06AFd1607744327F99"); //deploy(LiquidityReceiver, [lachesis.address]);
+  const liquidityReceiver = await deploy(LiquidityReceiver,pauser, [lachesis.address]);
   addressList["liquidityReceiver"] = liquidityReceiver.address;
   const tokenKeys = Object.keys(tokens);
   for (let i = 0; i < tokenKeys.length; i++) {
     if (tokenKeys[i].toLowerCase() === "scx") continue;
     const address = tokens[tokenKeys[i]];
     const pyrotokenAddress = await liquidityReceiver.getPyroToken(address);
-    await pauseUntilNextBlock();
+    await pauser();
     const TokenFactory = await ethers.getContractFactory("MockToken");
     const pyroToken = await TokenFactory.attach(pyrotokenAddress);
 
     try {
       const val = await pyroToken.totalSupply();
-      await pauseUntilNextBlock();
+      await pauser();
       if (parseInt(val.toString()) >= 0) {
         console.log("pyro exists");
         continue;
@@ -446,30 +495,32 @@ export async function deployLiquidityReceiver(
     }
 
     const isBurnable = burnable(tokenKeys[i]);
-    await broadcast("lachesis measure " + tokens[tokenKeys[i]], lachesis.measure(address, true, isBurnable));
+    await broadcast("lachesis measure " + tokens[tokenKeys[i]], lachesis.measure(address, true, isBurnable), pauser);
 
-    await broadcast("lachesis update behodler", lachesis.updateBehodler(address));
+    await broadcast("lachesis update behodler", lachesis.updateBehodler(address), pauser);
 
     if (!isBurnable) {
       await broadcast(
         "registerPyrotoken",
-        liquidityReceiver.registerPyroToken(address, `Pyro${tokenKeys[i]}`, `KPyro${tokenKeys[i].substring(2)}`)
+        liquidityReceiver.registerPyroToken(address, `Pyro${tokenKeys[i]}`, `KPyro${tokenKeys[i].substring(2)}`),
+        pauser
       );
     }
   }
   const eyeAddress = tokens["EYE"];
   const SnufferCap = await ethers.getContractFactory("BurnEYESnufferCap");
 
-  const snufferCap = await deploy(SnufferCap, [eyeAddress, liquidityReceiver.address]);
+  const snufferCap = await deploy(SnufferCap, pauser, [eyeAddress, liquidityReceiver.address]);
   addressList["snufferCap"] = snufferCap.address;
-  await broadcast("set snuffer cap", liquidityReceiver.setSnufferCap(snufferCap.address));
+  await broadcast("set snuffer cap", liquidityReceiver.setSnufferCap(snufferCap.address), pauser);
   return addressList;
 }
 
 export async function deployWeth(
   deployer: SignerWithAddress,
   liquidityReceiverAddress: string,
-  lachesisAddress: string
+  lachesisAddress: string,
+  pauser: Function
 ): Promise<OutputAddress> {
   const addressList: OutputAddress = {};
   const LiquidityReceiverFactory: ContractFactory = await ethers.getContractFactory("LiquidityReceiver");
@@ -478,27 +529,31 @@ export async function deployWeth(
   const LachesisFactory: ContractFactory = await ethers.getContractFactory("LachesisLite");
   const lachesis = await LachesisFactory.attach(lachesisAddress);
   const Weth = await ethers.getContractFactory("WETH10");
-  const weth = await deploy(Weth);
-  await broadcast("weth deposit", weth.deposit({ value: parseEther("2") }));
+  const weth = await deploy(Weth, pauser);
+  await broadcast("weth deposit", weth.deposit({ value: parseEther("2") }), pauser);
   addressList["WETH"] = weth.address;
 
-  await broadcast("lachesis measure weth", lachesis.measure(weth.address, true, false));
+  await broadcast("lachesis measure weth", lachesis.measure(weth.address, true, false), pauser);
 
-  await broadcast("lachesis update behodler", lachesis.updateBehodler(weth.address));
+  await broadcast("lachesis update behodler", lachesis.updateBehodler(weth.address), pauser);
 
-  await broadcast("register pyroweth", liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "KPyroWETH"));
+  await broadcast(
+    "register pyroweth",
+    liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "KPyroWETH"),
+    pauser
+  );
 
   const pyroWethAddress = await liquidityReceiver.getPyroToken(weth.address);
-  await pauseUntilNextBlock();
+  await pauser();
 
   console.log("pyroWeth: " + pyroWethAddress);
   const PyroWeth10Proxy = await ethers.getContractFactory("PyroWeth10Proxy");
 
-  const proxy = await deploy(PyroWeth10Proxy, [pyroWethAddress], true);
+  const proxy = await deploy(PyroWeth10Proxy, pauser, [pyroWethAddress], true);
   console.log("PyroWeth10Proxy" + proxy.address);
   addressList["proxy"] = proxy.address;
 
-  await broadcast("weth approve", weth.approve(proxy.address, parseEther("10000")));
+  await broadcast("weth approve", weth.approve(proxy.address, parseEther("10000")), pauser);
   return addressList;
 }
 
@@ -507,7 +562,8 @@ async function uniclone(
   tokenAddresses: OutputAddress,
   recognizedTestNet: boolean,
   name: string,
-  factory: string
+  factory: string,
+  pauser: Function
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
   const UniswapV2Factory = await ethers.getContractFactory("RealUniswapV2Factory");
@@ -516,7 +572,7 @@ async function uniclone(
   }
   const uniswapFactory = recognizedTestNet
     ? await UniswapV2Factory.attach(factory)
-    : await deploy(UniswapV2Factory, [deployer.address]);
+    : await deploy(UniswapV2Factory, pauser, [deployer.address]);
 
   const daiAddress = tokenAddresses["DAI"];
   const eyeAddress = tokenAddresses["EYE"];
@@ -525,13 +581,13 @@ async function uniclone(
   const scxAddress = tokenAddresses["SCX"];
 
   const pair = await ethers.getContractFactory("RealUniswapV2Pair");
-  await pauseUntilNextBlock();
+  await pauser();
   let eyeDaiAddress = await uniswapFactory.getPair(daiAddress, eyeAddress);
-  await pauseUntilNextBlock();
+  await pauser();
   let scxWethAddress = await uniswapFactory.getPair(wethAddress, scxAddress);
-  await pauseUntilNextBlock();
+  await pauser();
   let eyeScxAddress = await uniswapFactory.getPair(scxAddress, eyeAddress);
-  await pauseUntilNextBlock();
+  await pauser();
 
   console.log({
     eyeDaiAddress,
@@ -548,20 +604,20 @@ async function uniclone(
     console.log("EYESCX: " + EYESCX.address);
   }
   if (EYEDAI.address === "0x0000000000000000000000000000000000000000")
-    await broadcast("create dai/eye", uniswapFactory.createPair(daiAddress, eyeAddress));
+    await broadcast("create dai/eye", uniswapFactory.createPair(daiAddress, eyeAddress), pauser);
 
   if (SCXWETH.address === "0x0000000000000000000000000000000000000000")
-    await broadcast("create weth/scx", uniswapFactory.createPair(wethAddress, scxAddress));
+    await broadcast("create weth/scx", uniswapFactory.createPair(wethAddress, scxAddress), pauser);
 
   if (EYESCX.address === "0x0000000000000000000000000000000000000000")
-    await broadcast("create eye/scx", uniswapFactory.createPair(eyeAddress, scxAddress));
+    await broadcast("create eye/scx", uniswapFactory.createPair(eyeAddress, scxAddress), pauser);
 
   eyeDaiAddress = await uniswapFactory.getPair(daiAddress, eyeAddress);
-  await pauseUntilNextBlock();
+  await pauser();
   scxWethAddress = await uniswapFactory.getPair(wethAddress, scxAddress);
-  await pauseUntilNextBlock();
+  await pauser();
   eyeScxAddress = await uniswapFactory.getPair(scxAddress, eyeAddress);
-  await pauseUntilNextBlock();
+  await pauser();
 
   EYEDAI = await pair.attach(eyeDaiAddress);
   SCXWETH = await pair.attach(scxWethAddress);
@@ -585,17 +641,33 @@ async function uniclone(
 export async function deploySushiswap(
   deployer: SignerWithAddress,
   tokenAddresses: OutputAddress,
-  recognizedTestNet: boolean
+  recognizedTestNet: boolean,
+  pauser: Function
 ) {
-  return uniclone(deployer, tokenAddresses, recognizedTestNet, "sushi", "0xc35DADB65012eC5796536bD9864eD8773aBc74C4");
+  return uniclone(
+    deployer,
+    tokenAddresses,
+    recognizedTestNet,
+    "sushi",
+    "0xc35DADB65012eC5796536bD9864eD8773aBc74C4",
+    pauser
+  );
 }
 
 export async function deployUniswap(
   deployer: SignerWithAddress,
   tokenAddresses: OutputAddress,
-  recognizedTestNet: boolean
+  recognizedTestNet: boolean,
+  pauser: Function
 ) {
-  return uniclone(deployer, tokenAddresses, recognizedTestNet, "uniswap", "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
+  return uniclone(
+    deployer,
+    tokenAddresses,
+    recognizedTestNet,
+    "uniswap",
+    "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+    pauser
+  );
 }
 
 export async function seedUniswap(
@@ -606,7 +678,8 @@ export async function seedUniswap(
   wethAddress: string,
   EYEDAIaddress: string,
   SCXWETHaddress: string,
-  EYESCXaddress: string
+  EYESCXaddress: string,
+  pauser: Function
 ) {
   const EYEDAI = (await ethers.getContractFactory("RealUniswapV2Pair")).attach(EYEDAIaddress);
   const SCXWETH = (await ethers.getContractFactory("RealUniswapV2Pair")).attach(SCXWETHaddress);
@@ -618,71 +691,71 @@ export async function seedUniswap(
   const wethInstance = (await ethers.getContractFactory("MockToken")).attach(wethAddress);
 
   const scxBalance = (await scxInstance.balanceOf(deployer.address)) as BigNumber;
-  await pauseUntilNextBlock();
+  await pauser();
   console.log("scxbalance: " + scxBalance);
   const seedAmount = scxBalance.div(5);
 
   const tokenAmount = parseEther("2");
 
   const EYEDAIBalance = await EYEDAI.balanceOf(deployer.address);
-  await pauseUntilNextBlock();
+  await pauser();
   const SCXWETHBalance = await SCXWETH.balanceOf(deployer.address);
-  await pauseUntilNextBlock();
+  await pauser();
   const EYESCXBalance = await EYESCX.balanceOf(deployer.address);
-  await pauseUntilNextBlock();
+  await pauser();
   console.log([EYEDAIBalance.toString(), SCXWETHBalance.toString(), EYESCXBalance.toString()]);
   if (EYEDAIBalance.eq(0)) {
     console.log("eyedai");
-    await broadcast("eye transfer", eyeInstance.transfer(EYEDAI.address, tokenAmount));
+    await broadcast("eye transfer", eyeInstance.transfer(EYEDAI.address, tokenAmount), pauser);
 
-    await broadcast("dai transfer", daiInstance.transfer(EYEDAI.address, tokenAmount));
+    await broadcast("dai transfer", daiInstance.transfer(EYEDAI.address, tokenAmount), pauser);
 
-    await broadcast("eyedai mint", EYEDAI.mint(deployer.address));
+    await broadcast("eyedai mint", EYEDAI.mint(deployer.address), pauser);
   }
 
   if (SCXWETHBalance.eq(0)) {
     console.log("scxweth");
     const wethbalance = await wethInstance.balanceOf(deployer.address);
-    await pauseUntilNextBlock();
+    await pauser();
     console.log("WETH balance: " + wethbalance);
     console.log(`transferring ${wethbalance.div(5).toString()} weth and ${seedAmount.toString()} scx`);
-    await broadcast("weth transfer", wethInstance.transfer(SCXWETH.address, wethbalance.div(5)));
+    await broadcast("weth transfer", wethInstance.transfer(SCXWETH.address, wethbalance.div(5)), pauser);
 
-    await broadcast("scx transfer", scxInstance.transfer(SCXWETH.address, seedAmount));
+    await broadcast("scx transfer", scxInstance.transfer(SCXWETH.address, seedAmount), pauser);
 
     const balanceOfWeth = await wethInstance.balanceOf(SCXWETH.address);
-    await pauseUntilNextBlock();
+    await pauser();
     console.log("WETH balance: " + balanceOfWeth);
 
     const balanceOfScx = await scxInstance.balanceOf(SCXWETH.address);
-    await pauseUntilNextBlock();
+    await pauser();
     console.log("SCX balance: " + balanceOfScx);
 
-    await broadcast("scxweth mint", SCXWETH.mint(deployer.address));
+    await broadcast("scxweth mint", SCXWETH.mint(deployer.address), pauser);
   }
 
   if (EYESCXBalance.eq(0)) {
     console.log("eyescx");
-    await broadcast("scx transfer", scxInstance.transfer(EYESCX.address, seedAmount));
+    await broadcast("scx transfer", scxInstance.transfer(EYESCX.address, seedAmount), pauser);
 
-    await broadcast("eye transfer", eyeInstance.transfer(EYESCX.address, tokenAmount));
-    await pauseUntilNextBlock();
-    await broadcast("eyescx mint", EYESCX.mint(deployer.address));
+    await broadcast("eye transfer", eyeInstance.transfer(EYESCX.address, tokenAmount), pauser);
+    await pauser();
+    await broadcast("eyescx mint", EYESCX.mint(deployer.address), pauser);
   }
 }
 
-export async function deployBehodler(deployer: SignerWithAddress): Promise<OutputAddress> {
+export async function deployBehodler(deployer: SignerWithAddress, pauser: Function): Promise<OutputAddress> {
   const AddressBalanceCheck = await ethers.getContractFactory("AddressBalanceCheck");
   const ABDK = await ethers.getContractFactory("ABDK", deployer);
-  const addressBalanceCheckDeployment = await deploy(AddressBalanceCheck);
+  const addressBalanceCheckDeployment = await deploy(AddressBalanceCheck, pauser);
   console.log("address balance check");
   const addressBalanceCheckAddress = addressBalanceCheckDeployment.address;
-  const abdkAddress = await deploy(ABDK, []);
+  const abdkAddress = await deploy(ABDK, pauser, []);
   const BehodlerLite = await ethers.getContractFactory("BehodlerLite", {
     libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
   });
 
-  const behodlerLite = await deploy(BehodlerLite);
+  const behodlerLite = await deploy(BehodlerLite, pauser);
   console.log("about to wait for behodler");
   const addresses: OutputAddress = {};
   addresses["behodler"] = behodlerLite.address;
@@ -694,15 +767,18 @@ export async function mintOnBehodler(
   deployer: SignerWithAddress,
   tokens: OutputAddress,
   addressBalanceCheckAddress: string,
-  lachesisAddress: string
+  lachesisAddress: string,
+  pauser: Function
 ) {
   console.log("minting on behodler");
   const behodlerFactory = await ethers.getContractFactory("BehodlerLite", {
     libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
   });
+  console.log("behodler loaded");
+
   const behodler = behodlerFactory.attach(tokens["SCX"]);
   // let scxBalance = await behodler.balanceOf(deployer.address);
-  // await pauseUntilNextBlock();
+  // await pauser();
   // if (scxBalance.gt(0)) {
   //   console.log("scx already minted");
   //   return;
@@ -710,34 +786,42 @@ export async function mintOnBehodler(
 
   const LachesisFactory = await ethers.getContractFactory("LachesisLite");
   const lachesis = await LachesisFactory.attach(lachesisAddress);
-
+  await pauser();
   const tokenKeys = Object.keys(tokens).filter((t) => t.toLowerCase() !== "scx");
   const Token: ContractFactory = await ethers.getContractFactory("MockToken");
+  console.log("about to loop");
   for (let i = 0; i < tokenKeys.length; i++) {
+    console.log("i " + i);
+    console.log(tokenKeys[i]);
     let token = tokenKeys[i];
     const tokenAddress = tokens[token];
+    console.log("token address");
+    console.log(tokenAddress);
+    console.log("lachesis: " + lachesis.address);
     const config = await lachesis.cut(tokenAddress);
-
-    await pauseUntilNextBlock();
+    console.log("about to pause");
+    await pauser();
+    console.log("pause complete");
     console.log("valid: " + config[0]);
     if (!config[0]) {
-      await broadcast("lachesis measure " + token, lachesis.measure(tokenAddress, true, false));
-      await pauseUntilNextBlock();
-      await broadcast("update behodler " + token, lachesis.updateBehodler(tokenAddress));
-      await pauseUntilNextBlock();
+      await broadcast("lachesis measure " + token, lachesis.measure(tokenAddress, true, false), pauser);
+      await pauser();
+      await broadcast("update behodler " + token, lachesis.updateBehodler(tokenAddress), pauser);
+      await pauser();
     }
     const amount = token === "WETH" ? "1" : "40";
 
     const tokenInstance = Token.attach(tokenAddress);
     const balanceOnBehodler = await tokenInstance.balanceOf(behodler.address);
-    await pauseUntilNextBlock();
+    await pauser();
     if (!balanceOnBehodler.eq(0)) {
       console.log("behodler already has liquidity for " + tokenKeys[i]);
       continue;
     }
-    await broadcast("approve behodler", tokenInstance.approve(behodler.address, parseEther(amount)));
+    await broadcast("approve behodler", tokenInstance.approve(behodler.address, parseEther(amount)), pauser);
 
-    await broadcast("add liquidity to behodler", behodler.addLiquidity(tokenAddress, parseEther(amount)));
-    await pauseUntilNextBlock();
+    await broadcast("add liquidity to behodler", behodler.addLiquidity(tokenAddress, parseEther(amount)), pauser);
+    await pauser();
   }
+  console.log("behodler minting complete");
 }
