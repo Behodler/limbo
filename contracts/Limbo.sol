@@ -415,8 +415,8 @@ contract Limbo is Governable {
       if (SoulState(state) == SoulState.staking) {
         tokenCrossingParameters[token][latestIndex[token]].stakingBeginsTimestamp = block.timestamp;
       }
-      if(fallingBack){
-         tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
+      if (fallingBack) {
+        tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
       }
     }
     emit SoulUpdated(token, fps);
@@ -460,9 +460,9 @@ contract Limbo is Governable {
       if (pending > 0) {
         Flan.mint(msg.sender, pending);
       }
-
       //Balance checking accounts for FOT discrepencies
       uint256 oldBalance = IERC20(token).balanceOf(address(this));
+
       IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
       uint256 newBalance = IERC20(token).balanceOf(address(this));
 
@@ -510,7 +510,6 @@ contract Limbo is Governable {
     require(user.stakedAmount >= amount, "E4");
 
     uint256 pending = getPending(user, soul);
-
     if (pending > 0 && amount > 0) {
       user.stakedAmount = user.stakedAmount - amount;
       IERC20(token).safeTransfer(address(unstaker), amount);

@@ -24,7 +24,7 @@ export default {
       },
       mining: {
         auto: false,
-        interval: 10
+        interval: 2
       }
     },
     ropsten: {
@@ -42,6 +42,6 @@ export default {
     deployer: 0,
   },
   mocha: {
-    timeout: 300000,
+    timeout: 3000000,
   },
 };

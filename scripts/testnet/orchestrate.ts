@@ -3,11 +3,11 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
 import { BigNumber, Contract, ContractFactory } from "ethers";
 import { fstat, write, writeFileSync, existsSync, readFileSync } from "fs";
 import * as deployments from "./deploymentFunctions";
-import { OutputAddress, AddressFileStructure } from "./common";
+import { OutputAddress, AddressFileStructure, logFactory } from "./common";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-
+const logger = logFactory(false)
 export async function deployTestnet(chainId: number, persist: boolean, blockTime: number): Promise<OutputAddress> {
   /*
     Steps:
@@ -92,7 +92,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
     liquidityReceiverAddresses["lachesis"],
     pauser
   );
-  console.log("behodler minting complete");
+  logger("behodler minting complete");
 
   loaded = addressLoader("deployUniswap", existing);
   let uniswapAddresses = loaded.result;
@@ -185,7 +185,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
   limboLibraries.push(limboAddresses["soulLib"]);
   limboLibraries.push(limboAddresses["crossingLib"]);
   limboLibraries.push(limboAddresses["migrationLib"]);
-  console.log("limboLibraries" + JSON.stringify(limboLibraries, null, 2));
+  logger("limboLibraries" + JSON.stringify(limboLibraries, null, 2));
 
   loaded = addressLoader("deployProposalFactory", existing);
   let proposalFactoryAddresses = loaded.result;
@@ -204,7 +204,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
     updater("deployProposalFactory", proposalFactoryAddresses, existing);
   }
 
-  console.log("Seeding DAO");
+  logger("Seeding DAO");
   await deployments.seedLimboDAO(
     limboDaoAddresses["dao"],
     limboAddresses["limbo"],
@@ -270,7 +270,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
   existing = loaded.existing;
 
   if (!testTokens && !persist) {
-    testTokens = await deployments.deployFakeTokens();
+    testTokens = await deployments.deployFakeTokens(pauser);
     updater("TestTokens", testTokens, existing);
   }
 
@@ -337,7 +337,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
   if (persist) {
     writeFileSync(`./${networkName}.json`, JSON.stringify(flatOutput, null, 2));
   } else {
-    console.log(flatString);
+    logger(flatString);
   }
   return flatOutput;
 }
@@ -393,18 +393,18 @@ function loadAddresses(
       const blob = readFileSync(fileName);
       existing = JSON.parse(blob.toString()) as AddressFileStructure;
     } else {
-      console.log("address file not found");
+      logger("address file not found");
     }
   }
 
-  console.log("domainKeys at " + domain + " " + JSON.stringify(Object.keys(existing), null, 2));
-  console.log(" ");
+  logger("domainKeys at " + domain + " " + JSON.stringify(Object.keys(existing), null, 2));
+  logger(" ");
   const domainKeys = Object.keys(existing);
   if (domainKeys.includes(domain)) {
-    console.log("found " + domain);
+    logger("found " + domain);
     return { result: existing[domain], existing };
   } else {
-    console.log(domain + " not found. Deploying...");
+    logger(domain + " not found. Deploying...");
     return { result: null, existing };
   }
 }
