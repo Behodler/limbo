@@ -7,7 +7,7 @@ import { OutputAddress, AddressFileStructure, logFactory } from "./common";
 type address = string;
 const nullAddress = "0x0000000000000000000000000000000000000000";
 
-const logger = logFactory(false)
+const logger = logFactory(false);
 
 function pauserFactory(duration: number, network: string) {
   const networkToUse = network == "hardhat" ? "localhost" : network;
@@ -42,8 +42,6 @@ async function broadcast(name: string, transaction: Promise<any>, pauser: Functi
   const result = await transaction;
   await pauser();
 }
-
-
 
 interface Token {
   name: string;
@@ -96,8 +94,8 @@ export async function deployMorgothDAO(
   const LimboAddTokenToBehodlerPower = await ethers.getContractFactory("LimboAddTokenToBehodlerTestNet");
   const limboAddTokenToBehodlerPower = await deploy(LimboAddTokenToBehodlerPower, pauser, [
     angband.address,
-    lachesis.address,
     behodler.address,
+    lachesis.address,
     limbo.address,
   ]);
 
@@ -216,6 +214,9 @@ export async function deployLimbo(
 
   const limbo = await deploy(Limbo, pauser, [flan, dao.address]);
 
+  const UniswapHelper = await ethers.getContractFactory("UniswapHelper");
+  const uniswapHelper = await deploy(UniswapHelper, pauser, [limbo.address, dao.address]);
+
   const FlanFactory = await ethers.getContractFactory("Flan");
   const flanInstance = await FlanFactory.attach(flan);
   logger("white list minting of Flan on Limbo");
@@ -224,9 +225,9 @@ export async function deployLimbo(
   await flanInstance.whiteListMinting(daoAddress, true);
   logger("white list minting of Flan on LimboDAO");
   await pauser();
-
-  const UniswapHelper = await ethers.getContractFactory("UniswapHelper");
-  const uniswapHelper = await deploy(UniswapHelper, pauser, [limbo.address, dao.address]);
+  await flanInstance.whiteListMinting(uniswapHelper.address, true);
+  logger("white list minting of Flan on UniswapHelper");
+  await pauser();
 
   await broadcast(
     "configure uniswaphelper",
@@ -399,19 +400,17 @@ export async function deployFlan(
 }
 
 //for hardhat only. In otherwords, on non persist.
-export async function deployFakeTokens (
-pauser:Function
-):Promise<OutputAddress>{
-const MockTokenFactory = await ethers.getContractFactory("MockToken");
-const Aave = await deploy(MockTokenFactory,pauser, ["Aave", "Aave", [], []]);
-const Sushi = await deploy(MockTokenFactory,pauser ,["Sushi", "SUSHI", [], []]);
-const Mana = await deploy(MockTokenFactory, pauser, ["Mana", "MANA", [], []]);
+export async function deployFakeTokens(pauser: Function): Promise<OutputAddress> {
+  const MockTokenFactory = await ethers.getContractFactory("MockToken");
+  const Aave = await deploy(MockTokenFactory, pauser, ["Aave", "Aave", [], []]);
+  const Sushi = await deploy(MockTokenFactory, pauser, ["Sushi", "SUSHI", [], []]);
+  const Mana = await deploy(MockTokenFactory, pauser, ["Mana", "MANA", [], []]);
 
-const addresses:OutputAddress = {};
-addresses["Aave"] = Aave.address;
-addresses["Sushi"] = Sushi.address;
-addresses["Mana"] = Mana.address;
-return addresses;
+  const addresses: OutputAddress = {};
+  addresses["Aave"] = Aave.address;
+  addresses["Sushi"] = Sushi.address;
+  addresses["Mana"] = Mana.address;
+  return addresses;
 }
 
 export async function deployLimboDAO(
@@ -476,7 +475,7 @@ export async function deployLiquidityReceiver(
 
   const LiquidityReceiver = await ethers.getContractFactory("LiquidityReceiver");
   //0xFB13c8ad2303F98F80931D06AFd1607744327F99
-  const liquidityReceiver = await deploy(LiquidityReceiver,pauser, [lachesis.address]);
+  const liquidityReceiver = await deploy(LiquidityReceiver, pauser, [lachesis.address]);
   addressList["liquidityReceiver"] = liquidityReceiver.address;
   const tokenKeys = Object.keys(tokens);
   for (let i = 0; i < tokenKeys.length; i++) {

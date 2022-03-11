@@ -88,16 +88,16 @@ describe("ropsten deployment", function () {
     //await advanceTimeAlternative(100);
     //revert mining style temporarily
     //await network.provider.send("evm_setAutomine", [false]);
-    await network.provider.send("evm_setIntervalMining", [0]);
+    // await network.provider.send("evm_setIntervalMining", [0]);
     console.log("about to pause ");
     await advanceTime(400000);
     console.log("finished pausing");
     //  await network.provider.send("evm_setAutomine", [true]);
-    await network.provider.send("evm_setIntervalMining", [20]);
+    // await network.provider.send("evm_setIntervalMining", [20]);
     await pause(1);
     //unstake some of user 1, assert flan balance
     await limbo.unstake(aave.address, parseEther("100"));
-    await pause(10);
+    await pause(5);
     const user1FlanAfter = await flan.balanceOf(owner.address);
     await expect(user1FlanAfter).to.be.gte(parseEther("0.34"));
     await expect(user1Flan).to.be.lt(parseEther("0.38"));
@@ -105,7 +105,7 @@ describe("ropsten deployment", function () {
 
     //stake exact amount, no crossover
     await limbo.stake(aave.address, parseEther("750"));
-    await pause (10)
+    await pause(5);
     const soulReader = (await ethers.getContractFactory("SoulReader")).attach(addresses["soulReader"]);
     const stats = await soulReader.SoulStats(aave.address, limbo.address);
     console.log(`state: ${stats[0]}, stakedBalance: ${stats[1]}`);
@@ -122,6 +122,39 @@ describe("ropsten deployment", function () {
     expect(stats2[1].toString()).to.equal(parseEther("2001"));
 
     //sample oracle at correct intervals -> pre audit fix for simplicity
+    //First sample
+    const blockNumberOfFirstSample = parseInt(await network.provider.send("eth_blockNumber"));
+    const uniswapHelper = (await ethers.getContractFactory("UniswapHelper")).attach(addresses["uniswapHelper"]);
+    await uniswapHelper.generateFLNQuote();
+    //Second sample 4 blocks later
+    let newBlockNumber: number = blockNumberOfFirstSample;
+    for (; newBlockNumber - blockNumberOfFirstSample < 4; ) {
+      newBlockNumber = parseInt(await network.provider.send("eth_blockNumber"));
+      await soulReader.SoulStats(aave.address, limbo.address);
+      pause(1);
+    }
+    await uniswapHelper.generateFLNQuote();
+
+    //migrate token to behodler
+    const aaveBalanceOnBehodlerBeforeMigrate = await aave.balanceOf(addresses["behodler"]);
+    expect(aaveBalanceOnBehodlerBeforeMigrate).to.equal(0);
+    await limbo.migrate(aave.address);
+    await pause(3);
+    const aaveBalanceOnBehodlerBeforeAfter = await aave.balanceOf(addresses["behodler"]);
+    expect(aaveBalanceOnBehodlerBeforeAfter).to.equal(parseEther("2001"));
+
+    //redeem some of the token from behodler
+    const addressBalanceCheckAddress = addresses["addressBalanceCheck"];
+    const BehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
+    });
+
+    const behodler = BehodlerFactory.attach(addresses["behodler"]);
+    const aaveBalanceBeforeRedeem = await aave.balanceOf(owner.address);
+    await pause(1);
+    await behodler.withdrawLiquidity(aave.address, parseEther("10"));
+    const aaveBalanceAfterRedeem = await aave.balanceOf(owner.address);
+    expect(aaveBalanceAfterRedeem).to.be.gt(aaveBalanceBeforeRedeem);
   });
 
   it("transfers Aave from user 1 to user 2", async function () {

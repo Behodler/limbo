@@ -242,7 +242,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
     morgothDAOAddresses["limboAddTokenToBehodlerPower"],
     500,
     300,
-    0,
+    100,
     limboLibraries,
     pauser
   );

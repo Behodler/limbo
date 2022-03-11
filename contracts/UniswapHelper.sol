@@ -3,7 +3,6 @@ pragma solidity 0.8.4;
 import "./facades/UniPairLike.sol";
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
-// import "hardhat/console.sol";
 import "./ERC677/ERC20Burnable.sol";
 import "./facades/FlanLike.sol";
 import "./testing/realUniswap/interfaces/IUniswapV2Factory.sol";
@@ -164,24 +163,21 @@ contract UniswapHelper is Governable, AMMHelper {
     returns (uint256 lpMinted)
   {
     uint256 localSCXBalance = IERC20(VARS.behodler).balanceOf(address(this));
-
     //SCX transfers incur a 2% fee. Checking that SCX balance === rectangleOfFairness must take this into account.
     //Note that for hardcoded values, this contract can be upgraded through governance so we're not ignoring potential Behodler configuration changes
-    require((localSCXBalance * 100) / rectangleOfFairness == 98, "EM");
+    require((localSCXBalance * 100) / rectangleOfFairness >= 98, "EM");
     rectangleOfFairness = localSCXBalance;
-
     //get DAI per scx
     uint256 existingSCXBalanceOnLP = IERC20(VARS.behodler).balanceOf(address(VARS.Flan_SCX_tokenPair));
     uint256 finalSCXBalanceOnLP = existingSCXBalanceOnLP + rectangleOfFairness;
 
     //the DAI value of SCX is the final quantity of Flan because we want Flan to hit parity with Dai.
     uint256 DesiredFinalFlanOnLP = ((finalSCXBalanceOnLP * latestFlanQuotes[0].DaiScxSpotPrice) / EXA);
+
     address pair = address(VARS.Flan_SCX_tokenPair);
     uint256 existingFlanOnLP = IERC20(VARS.flan).balanceOf(pair);
-
     if (existingFlanOnLP < DesiredFinalFlanOnLP) {
       uint256 flanToMint = ((DesiredFinalFlanOnLP - existingFlanOnLP) * (100 - VARS.priceBoostOvershoot)) / 100;
-
       flanToMint = flanToMint == 0 ? DesiredFinalFlanOnLP - existingFlanOnLP : flanToMint;
       FlanLike(VARS.flan).mint(pair, flanToMint);
       IERC20(VARS.behodler).transfer(pair, rectangleOfFairness);
@@ -207,7 +203,6 @@ contract UniswapHelper is Governable, AMMHelper {
     uint256 daiThreshold
   ) public view override ensurePriceStability returns (uint256 fps) {
     daiThreshold = daiThreshold == 0 ? latestFlanQuotes[0].DaiBalanceOnBehodler : daiThreshold;
-    // console.log("DAI threshold %s", daiThreshold);
     uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
     fps = returnOnThreshold / (year);
   }
@@ -277,7 +272,6 @@ contract UniswapHelper is Governable, AMMHelper {
       ? (localFlanQuotes[0].DaiBalanceOnBehodler * 100) / localFlanQuotes[1].DaiBalanceOnBehodler
       : (localFlanQuotes[1].DaiBalanceOnBehodler * 100) / localFlanQuotes[0].DaiBalanceOnBehodler;
 
-    // console.log("dai balance divergence %s", daiBalanceDivergence);
     require(
       daiSCXSpotPriceDivergence < VARS.divergenceTolerance && daiBalanceDivergence < VARS.divergenceTolerance,
       "EG"

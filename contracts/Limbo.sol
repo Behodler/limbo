@@ -4,7 +4,6 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "hardhat/console.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
@@ -210,16 +209,13 @@ library MigrationLib {
     Soul storage soul
   ) external returns (uint256, uint256) {
     power.parameterize(token, crossingParams.burnable);
-
     //invoke Angband execute on power that migrates token type to Behodler
     uint256 tokenBalance = IERC20(token).balanceOf(address(this));
     IERC20(token).transfer(address(crossingConfig.morgothPower), tokenBalance);
     AngbandLike(crossingConfig.angband).executePower(address(crossingConfig.morgothPower));
 
     uint256 scxMinted = IERC20(address(crossingConfig.behodler)).balanceOf(address(this));
-
     uint256 adjustedRectangle = ((crossingConfig.rectangleOfFairnessInflationFactor) * RectangleOfFairness) / 100;
-
     //for top up or exotic high value migrations.
     if (scxMinted <= adjustedRectangle) {
       adjustedRectangle = scxMinted / 2;
@@ -228,11 +224,9 @@ library MigrationLib {
     //burn SCX - rectangle
     uint256 excessSCX = scxMinted - adjustedRectangle;
     require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
-
     //use remaining scx to buy flan and pool it on an external AMM
     IERC20(crossingConfig.behodler).transfer(crossingConfig.ammHelper, adjustedRectangle);
     uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(adjustedRectangle);
-
     //reward caller and update soul state
     require(flan.mint(msg.sender, crossingConfig.migrationInvocationReward), "E9");
     soul.state = SoulState.crossedOver;
@@ -590,6 +584,7 @@ contract Limbo is Governable {
         crossingConfig.crossingMigrationDelay,
       "EC"
     );
+
     (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
       LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),
       tokenCrossingParameters[token][latestIndex[token]],
