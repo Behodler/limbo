@@ -25,7 +25,7 @@
         rectInflationFactor,0 - 10000, 100 is unchanged
 */
 import { parseEther } from "ethers/lib/utils";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { BigNumber, Contract, ContractFactory } from "ethers";
 import { fstat, write, writeFileSync, existsSync, readFileSync } from "fs";
 import * as deployments from "./deploymentFunctions";
@@ -55,41 +55,59 @@ async function main() {
   });
   const limbo = await LimboFactory.attach(addresses.deployLimbo.limbo);
   //load tokens
-  const { KNC, Mana, REP, rDAI, ZRX } = addresses.unlistedTokens;
-
-  //configure tokens for migration
-
-  await broadcast("configure Soul", limbo.configureSoul(KNC, parseEther("3000"), 1, 1, 0, parseEther("0.00001289")));
-  const configured = await limbo.configured();
-  console.log("limbo configured: " + configured);
-
-  const messageObject = {
-    token: KNC,
-    initialCrossing: parseEther("100000000000").toString(),
-    delta: parseEther("10000000").toString(),
-    burnable: true,
-    threshold: parseEther("3000").toString(),
-  };
-  console.log("parameters");
-  console.log(messageObject);
-  await broadcast(
-    "configure crossing parameters",
-    limbo.configureCrossingParameters(
-      KNC,
-      parseEther("100000000000"),
-      parseEther("10000000"),
-      true,
-      parseEther("3000")
-    )
-  );
-  //onfigure existing behodler tokens for perpetual
-
-  //load souls to confirm configuration success
+  const {
+    LimboMigrationToken1,
+    LimboMigrationToken2,
+    LimboMigrationToken3,
+    LimboMigrationToken4,
+    LimboMigrationToken5,
+  } = addresses.unlistedTokens;
+  const tokens = [LimboMigrationToken1, LimboMigrationToken2, LimboMigrationToken3, LimboMigrationToken4, LimboMigrationToken5];
   const soulReaderFactory = await ethers.getContractFactory("SoulReader");
   const soulReader = await soulReaderFactory.attach(addresses.deploySoulReader.soulReader);
 
-  const crossingParamsOfKNC = await soulReader.CrossingParameters(KNC, limbo.address);
-  console.log(`crossingParamsOfKNC: ${crossingParamsOfKNC}`);
+  
+  //configure tokens for migration
+  for (let i = 0; i < tokens.length; i++) {
+    let currentToken = tokens[i]
+    const threshold = `${i*2000+500}`
+    const fps = (Math.random()*0.00001).toString().substring(0,10)
+    await broadcast(
+      "configure Soul",
+      limbo.configureSoul(currentToken, parseEther(threshold), 1, 1, 0, parseEther(fps))
+    );
+    const configured = await limbo.configured();
+    console.log("limbo configured: " + configured);
+
+    const messageObject = {
+      token: currentToken,
+      initialCrossing: parseEther("100000000000").toString(),
+      delta: parseEther("10000000").toString(),
+      burnable: true,
+      threshold: parseEther("3000").toString(),
+    };
+    console.log("parameters");
+    console.log(messageObject);
+
+    const initialCossingBonus = i*100000000000+30000000
+    const delta = i*10000000+6060000
+    await broadcast(
+      "configure crossing parameters",
+      limbo.configureCrossingParameters(
+        currentToken,
+        parseEther(initialCossingBonus.toString()),
+        parseEther(delta.toString()),
+        true,
+        parseEther(threshold)
+      )
+    );
+    //configure existing behodler tokens for perpetual
+
+    //load souls to confirm configuration success
+
+    const crossingParams = await soulReader.CrossingParameters(currentToken, limbo.address);
+    console.log(`crossingParams: ${crossingParams}`);
+  }
 }
 
 function pauseUntilNextBlockFactory() {

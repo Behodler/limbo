@@ -135,7 +135,7 @@ contract ScarcityLite is CommonIERC20 {
     require(recipient != address(0), "Scarcity: transfer to the zero address");
 
     uint256 feeComponent = (config.transferFee * amount) / (1000);
-    console.log("transferFee %s, amount %s, feeComponent %s", config.transferFee, amount, feeComponent);
+   // console.log("transferFee %s, amount %s, feeComponent %s", config.transferFee, amount, feeComponent);
     uint256 burnComponent = (config.burnFee * amount) / (1000);
     _totalSupply = _totalSupply - burnComponent;
     emit Burn(burnComponent);

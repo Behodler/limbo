@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 import "../ProposalFactory.sol";
 import "../../facades/LimboLike.sol";
 import "../../facades/MorgothTokenApproverLike.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
 * @author Justin Goro
@@ -53,7 +53,6 @@ contract UpdateSoulConfigProposal is Proposal {
     }
 
     function execute() internal override returns (bool) {
-        console.log("token: %s, index: %s",params.token,params.index);
         limbo.configureSoul(
             params.token,
             params.crossingThreshold,

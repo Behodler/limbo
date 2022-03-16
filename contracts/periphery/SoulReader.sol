@@ -4,8 +4,6 @@ import "../facades/LimboLike.sol";
 import "../facades/LimboDAOLike.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// import "hardhat/console.sol";
-
 /**
  *@title SoulReader
  * @author Justin Goro
@@ -141,13 +139,6 @@ contract SoulReader {
     stakingBegins = stakingBegins == 0 ? block.timestamp - 1 : stakingBegins;
 
     int256 accumulatedFlanPerTeraToken = crossingBonusDelta * int256(stakingEnds - stakingBegins);
-    // console.log("token: %d", token);
-    // console.log("time elapsed %d", stakingEnds - stakingBegins);
-    // console.log(
-    //   "accumulatedFlanPerTeraToken %d, initialCrossingBonus %d",
-    //   uint256(accumulatedFlanPerTeraToken),
-    //   uint256(initialCrossingBonus)
-    // );
     int256 finalFlanPerTeraToken = int256(initialCrossingBonus) +
       (stakedAmount > 0 ? accumulatedFlanPerTeraToken : int256(0));
     bonusRate = finalFlanPerTeraToken > 0 ? uint256(finalFlanPerTeraToken) : 0;

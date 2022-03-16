@@ -9,7 +9,7 @@ contract MockToken is ERC677 {
         address[] memory LPs,
         uint256[] memory mintVal
     ) ERC677(name, symbol) {
-        _mint(msg.sender, 100 ether);
+        _mint(msg.sender, 10000 ether);
         uint256 deceth = (1 ether) / 10;
         require(LPs.length == mintVal.length, "CONSTRUCTION MISMATCH");
         for (uint256 i = 0; i < LPs.length; i++) {

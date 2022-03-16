@@ -107,7 +107,7 @@ interface BehodlerLike is IERC20 {
 }
 
 contract LimboAddTokenToBehodlerTestNet {
-    event PowerInvoked(address user, bytes32 minion, bytes32 domain);
+  event PowerInvoked(address user, bytes32 minion, bytes32 domain);
 
   struct Parameters {
     address soul;
@@ -115,7 +115,7 @@ contract LimboAddTokenToBehodlerTestNet {
     address limbo;
   }
 
-  struct Config{
+  struct Config {
     address behodler;
     address lachesis;
     address angband;
@@ -124,7 +124,12 @@ contract LimboAddTokenToBehodlerTestNet {
   Parameters public params;
   Config config;
 
-  constructor(address angband, address behodler,address lachesis, address limbo){
+  constructor(
+    address angband,
+    address behodler,
+    address lachesis,
+    address limbo
+  ) {
     params.limbo = limbo;
     config.angband = angband;
     config.lachesis = lachesis;
@@ -137,7 +142,7 @@ contract LimboAddTokenToBehodlerTestNet {
     params.burnable = burnable;
   }
 
- function invoke(bytes32 minion, address sender) public {
+  function invoke(bytes32 minion, address sender) public {
     require(msg.sender == address(config.angband), "MORGOTH: angband only");
     require(orchestrate(), "MORGOTH: Power invocation");
     emit PowerInvoked(sender, minion, "domain");
