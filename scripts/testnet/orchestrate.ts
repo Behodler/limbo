@@ -1,14 +1,45 @@
-import { parseEther } from "ethers/lib/utils";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
-import { BigNumber, Contract, ContractFactory } from "ethers";
-import { fstat, write, writeFileSync, existsSync, readFileSync } from "fs";
+import { writeFileSync, existsSync, readFileSync } from "fs";
 import * as deployments from "./deploymentFunctions";
 import { OutputAddress, AddressFileStructure, logFactory } from "./common";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(false)
-export async function deployTestnet(chainId: number, persist: boolean, blockTime: number): Promise<OutputAddress> {
+const logger = logFactory(true);
+
+export async function safeDeploy(
+  chainId: number | undefined,
+  persist: boolean,
+  blockTime: number,
+  confirmations: number
+): Promise<OutputAddress> {
+  const file = "/tmp/deploy.lock";
+  if (!existsSync(file)) {
+    writeFileSync(file, "unlocked");
+  }
+  const lockStatus = readFileSync(file, "utf8");
+  logger("lock status is " + lockStatus);
+  if (lockStatus === "locked") {
+    logger("deployment locked");
+    return {};
+  }
+  writeFileSync(file, "locked");
+  try {
+    logger("about to deploy");
+    return deployTestnet(chainId, persist, blockTime, confirmations);
+  } catch (error) {
+    throw error;
+  } finally {
+    writeFileSync(file, "unlocked");
+  }
+}
+
+export async function deployTestnet(
+  chainId: number | undefined,
+  persist: boolean,
+  blockTime: number,
+  confirmations: number,
+  nonce?: number
+): Promise<OutputAddress> {
   /*
     Steps:
     1. load addresses for group by testnet id. 
@@ -24,19 +55,19 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
   }
 
   const networkName = nameNetwork(chainId);
-  const pauser = await deployments.getPauser(blockTime, networkName);
+  const pauser = await deployments.getPauser(blockTime, networkName, confirmations);
   const recognizedTestNet = networkName !== "hardhat";
 
   const networkLoader = (network: string, persist: boolean) => (domain: string, existing: AddressFileStructure) =>
     loadAddresses(network, domain, existing, persist);
   const addressLoader = networkLoader(networkName, persist);
+
   const domainUpdater =
     (network: string, persist: boolean) =>
     (domain: string, newAddresses: OutputAddress, existing: AddressFileStructure) =>
       updateDomain(network, domain, newAddresses, existing, persist);
   const updater = domainUpdater(networkName, persist);
   let existing: AddressFileStructure = {};
-  await pauser();
 
   let loaded = addressLoader("deployBehodler", existing);
   let behodler = loaded.result;
@@ -58,7 +89,9 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
 
   loaded = addressLoader("deployLiquidityReceiver", existing);
   let liquidityReceiverAddresses = loaded.result;
-  existing = existing;
+  existing = loaded.existing;
+  logger("existing liquidity receiver");
+  logger(JSON.stringify(liquidityReceiverAddresses, null, 2));
 
   if (!liquidityReceiverAddresses) {
     liquidityReceiverAddresses = await deployments.deployLiquidityReceiver(
@@ -67,8 +100,10 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
       behodler["addressBalanceCheck"],
       pauser
     );
+    logger("lachesis address right after deployLiquidityReceiver " + liquidityReceiverAddresses["lachesis"]);
     updater("deployLiquidityReceiver", liquidityReceiverAddresses, existing);
   }
+  logger("lachesis address in orchestrate " + liquidityReceiverAddresses["lachesis"]);
 
   loaded = addressLoader("deployWeth", existing);
   let wethAddresses = loaded.result;
@@ -83,6 +118,7 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
     );
     updater("deployWeth", wethAddresses, existing);
   }
+  logger("lachesis in orchestrate: " + liquidityReceiverAddresses["lachesis"]);
   tokens["WETH"] = wethAddresses["WETH"];
   updater("deployTokens", tokens, existing);
   await deployments.mintOnBehodler(
@@ -107,10 +143,11 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
   let sushiAddresses = loaded.result;
   existing = loaded.existing;
   if (!sushiAddresses) {
+    logger("About to deploy sushi swap");
     sushiAddresses = await deployments.deploySushiswap(deployer, tokens, recognizedTestNet, pauser);
     updater("deploySushiswap", sushiAddresses, existing);
   }
-
+  logger(JSON.stringify(tokens, null, 4));
   await deployments.seedUniswap(
     deployer,
     tokens["EYE"],
@@ -342,12 +379,6 @@ export async function deployTestnet(chainId: number, persist: boolean, blockTime
   return flatOutput;
 }
 
-async function main() {
-  const [deployer] = await ethers.getSigners();
-  const chainId = (await deployer.provider?.getNetwork())?.chainId;
-  await deployTestnet(chainId, true, 15000);
-}
-
 function updateDomain(
   networkName: string,
   domain: string,
@@ -369,6 +400,7 @@ function updateDomain(
   }
 
   if (persist) {
+    logger("about to write out domain");
     writeFileSync(fileName, JSON.stringify(existing, null, 2));
   }
   return existing;
@@ -389,13 +421,14 @@ function loadAddresses(
 
   const foundFile = existsSync(fileName);
   if (persist) {
+    logger("persist is true");
     if (foundFile) {
       const blob = readFileSync(fileName);
       existing = JSON.parse(blob.toString()) as AddressFileStructure;
     } else {
       logger("address file not found");
     }
-  }
+  } else logger("persist is false");
 
   logger("domainKeys at " + domain + " " + JSON.stringify(Object.keys(existing), null, 2));
   logger(" ");
@@ -423,9 +456,10 @@ function nameNetwork(networkId: number) {
 }
 
 const ethers = hre.ethers;
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+//TODO: add below to another script which calls into this one
+// main()
+//   .then(() => process.exit(0))
+//   .catch((error) => {
+//     console.error(error);
+//     process.exit(1);
+//   });

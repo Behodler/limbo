@@ -24,8 +24,8 @@ export default {
       },
       mining: {
         auto: false,
-        interval: 2
-      }
+        interval: 2,
+      },
     },
     ropsten: {
       url: `https://nd-564-762-624.p2pify.com/41adb4b5065ff74a971a8bf5e85947c7`,
@@ -35,7 +35,9 @@ export default {
       },
       from: mnemonic.primary,
       gaslLimit: "20000000",
-      gasMultiplier: 3,
+      gasMultiplier: 6,
+      // maxFeePerGas: "0x17D78400",
+      // maxPriorityFeePerGas: "0x17D78400",
     },
   },
   namedAccounts: {

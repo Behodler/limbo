@@ -8,10 +8,10 @@ This offers a bit more flexibility than forking the existing ropsten state and t
 You can't undeploy a contract and adding self destruct code just for testing could introduce vulnerabilities.
 */
 const { expect, assert } = require("chai");
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
-import { deployTestnet } from "../scripts/testnet/orchestrate";
+import { safeDeploy } from "../scripts/testnet/orchestrate";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -27,7 +27,7 @@ describe("ropsten deployment", function () {
   let addresses: DeployedContracts;
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
-    addresses = (await deployTestnet(1337, false, 2)) as DeployedContracts;
+    addresses = (await safeDeploy(1337, false, 2, 2)) as DeployedContracts;
   });
 
   it("illustrate a healthy deployment by having working LP tokens", async function () {
@@ -123,24 +123,28 @@ describe("ropsten deployment", function () {
 
     //sample oracle at correct intervals -> pre audit fix for simplicity
     //First sample
-    const blockNumberOfFirstSample = parseInt(await network.provider.send("eth_blockNumber"));
+    
     const uniswapHelper = (await ethers.getContractFactory("UniswapHelper")).attach(addresses["uniswapHelper"]);
     await uniswapHelper.generateFLNQuote();
+    const blockNumberOfFirstSample = parseInt(await network.provider.send("eth_blockNumber"));
     //Second sample 4 blocks later
     let newBlockNumber: number = blockNumberOfFirstSample;
+    console.log("block of first sample: " + blockNumberOfFirstSample);
     for (; newBlockNumber - blockNumberOfFirstSample < 4; ) {
       newBlockNumber = parseInt(await network.provider.send("eth_blockNumber"));
+      console.log("block :"+newBlockNumber)
       await soulReader.SoulStats(aave.address, limbo.address);
       pause(1);
     }
     await uniswapHelper.generateFLNQuote();
-
+    await pause(10);
     //migrate token to behodler
     const aaveBalanceOnBehodlerBeforeMigrate = await aave.balanceOf(addresses["behodler"]);
     expect(aaveBalanceOnBehodlerBeforeMigrate).to.equal(0);
     await limbo.migrate(aave.address);
-    await pause(3);
+    await pause(10);
     const aaveBalanceOnBehodlerBeforeAfter = await aave.balanceOf(addresses["behodler"]);
+    await pause(10);
     expect(aaveBalanceOnBehodlerBeforeAfter).to.equal(parseEther("2001"));
 
     //redeem some of the token from behodler
@@ -181,6 +185,7 @@ describe("ropsten deployment", function () {
 });
 
 function pause(duration: number) {
+  console.log("pausing for  " + duration + " seconds");
   return new Promise(function (resolve, error) {
     setTimeout(() => {
       return resolve(duration);

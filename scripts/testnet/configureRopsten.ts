@@ -25,7 +25,7 @@
         rectInflationFactor,0 - 10000, 100 is unchanged
 */
 import { parseEther } from "ethers/lib/utils";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { BigNumber, Contract, ContractFactory } from "ethers";
 import { fstat, write, writeFileSync, existsSync, readFileSync } from "fs";
 import * as deployments from "./deploymentFunctions";

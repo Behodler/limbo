@@ -9,8 +9,6 @@ import "../facades/SwapFactoryLike.sol";
 import "../facades/UniPairLike.sol";
 import "./Governable.sol";
 
-// import "hardhat/console.sol";
-
 library TransferHelper {
   function ERC20NetTransfer(
     address token,
@@ -140,10 +138,8 @@ contract LimboDAO is Ownable {
   }
 
   modifier onlySuccessfulProposal() {
-    // console.log('onlySuccessfulProposal');
     require(successfulProposal(msg.sender), "LimboDAO: approve proposal");
     _;
-    //nextProposal();
   }
 
   ///@notice has a proposal successfully been approved?

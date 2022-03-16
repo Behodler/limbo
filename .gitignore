@@ -136,3 +136,4 @@ scripts/testnet/addresses/hardhat.json
 /flat
 private/
 test/deployment.json
+scripts/testnet/addresses/orig*
