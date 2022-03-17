@@ -27,7 +27,7 @@ describe("ropsten deployment", function () {
   let addresses: DeployedContracts;
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
-    addresses = (await safeDeploy(1337, false, 2, 2)) as DeployedContracts;
+    addresses = (await safeDeploy(1337, false, 2, 6)) as DeployedContracts;
   });
 
   it("illustrate a healthy deployment by having working LP tokens", async function () {

@@ -376,6 +376,7 @@ export async function deployTestnet(
   } else {
     logger(flatString);
   }
+  logger("successfully deployed Limbo and test versions of Behodler and MorgothDAO")
   return flatOutput;
 }
 

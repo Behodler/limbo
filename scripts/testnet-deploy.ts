@@ -13,7 +13,7 @@ async function main() {
   const chainId = (await deployer.provider?.getNetwork())?.chainId;
   const txCount = await network.provider.send("eth_getTransactionCount", [deployer.address, "latest"]);
   console.log("TX count " + txCount);
-  await safeDeploy(chainId, true, 60000, 6);
+  await safeDeploy(chainId, true, 30000, 6);
 }
 
 main()
