@@ -34,7 +34,6 @@ export default {
         mnemonic: mnemonic.phrase,
       },
       from: mnemonic.primary,
-      gaslLimit: "20000000",
       gasMultiplier: 6,
       // maxFeePerGas: "0x17D78400",
       // maxPriorityFeePerGas: "0x17D78400",

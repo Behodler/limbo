@@ -818,6 +818,7 @@ contract LiquidityReceiver is Ownable {
   }
 
   constructor(address _lachesis) {
+    console.log('lachesis  %s',_lachesis);
     config.lachesis = LachesisLike(_lachesis);
   }
 

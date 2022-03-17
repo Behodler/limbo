@@ -12,11 +12,14 @@ let initialNonce: number | undefined;
 
 async function getNonce() {
   const [deployer] = await ethers.getSigners();
-  const latestNonce = await network.provider.send("eth_getTransactionCount", [deployer.address, "latest"]);
+  const latestNonce = await getTXCount(deployer);
   logger("using nonce: " + latestNonce);
-  return { nonce: latestNonce }
+  return { nonce: latestNonce, gasLimit: 9000000 };
 }
 
+async function getTXCount(deployer: SignerWithAddress) {
+  return await network.provider.send("eth_getTransactionCount", [deployer.address, "latest"]);
+}
 function pauserFactory(duration: number, network: string, confirmations: number) {
   const networkToUse = network == "hardhat" ? "localhost" : network;
   let provider = ethers.provider; //ethers.getDefaultProvider(networkToUse);
@@ -56,6 +59,7 @@ async function broadcast(name: string, transaction: Promise<any>, pauser: Functi
 }
 
 export async function deploy(
+  name: string,
   factory: ContractFactory,
   pauser: Function,
   args?: any[],
@@ -65,12 +69,12 @@ export async function deploy(
   //if (gasOverride) gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
   // gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
 
-  gasArgs.push( await getNonce() );
+  gasArgs.push(await getNonce());
 
   const contract = await factory.deploy(...gasArgs);
-  logger("pausing for deployment");
+  logger("pausing for deployment of " + name + " at " + new Date().toTimeString());
   await pauser();
-  await contract.deployed();
+  //await contract.deployed();
   return contract;
 }
 
@@ -88,7 +92,7 @@ const getTokenFactory =
 
 export async function deployMultiCall(pauser: Function): Promise<OutputAddress> {
   const Multicall = await ethers.getContractFactory("Multicall");
-  const multicall = await deploy(Multicall, pauser, []);
+  const multicall = await deploy("Multicall", Multicall, pauser, []);
   const addressList: OutputAddress = {};
   addressList["multicall"] = multicall.address;
   return addressList;
@@ -121,9 +125,9 @@ export async function deployMorgothDAO(
   const limbo = await LimboFactory.attach(limboAddress);
 
   const Angband = await ethers.getContractFactory("Angband");
-  const angband = await deploy(Angband, pauser, []);
+  const angband = await deploy("angband", Angband, pauser, []);
   const LimboAddTokenToBehodlerPower = await ethers.getContractFactory("LimboAddTokenToBehodlerTestNet");
-  const limboAddTokenToBehodlerPower = await deploy(LimboAddTokenToBehodlerPower, pauser, [
+  const limboAddTokenToBehodlerPower = await deploy("LimboPower", LimboAddTokenToBehodlerPower, pauser, [
     angband.address,
     behodler.address,
     lachesis.address,
@@ -138,7 +142,7 @@ export async function deployMorgothDAO(
 
 export async function deploySoulReader(pauser: Function): Promise<OutputAddress> {
   const SoulReader = await ethers.getContractFactory("SoulReader");
-  const soulReader = await deploy(SoulReader, pauser, []);
+  const soulReader = await deploy("SoulReader", SoulReader, pauser, []);
   const addressList: OutputAddress = {};
   addressList["soulReader"] = soulReader.address;
   return addressList;
@@ -170,22 +174,27 @@ export async function deployProposalFactory(
   const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
   const uniswapHelper = await UniswapHelperFactory.attach(uniswapHelperAddress);
   const MockMorgothTokenApprover = await ethers.getContractFactory("MockMorgothTokenApprover");
-  const mockMorgothTokenApprover = await deploy(MockMorgothTokenApprover, pauser, []);
+  const mockMorgothTokenApprover = await deploy("MockMorgothTokenApprover", MockMorgothTokenApprover, pauser, []);
 
   const WhiteList = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
-  const whiteList = await deploy(WhiteList, pauser, [dao.address, "WhiteListProposal"]);
+  const whiteList = await deploy("WhiteList", WhiteList, pauser, [dao.address, "WhiteListProposal"]);
 
   const UpdateMultipleSoulConfigProposal = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
-  const updateMultipleSoulConfigProposal = await deploy(UpdateMultipleSoulConfigProposal, pauser, [
-    dao.address,
+  const updateMultipleSoulConfigProposal = await deploy(
     "UpdateMultipleSoulConfigProposal",
-    limbo.address,
-    uniswapHelper.address,
-    mockMorgothTokenApprover.address,
-  ]);
+    UpdateMultipleSoulConfigProposal,
+    pauser,
+    [
+      dao.address,
+      "UpdateMultipleSoulConfigProposal",
+      limbo.address,
+      uniswapHelper.address,
+      mockMorgothTokenApprover.address,
+    ]
+  );
 
   const ProposalFactory = await ethers.getContractFactory("ProposalFactory");
-  const proposalFactory = await deploy(ProposalFactory, pauser, [
+  const proposalFactory = await deploy("ProposalFactory", ProposalFactory, pauser, [
     dao.address,
     whiteList.address,
     updateMultipleSoulConfigProposal.address,
@@ -216,9 +225,10 @@ export async function deployLimbo(
   const SoulLib = await ethers.getContractFactory("SoulLib");
   const CrossingLib = await ethers.getContractFactory("CrossingLib");
   const MigrationLib = await ethers.getContractFactory("MigrationLib");
-  const soulLib = await deploy(SoulLib, pauser, []);
-  const crossingLib = await deploy(CrossingLib, pauser, []);
-  const migrationLib = await deploy(MigrationLib, pauser, []);
+
+  const soulLib = await deploy("SoulLib", SoulLib, pauser, []);
+  const crossingLib = await deploy("CrossingLib", CrossingLib, pauser, []);
+  const migrationLib = await deploy("MigrationLib", MigrationLib, pauser, []);
 
   const Limbo = await ethers.getContractFactory("Limbo", {
     libraries: {
@@ -228,22 +238,21 @@ export async function deployLimbo(
     },
   });
 
-  const limbo = await deploy(Limbo, pauser, [flan, dao.address]);
+  const limbo = await deploy("Limbo", Limbo, pauser, [flan, dao.address]);
 
   const UniswapHelper = await ethers.getContractFactory("UniswapHelper");
-  const uniswapHelper = await deploy(UniswapHelper, pauser, [limbo.address, dao.address]);
+  const uniswapHelper = await deploy("UNi helper", UniswapHelper, pauser, [limbo.address, dao.address]);
 
   const FlanFactory = await ethers.getContractFactory("Flan");
   const flanInstance = await FlanFactory.attach(flan);
-  logger("white list minting of Flan on Limbo");
-  await flanInstance.whiteListMinting(limbo.address, true);
-  await pauser();
-  await flanInstance.whiteListMinting(daoAddress, true);
-  logger("white list minting of Flan on LimboDAO");
-  await pauser();
-  await flanInstance.whiteListMinting(uniswapHelper.address, true);
-  logger("white list minting of Flan on UniswapHelper");
-  await pauser();
+
+  await broadcast("white list limbo", flanInstance.whiteListMinting(limbo.address, true, getNonce()), pauser);
+  await broadcast("white list dao", flanInstance.whiteListMinting(daoAddress, true, getNonce()), pauser);
+  await broadcast(
+    "white list uniswap helper",
+    flanInstance.whiteListMinting(uniswapHelper.address, true, getNonce()),
+    pauser
+  );
 
   await broadcast(
     "configure uniswaphelper",
@@ -323,22 +332,14 @@ export async function configureLimboCrossingConfig(
 
 export async function deployTokens(deployer: SignerWithAddress, pauser: Function): Promise<OutputAddress> {
   const Token = await ethers.getContractFactory("MockToken");
-  logger("about to deploy EYE");
-  const eye = await deploy(Token, pauser, ["EYE", "EYE", [], []]);
-  logger("about to deploy MAKER");
-  const maker = await deploy(Token, pauser, ["MAKER", "MKR", [], []]);
-  logger("about to deploy OXT");
-  const oxt = await deploy(Token, pauser, ["OXT", "OXT", [], []]);
-  logger("about to deploy PNK");
-  const pnk = await deploy(Token, pauser, ["PNK", "PNK", [], []]);
-  logger("about to deploy LINK");
-  const link = await deploy(Token, pauser, ["LINK", "LINK", [], []]);
-  logger("about to deploy WEIDAI");
-  const weidai = await deploy(Token, pauser, ["WEIDAI", "WDAI", [], []]);
-  logger("about to deploy LOOM");
-  const loom = await deploy(Token, pauser, ["LOOM", "LOOM", [], []]);
-  logger("about to deploy DAI");
-  const dai = await deploy(Token, pauser, ["DAI", "DAI", [], []]);
+  const eye = await deploy("EYE", Token, pauser, ["EYE", "EYE", [], []]);
+  const maker = await deploy("MKR", Token, pauser, ["MAKER", "MKR", [], []]);
+  const oxt = await deploy("OXT", Token, pauser, ["OXT", "OXT", [], []]);
+  const pnk = await deploy("PNK", Token, pauser, ["PNK", "PNK", [], []]);
+  const link = await deploy("LNK", Token, pauser, ["LINK", "LINK", [], []]);
+  const weidai = await deploy("WeiDai", Token, pauser, ["WEIDAI", "WDAI", [], []]);
+  const loom = await deploy("LOOM", Token, pauser, ["LOOM", "LOOM", [], []]);
+  const dai = await deploy("DAI", Token, pauser, ["DAI", "DAI", [], []]);
   let tokens: OutputAddress = {};
   tokens["EYE"] = eye.address;
   tokens["MAKER"] = maker.address;
@@ -383,7 +384,7 @@ export async function deployFlan(
   const liquidityReceiver = await LiquidityReceiverFactory.attach(liquidityReceiverAddress);
 
   const Flan = await ethers.getContractFactory("Flan");
-  const flan = await deploy(Flan, pauser, [dao.address]);
+  const flan = await deploy("Flan", Flan, pauser, [dao.address]);
 
   await broadcast("lachesis measure", lachesis.measure(flan.address, true, false, await getNonce()), pauser);
 
@@ -391,7 +392,7 @@ export async function deployFlan(
 
   await broadcast(
     "registerPyro",
-    liquidityReceiver.registerPyroToken(flan.address, await getNonce(), "PyroFlan", "PyroFLN"),
+    liquidityReceiver.registerPyroToken(flan.address, "PyroFlan", "PyroFLN", await getNonce()),
     pauser
   );
 
@@ -423,9 +424,9 @@ export async function deployFlan(
 //for hardhat only. In otherwords, on non persist.
 export async function deployFakeTokens(pauser: Function): Promise<OutputAddress> {
   const MockTokenFactory = await ethers.getContractFactory("MockToken");
-  const Aave = await deploy(MockTokenFactory, pauser, ["Aave", "Aave", [], []]);
-  const Sushi = await deploy(MockTokenFactory, pauser, ["Sushi", "SUSHI", [], []]);
-  const Mana = await deploy(MockTokenFactory, pauser, ["Mana", "MANA", [], []]);
+  const Aave = await deploy("Aave", MockTokenFactory, pauser, ["Aave", "Aave", [], []]);
+  const Sushi = await deploy("Sushi", MockTokenFactory, pauser, ["Sushi", "SUSHI", [], []]);
+  const Mana = await deploy("Mana", MockTokenFactory, pauser, ["Mana", "MANA", [], []]);
 
   const addresses: OutputAddress = {};
   addresses["Aave"] = Aave.address;
@@ -440,14 +441,14 @@ export async function deployLimboDAO(
   pauser: Function
 ): Promise<OutputAddress> {
   const TransferHelper = await ethers.getContractFactory("TransferHelper");
-  const transferHelper = await deploy(TransferHelper, pauser, []);
+  const transferHelper = await deploy("TransferHelper", TransferHelper, pauser, []);
 
   const LimboDAO = await ethers.getContractFactory("LimboDAO", {
     libraries: { TransferHelper: transferHelper.address },
   });
-  const dao = await deploy(LimboDAO, pauser, []);
+  const dao = await deploy("LimboDAO", LimboDAO, pauser, []);
   const FlashGovernanceArbiter = await ethers.getContractFactory("FlashGovernanceArbiter");
-  const flashGovernanceArbiter = await deploy(FlashGovernanceArbiter, pauser, [dao.address]);
+  const flashGovernanceArbiter = await deploy("FlashGovArb", FlashGovernanceArbiter, pauser, [dao.address]);
   await broadcast("set flash governer", dao.setFlashGoverner(flashGovernanceArbiter.address, await getNonce()), pauser);
   await broadcast(
     "configure flash governance",
@@ -480,7 +481,7 @@ export async function deployLiquidityReceiver(
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
   const LachesisLite = await ethers.getContractFactory("LachesisLite");
-  const lachesis = await deploy(LachesisLite, pauser, [], true);
+  const lachesis = await deploy("Lachesis", LachesisLite, pauser, [], true);
   logger("lachesis address at deployment " + lachesis.address); //0x147396210d38d88B5CDC605F7f60E90d0550771e
   addressList["lachesis"] = lachesis.address;
 
@@ -496,14 +497,16 @@ export async function deployLiquidityReceiver(
 
   const LiquidityReceiver = await ethers.getContractFactory("LiquidityReceiver");
   //0xFB13c8ad2303F98F80931D06AFd1607744327F99
-  const liquidityReceiver = await deploy(LiquidityReceiver, pauser, [lachesis.address]);
+  const liquidityReceiver = await deploy("LiquidityReceiver", LiquidityReceiver, pauser, [lachesis.address]);
   addressList["liquidityReceiver"] = liquidityReceiver.address;
   const tokenKeys = Object.keys(tokens);
+  console.log('creating pyrotokens')
   for (let i = 0; i < tokenKeys.length; i++) {
     if (tokenKeys[i].toLowerCase() === "scx") continue;
     const address = tokens[tokenKeys[i]];
     const pyrotokenAddress = await liquidityReceiver.getPyroToken(address);
     await pauser();
+    console.log('pyroTokenAddress: ' + pyrotokenAddress);
     const TokenFactory = await ethers.getContractFactory("MockToken");
     const pyroToken = await TokenFactory.attach(pyrotokenAddress);
 
@@ -543,7 +546,7 @@ export async function deployLiquidityReceiver(
   const eyeAddress = tokens["EYE"];
   const SnufferCap = await ethers.getContractFactory("BurnEYESnufferCap");
 
-  const snufferCap = await deploy(SnufferCap, pauser, [eyeAddress, liquidityReceiver.address]);
+  const snufferCap = await deploy("SnufferCap", SnufferCap, pauser, [eyeAddress, liquidityReceiver.address]);
   addressList["snufferCap"] = snufferCap.address;
   await broadcast("set snuffer cap", liquidityReceiver.setSnufferCap(snufferCap.address, await getNonce()), pauser);
   return addressList;
@@ -562,8 +565,8 @@ export async function deployWeth(
   const LachesisFactory: ContractFactory = await ethers.getContractFactory("LachesisLite");
   const lachesis = await LachesisFactory.attach(lachesisAddress);
   const Weth = await ethers.getContractFactory("WETH10");
-  const weth = await deploy(Weth, pauser);
-  await broadcast("weth deposit", weth.deposit({ value: parseEther("2") }, await getNonce()), pauser);
+  const weth = await deploy("WETH", Weth, pauser);
+  await broadcast("weth deposit", weth.deposit({ value: parseEther("2"), nonce: await getTXCount(deployer) }), pauser);
   addressList["WETH"] = weth.address;
 
   await broadcast("lachesis measure weth", lachesis.measure(weth.address, true, false, await getNonce()), pauser);
@@ -582,7 +585,7 @@ export async function deployWeth(
   logger("pyroWeth: " + pyroWethAddress);
   const PyroWeth10Proxy = await ethers.getContractFactory("PyroWeth10Proxy");
 
-  const proxy = await deploy(PyroWeth10Proxy, pauser, [pyroWethAddress], true);
+  const proxy = await deploy("PYROWETH10Proxy", PyroWeth10Proxy, pauser, [pyroWethAddress], true);
   logger("PyroWeth10Proxy" + proxy.address);
   addressList["proxy"] = proxy.address;
 
@@ -605,7 +608,7 @@ async function uniclone(
   }
   const uniswapFactory = recognizedTestNet
     ? await UniswapV2Factory.attach(factory)
-    : await deploy(UniswapV2Factory, pauser, [deployer.address]);
+    : await deploy("UniV2Factry", UniswapV2Factory, pauser, [deployer.address]);
 
   const daiAddress = tokenAddresses["DAI"];
   const eyeAddress = tokenAddresses["EYE"];
@@ -792,14 +795,14 @@ export async function seedUniswap(
 export async function deployBehodler(deployer: SignerWithAddress, pauser: Function): Promise<OutputAddress> {
   const AddressBalanceCheck = await ethers.getContractFactory("AddressBalanceCheck");
   const ABDK = await ethers.getContractFactory("ABDK");
-  const addressBalanceCheckDeployment = await deploy(AddressBalanceCheck, pauser, [], true);
+  const addressBalanceCheckDeployment = await deploy("AddressBalaneCheck", AddressBalanceCheck, pauser, [], true);
   logger("address balance check");
   const addressBalanceCheckAddress = addressBalanceCheckDeployment.address;
   const BehodlerLite = await ethers.getContractFactory("BehodlerLite", {
     libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
   });
 
-  const behodlerLite = await deploy(BehodlerLite, pauser, []);
+  const behodlerLite = await deploy("Behodler", BehodlerLite, pauser, []);
   await pauser();
   logger("about to wait for behodler");
   const addresses: OutputAddress = {};
