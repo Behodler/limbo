@@ -12,6 +12,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import { safeDeploy } from "../scripts/testnet/orchestrate";
+import configureRopsten from "../scripts/testnet/configureRopsten";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -39,7 +40,7 @@ describe("ropsten deployment", function () {
   });
 
   it("list a fake token as threshold with positive delta and migrate it successfully to behodler", async function () {
-    const Aave = addresses["Aave"];
+    const Aave = addresses["LimboMigrationToken1"];
     const aave = await (await ethers.getContractFactory("MockToken")).attach(Aave);
     await expect(await aave.totalSupply()).to.be.gt(0);
 
@@ -61,7 +62,7 @@ describe("ropsten deployment", function () {
     //set up soul
     await limbo.configureSoul(aave.address, parseEther("2000"), 1, 1, 0, parseEther("0.0034"));
     await limbo.configureCrossingParameters(
-      addresses["Aave"],
+      addresses["LimboMigrationToken1"],
       parseEther("6320000"),
       parseEther("100000"),
       true,
@@ -123,7 +124,7 @@ describe("ropsten deployment", function () {
 
     //sample oracle at correct intervals -> pre audit fix for simplicity
     //First sample
-    
+
     const uniswapHelper = (await ethers.getContractFactory("UniswapHelper")).attach(addresses["uniswapHelper"]);
     await uniswapHelper.generateFLNQuote();
     const blockNumberOfFirstSample = parseInt(await network.provider.send("eth_blockNumber"));
@@ -132,7 +133,7 @@ describe("ropsten deployment", function () {
     console.log("block of first sample: " + blockNumberOfFirstSample);
     for (; newBlockNumber - blockNumberOfFirstSample < 4; ) {
       newBlockNumber = parseInt(await network.provider.send("eth_blockNumber"));
-      console.log("block :"+newBlockNumber)
+      console.log("block :" + newBlockNumber);
       await soulReader.SoulStats(aave.address, limbo.address);
       pause(1);
     }
@@ -162,8 +163,9 @@ describe("ropsten deployment", function () {
   });
 
   it("transfers Aave from user 1 to user 2", async function () {
-    const aave = await (await ethers.getContractFactory("MockToken")).attach(addresses["Aave"]);
-    console.log("parseEther 1000 " + parseEther("1000"));
+    console.log("addresses " + JSON.stringify(addresses, null, 4));
+    const aave = await (await ethers.getContractFactory("MockToken")).attach(addresses["LimboMigrationToken1"]);
+
     const ownerBalanceBefore = (await aave.balanceOf(owner.address)).toString();
     await aave.approve(owner.address, parseEther("2000"));
     await aave.transferFrom(owner.address, secondPerson.address, parseEther("1000"));
@@ -172,6 +174,10 @@ describe("ropsten deployment", function () {
     console.log("owner balance before " + ownerBalanceBefore + " owner balance after " + ownerBalanceAfter);
     await expect(await aave.balanceOf(owner.address)).to.equal(parseEther("9000"));
     await expect(await aave.balanceOf(secondPerson.address)).to.equal(parseEther("1000"));
+  });
+
+  it("configures 4 new tokens to list on Limbo", async function () {
+    await configureRopsten(2, 6, addresses);
   });
 
   const advanceTime = async (seconds: number) => {

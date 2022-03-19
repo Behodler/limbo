@@ -67,5 +67,12 @@
   },
   "deployMultiCall": {
     "multicall": "0x9f7171664b425726A7fe515Baedcb65DeFb9c61A"
+  },
+  "unlistedTokens": {
+    "LimboMigrationToken1": "0x22FEe59Bb8fe5831a69Bd9B1Cc3B3c59b09Cfd49",
+    "LimboMigrationToken2": "0x7F85CaEb988223Fac911F39d73930f2f49E330a6",
+    "LimboMigrationToken3": "0x7F85CaEb988223Fac911F39d73930f2f49E330a6",
+    "LimboMigrationToken4": "0xa5C416EeCCD782A4f42cB2A559C8FA9cCa2E4313",
+    "LimboMigrationToken5": "0xfe5899065a8685cda8fdf4c6e1df4c689c3dcd45"
   }
 }
