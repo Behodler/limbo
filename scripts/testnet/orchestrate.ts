@@ -1,6 +1,6 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import * as deployments from "./deploymentFunctions";
-import { OutputAddress, AddressFileStructure, logFactory } from "./common";
+import { OutputAddress, AddressFileStructure, logFactory ,getPauser, nameNetwork} from "./common";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
@@ -55,7 +55,7 @@ export async function deployTestnet(
   }
 
   const networkName = nameNetwork(chainId);
-  const pauser = await deployments.getPauser(blockTime, networkName, confirmations);
+  const pauser = await getPauser(blockTime, networkName, confirmations);
   const recognizedTestNet = networkName !== "hardhat";
 
   const networkLoader = (network: string, persist: boolean) => (domain: string, existing: AddressFileStructure) =>
@@ -311,7 +311,7 @@ export async function deployTestnet(
     updater("TestTokens", testTokens, existing);
   }
 
-  const flatOutput: OutputAddress = {};
+   const flatOutput: OutputAddress = {};
 
   for (const key in behodler) {
     flatOutput[key] = behodler[key];
@@ -443,18 +443,6 @@ function loadAddresses(
   }
 }
 
-function nameNetwork(networkId: number) {
-  switch (networkId) {
-    case 1337:
-      return "hardhat";
-    case 3:
-      return "ropsten";
-    case 42:
-      return "kovan";
-    default:
-      throw "unknown network";
-  }
-}
 
 const ethers = hre.ethers;
 //TODO: add below to another script which calls into this one

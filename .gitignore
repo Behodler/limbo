@@ -137,3 +137,4 @@ scripts/testnet/addresses/hardhat.json
 private/
 test/deployment.json
 scripts/testnet/addresses/orig*
+delete-this*
