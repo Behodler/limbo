@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "typechain": "typechain --target=ethers-v5 'build/contracts/*.json' --out-dir 'typechain'",
-    "test": "docker-compose up test",
+    "test": "npx hardhat test test/*.test.js",
+    "test:wargames": "npx hardhat test test/wargames/*",
     "build:debug": "sudo rm -rf build/ && truffle build && yarn typechain",
     "build": "docker-compose up build",
     "docker:install": "rm -rf node_modules/* && touch yarn.lock && rm yarn.lock && docker-compose up install",

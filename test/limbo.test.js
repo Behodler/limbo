@@ -825,7 +825,7 @@ describe("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
+     await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
   });
 
   it("unstaking amount larger than balance reverts with E4", async function () {

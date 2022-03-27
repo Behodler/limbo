@@ -11,8 +11,8 @@ const { expect, assert } = require("chai");
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
-import { safeDeploy } from "../scripts/testnet/orchestrate";
-import configureRopsten from "../scripts/testnet/configureRopsten";
+import { safeDeploy } from "../../scripts/testnet/orchestrate";
+import configureRopsten from "../../scripts/testnet/configureRopsten";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -156,8 +156,9 @@ describe("ropsten deployment", function () {
 
     const behodler = BehodlerFactory.attach(addresses["behodler"]);
     const aaveBalanceBeforeRedeem = await aave.balanceOf(owner.address);
-    await pause(1);
+    await pause(2);
     await behodler.withdrawLiquidity(aave.address, parseEther("10"));
+    await pause(2);
     const aaveBalanceAfterRedeem = await aave.balanceOf(owner.address);
     expect(aaveBalanceAfterRedeem).to.be.gt(aaveBalanceBeforeRedeem);
   });
