@@ -4,7 +4,7 @@ import { OutputAddress, AddressFileStructure, logFactory ,getPauser, nameNetwork
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 export async function safeDeploy(
   chainId: number | undefined,
@@ -445,10 +445,3 @@ function loadAddresses(
 
 
 const ethers = hre.ethers;
-//TODO: add below to another script which calls into this one
-// main()
-//   .then(() => process.exit(0))
-//   .catch((error) => {
-//     console.error(error);
-//     process.exit(1);
-//   });

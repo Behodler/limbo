@@ -39,11 +39,11 @@
   "mockMorgothTokenApprover": "0x450324F8f49682e640282575B0A552B52D3ED705",
   "angband": "0x2827b09243A88FA7590311eB5f6Adc7fBa665fb0",
   "limboAddTokenToBehodlerPower": "0xFF85944118268F435824Ff2c1566ee9D290Ee935",
-  "soulReader": "0xB9F39b208e417412770035005d8B453241337024",
+  "soulReader": "0x29aaa89607209349f88dc984cc32f37f95116478",
   "multicall": "0x9f7171664b425726A7fe515Baedcb65DeFb9c61A",
   "LimboMigrationToken1": "0x22FEe59Bb8fe5831a69Bd9B1Cc3B3c59b09Cfd49",
   "LimboMigrationToken2": "0x7F85CaEb988223Fac911F39d73930f2f49E330a6",
-  "LimboMigrationToken3": "0x7F85CaEb988223Fac911F39d73930f2f49E330a6",
+  "LimboMigrationToken3": "0x2a0dbe3F6da4360Fc79d761529E0D02483a4706c",
   "LimboMigrationToken4": "0xa5C416EeCCD782A4f42cB2A559C8FA9cCa2E4313",
   "LimboMigrationToken5": "0xfe5899065a8685cda8fdf4c6e1df4c689c3dcd45"
 }
