@@ -7,9 +7,10 @@ import { OutputAddress, logFactory, deploy, getTXCount, getNonce, broadcast, get
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-
+const logger = logFactory(false);
 export default async function (blockTime: number, confirmations: number, addresses: any) {
-  console.log("addresses: " + JSON.stringify(addresses, null, 2));
+
+  logger("addresses: " + JSON.stringify(addresses, null, 2));
   const [deployer] = await ethers.getSigners();
   const chainId = (await deployer.provider?.getNetwork())?.chainId;
   const networkName = nameNetwork(chainId);
@@ -43,7 +44,7 @@ export default async function (blockTime: number, confirmations: number, address
     LimboMigrationToken5,
   ];
 
-  console.log("TOKENS: " + JSON.stringify(tokens, null, 2));
+  logger("TOKENS: " + JSON.stringify(tokens, null, 2));
   
   const soulReaderFactory = await ethers.getContractFactory("SoulReader");
   const soulReader = await soulReaderFactory.attach(addresses.soulReader);
@@ -60,7 +61,7 @@ export default async function (blockTime: number, confirmations: number, address
     );
     const configured = await limbo.configured();
     await pauser();
-    console.log("limbo configured: " + configured);
+    logger("limbo configured: " + configured);
 
     const messageObject = {
       token: currentToken,
@@ -69,8 +70,8 @@ export default async function (blockTime: number, confirmations: number, address
       burnable: true,
       threshold: parseEther("3000").toString(),
     };
-    console.log("parameters");
-    console.log(messageObject);
+    logger("parameters");
+    logger(messageObject);
 
     const initialCossingBonus = i * 100000000000 + 30000000;
     const delta = i * 10000000 + 6060000;
@@ -91,7 +92,7 @@ export default async function (blockTime: number, confirmations: number, address
     //load souls to confirm configuration success
 
     const crossingParams = await soulReader.CrossingParameters(currentToken, limbo.address);
-    console.log(`crossingParams: ${crossingParams}`);
+    logger(`crossingParams: ${crossingParams}`);
   }
 }
 const ethers = hre.ethers;

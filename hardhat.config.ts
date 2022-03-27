@@ -22,6 +22,7 @@ export default {
       accounts: {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
       },
+      //comment out mining block for non wargame tests
       mining: {
         auto: false,
         interval: 2,

@@ -138,6 +138,8 @@ contract SoulReader {
     stakingEnds = stakingEnds == 0 ? block.timestamp : stakingEnds;
     stakingBegins = stakingBegins == 0 ? block.timestamp - 1 : stakingBegins;
 
+    if (stakingEnds < stakingBegins) return 0;
+
     int256 accumulatedFlanPerTeraToken = crossingBonusDelta * int256(stakingEnds - stakingBegins);
     int256 finalFlanPerTeraToken = int256(initialCrossingBonus) +
       (stakedAmount > 0 ? accumulatedFlanPerTeraToken : int256(0));

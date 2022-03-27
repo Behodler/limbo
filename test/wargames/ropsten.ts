@@ -11,8 +11,8 @@ const { expect, assert } = require("chai");
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
-import { safeDeploy } from "../scripts/testnet/orchestrate";
-import configureRopsten from "../scripts/testnet/configureRopsten";
+import { safeDeploy } from "../../scripts/testnet/orchestrate";
+import configureRopsten from "../../scripts/testnet/configureRopsten";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -30,7 +30,7 @@ describe("ropsten deployment", function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
     addresses = (await safeDeploy(1337, false, 2, 6)) as DeployedContracts;
   });
-
+  
   it("illustrate a healthy deployment by having working LP tokens", async function () {
     const eyeDaiAddress = addresses["EYEDAI"];
     const uniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
@@ -156,8 +156,9 @@ describe("ropsten deployment", function () {
 
     const behodler = BehodlerFactory.attach(addresses["behodler"]);
     const aaveBalanceBeforeRedeem = await aave.balanceOf(owner.address);
-    await pause(1);
+    await pause(2);
     await behodler.withdrawLiquidity(aave.address, parseEther("10"));
+    await pause(2);
     const aaveBalanceAfterRedeem = await aave.balanceOf(owner.address);
     expect(aaveBalanceAfterRedeem).to.be.gt(aaveBalanceBeforeRedeem);
   });
@@ -169,15 +170,24 @@ describe("ropsten deployment", function () {
     const ownerBalanceBefore = (await aave.balanceOf(owner.address)).toString();
     await aave.approve(owner.address, parseEther("2000"));
     await aave.transferFrom(owner.address, secondPerson.address, parseEther("1000"));
-    await pause(10);
+    await pause(1);
     const ownerBalanceAfter = (await aave.balanceOf(owner.address)).toString();
     console.log("owner balance before " + ownerBalanceBefore + " owner balance after " + ownerBalanceAfter);
     await expect(await aave.balanceOf(owner.address)).to.equal(parseEther("9000"));
     await expect(await aave.balanceOf(secondPerson.address)).to.equal(parseEther("1000"));
   });
 
-  it("configures 4 new tokens to list on Limbo", async function () {
+  it("Tests soul reader", async function () {
     await configureRopsten(2, 6, addresses);
+
+    //first call with traditional route.
+    const soulReader = (await ethers.getContractFactory("SoulReader")).attach(addresses["soulReader"]);
+    const output = await soulReader.ExpectedCrossingBonusRate(
+      owner.address,
+      addresses["LimboMigrationToken4"],
+      addresses["limbo"]
+    );
+
   });
 
   const advanceTime = async (seconds: number) => {

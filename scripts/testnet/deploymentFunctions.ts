@@ -6,7 +6,7 @@ import { OutputAddress, logFactory, deploy, getTXCount, getNonce, broadcast } fr
 type address = string;
 const nullAddress = "0x0000000000000000000000000000000000000000";
 
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 interface Token {
   name: string;
@@ -427,13 +427,13 @@ export async function deployLiquidityReceiver(
   const liquidityReceiver = await deploy("LiquidityReceiver", LiquidityReceiver, pauser, [lachesis.address]);
   addressList["liquidityReceiver"] = liquidityReceiver.address;
   const tokenKeys = Object.keys(tokens);
-  console.log("creating pyrotokens");
+  logger("creating pyrotokens");
   for (let i = 0; i < tokenKeys.length; i++) {
     if (tokenKeys[i].toLowerCase() === "scx") continue;
     const address = tokens[tokenKeys[i]];
     const pyrotokenAddress = await liquidityReceiver.getPyroToken(address);
     await pauser();
-    console.log("pyroTokenAddress: " + pyrotokenAddress);
+    logger("pyroTokenAddress: " + pyrotokenAddress);
     const TokenFactory = await ethers.getContractFactory("MockToken");
     const pyroToken = await TokenFactory.attach(pyrotokenAddress);
 

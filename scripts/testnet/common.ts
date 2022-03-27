@@ -18,7 +18,7 @@ export function logFactory(visible: boolean) {
   };
 }
 
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 export async function getNonce() {
   const [deployer] = await ethers.getSigners();
@@ -40,13 +40,13 @@ function pauserFactory(duration: number, network: string, confirmations: number)
     let currentBlock = await provider.getBlockNumber();
 
     while (currentBlock - initialBlock < confirmations) {
-      console.log(`current block ${currentBlock}, initial block ${initialBlock}`);
+      logger(`current block ${currentBlock}, initial block ${initialBlock}`);
       const remaining = confirmations - (currentBlock - initialBlock);
       logger(`${remaining} blocks remaining. Pausing for ${duration / 1000} seconds`);
       logger("                                                       ");
       await pause(duration);
       const current = await provider.getBlockNumber();
-      console.log("new current block " + current);
+      logger("new current block " + current);
       currentBlock = current;
     }
   };
