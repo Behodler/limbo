@@ -129,7 +129,7 @@ contract UniswapHelper is Governable, AMMHelper {
     VARS.minQuoteWaitDuration = minQuoteWaitDuration;
     VARS.DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
     VARS.precision = precision == 0 ? precision : precision;
-    require(priceBoostOvershoot < 100, "Set overshoot to number between 1 and 100.");
+    require(priceBoostOvershoot < 100, "Set overshoot to number between 0 and 99.");
     VARS.priceBoostOvershoot = priceBoostOvershoot;
   }
 
