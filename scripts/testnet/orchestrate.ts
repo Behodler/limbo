@@ -4,7 +4,7 @@ import { OutputAddress, AddressFileStructure, logFactory ,getPauser, nameNetwork
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 export async function safeDeploy(
   chainId: number | undefined,

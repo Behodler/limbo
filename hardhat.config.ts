@@ -23,10 +23,10 @@ export default {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
       },
       //comment out mining block for non wargame tests
-      mining: {
-        auto: false,
-        interval: 2,
-      },
+      // mining: {
+      //   auto: false,
+      //   interval: 2,
+      // },
     },
     ropsten: {
       url: `https://nd-564-762-624.p2pify.com/41adb4b5065ff74a971a8bf5e85947c7`,

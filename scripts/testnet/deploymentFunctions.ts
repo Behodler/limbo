@@ -6,7 +6,7 @@ import { OutputAddress, logFactory, deploy, getTXCount, getNonce, broadcast } fr
 type address = string;
 const nullAddress = "0x0000000000000000000000000000000000000000";
 
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 interface Token {
   name: string;
