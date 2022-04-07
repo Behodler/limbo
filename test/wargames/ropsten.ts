@@ -12,7 +12,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import { safeDeploy } from "../../scripts/testnet/orchestrate";
-import configureRopsten from "../../scripts/testnet/configureRopsten";
+import configureRopsten from "../../scripts/testnet/configureThreshold";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;

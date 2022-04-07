@@ -1,13 +1,9 @@
-import { parseEther } from "ethers/lib/utils";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, Contract, ContractFactory } from "ethers";
-import { fstat, write, writeFileSync, existsSync, readFileSync } from "fs";
-import * as deployments from "./deploymentFunctions";
+import { parseEther } from "ethers/lib/utils"
 import { OutputAddress, logFactory, deploy, getTXCount, getNonce, broadcast, getPauser, nameNetwork } from "./common";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(false);
+const logger = logFactory(true);
 export default async function (blockTime: number, confirmations: number, addresses: any) {
 
   logger("addresses: " + JSON.stringify(addresses, null, 2));
@@ -41,7 +37,6 @@ export default async function (blockTime: number, confirmations: number, address
     LimboMigrationToken2,
     LimboMigrationToken3,
     LimboMigrationToken4,
-    LimboMigrationToken5,
   ];
 
   logger("TOKENS: " + JSON.stringify(tokens, null, 2));

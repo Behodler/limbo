@@ -24,3 +24,7 @@ To update the UI in one step after starting a node run
 ```
 yarn update:ui
 ```
+
+# Testing
+For standard unit tests, comment out the custom mining block in hardhat.config.js. 
+Ropsten wargames are in memory unit tests of deployment scripts to Ropsten. They were written because long running scripts would fail against Ropsten with absolutely no debugging info provided. Makes sure the custom mining block is uncommented as the tests expect a block mining time. 

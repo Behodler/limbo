@@ -18,7 +18,7 @@ export function logFactory(visible: boolean) {
   };
 }
 
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 export async function getNonce() {
   const [deployer] = await ethers.getSigners();
