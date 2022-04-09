@@ -825,7 +825,7 @@ describe("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-     await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
+    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
   });
 
   it("unstaking amount larger than balance reverts with E4", async function () {
@@ -1673,6 +1673,79 @@ describe("Limbo", function () {
     );
   });
 
+  it("flash governance enforcement works immediately after configuring", async function () {
+    await this.flashGovernance.configureSecurityParameters(10, 100, 3);
+
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
+
+    //create real behodler
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
+    const realBehodler = await RealBehodlerFactory.deploy();
+    await realBehodler.configureScarcity(15, 5, owner.address);
+
+    //add dai to real behodler
+    await this.dai.mint("5000000000000000000000000");
+    await this.dai.approve(realBehodler.address, "5000000000000000000000000");
+    await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
+
+    //create Uniswap pair for Flan/SCX
+    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
+
+    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
+    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+
+    await this.eye.approve(this.flashGovernance.address, "100000000000000000000000000000");
+
+    //configure uniswapHelper
+    await this.uniswapHelper.configure(
+      this.limbo.address,
+      pairAddress,
+      realBehodler.address,
+      this.flan.address,
+      200,
+      10,
+      20,
+      0
+    );
+    await this.uniswapHelper.setDAI(this.dai.address);
+
+    //send Flan and SCX to pair and mint
+    await this.flan.mint(pairAddress, "1000000000000000000000000");
+    130000000000000000000000;
+    const scxBalance = await realBehodler.balanceOf(owner.address);
+
+    await realBehodler.transfer(pairAddress, scxBalance);
+
+    await scxFlanPair.mint(owner.address);
+
+    //run price quote, wait required time and run quote again.
+    await this.uniswapHelper.generateFLNQuote();
+
+    await advanceBlocks(11);
+
+    await this.uniswapHelper.generateFLNQuote();
+
+   
+    await this.limbo.endConfiguration();
+
+     // this should fail
+    //flash govern set APY
+    await  expect(this.limbo.attemptToTargetAPY(
+      this.aave.address,
+      2000, // 13%
+      0 //let helper figure this out
+    )).to.be.revertedWith("FE1")
+  });
+  
   it("FOT token accounting handled correctly", async function () {
     const feeOnTransferTokenFactory = await ethers.getContractFactory("MockFOTToken");
     const feeOnTransferToken = await feeOnTransferTokenFactory.deploy("FOT", "FOT", 50);

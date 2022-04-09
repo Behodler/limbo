@@ -46,14 +46,16 @@ abstract contract Governable {
   function _governanceApproved(bool emergency) internal {
     bool successfulProposal = LimboDAOLike(DAO).successfulProposal(msg.sender);
     if (successfulProposal) {
-      flashGoverner().setEnforcement(false);
-    } else if (configured) flashGoverner().assertGovernanceApproved(msg.sender, address(this), emergency);
+      governer.setEnforcement(false);
+    } else if (configured) {
+      governer.setEnforcement(true);
+      governer.assertGovernanceApproved(msg.sender, address(this), emergency);
+    }
   }
 
   modifier governanceApproved(bool emergency) {
     _governanceApproved(emergency);
     _;
-    flashGoverner().setEnforcement(true);
   }
 
   function assertSuccessfulProposal(address sender) internal view {
