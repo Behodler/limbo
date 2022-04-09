@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 import "./Governable.sol";
-// import "hardhat/console.sol";
 import "../facades/Burnable.sol";
+
+///@author Justin Goro
+/**@notice When assessing whether flash governance rules must apply, the configured status of the calling contract must be inspected
+ */
+abstract contract Configurable {
+  function configured() public view virtual returns (bool);
+}
 
 ///@title Flash Governance Arbiter
 ///@author Justin Goro
@@ -173,7 +179,7 @@ contract FlashGovernanceArbiter is Governable {
   ///@notice Allows functions to enforce maximum limits on a per variable basis
   ///@dev the 100 factor is just to allow for simple percentage comparisons without worrying about enormous precision.
   function enforceTolerance(uint256 v1, uint256 v2) public view {
-    if (!configured || !enforceLimitsActive[msg.sender]) return;
+    if (!enforceLimitsActive[msg.sender] || !Configurable(msg.sender).configured()) return;
     //bonus points for readability
     if (v1 > v2) {
       if (v2 == 0) require(v1 <= 1, "FE1");
