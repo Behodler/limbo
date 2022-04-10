@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.13;
 
 abstract contract PyroTokenLike {
   function mint(address to, uint256 baseTokenAmount) external payable virtual returns (uint256);

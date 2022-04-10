@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.13;
 
 abstract contract AMMHelper {
     function stabilizeFlan(uint256 rectangleOfFairness)

@@ -15,7 +15,7 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 });
 
 export default {
-  solidity: "0.8.4",
+  solidity: "0.8.13",
   networks: {
     hardhat: {
       chainId: 1337,
