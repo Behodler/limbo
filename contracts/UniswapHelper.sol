@@ -5,7 +5,7 @@ import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
 import "./ERC677/ERC20Burnable.sol";
 import "./facades/FlanLike.sol";
-import "./testing/realUniswap/interfaces/IUniswapV2Factory.sol";
+import "./periphery/UniswapV2/interfaces/IUniswapV2Factory.sol";
 import "./facades/AMMHelper.sol";
 
 contract BlackHole {}
@@ -140,15 +140,26 @@ contract UniswapHelper is Governable, AMMHelper {
     latestFlanQuotes[0].blockProduced = block.number;
   }
 
-  function getLatestFLNQuote() internal view returns (uint256 dai_scx, uint256 daiBalanceOnBehodler) {
-    uint256 daiToRelease = BehodlerLike(VARS.behodler).withdrawLiquidityFindSCX(
-      VARS.DAI,
-      10000,
-      1 ether,
-      VARS.precision
-    );
-    dai_scx = (daiToRelease * EXA) / (1 ether);
+  /*TODO: the naive griefing fix would allow for price manipulation because Behodler doesn't have that TWAP mechamism. 
+  Griefer: calls getLatestFLNQuote too often. Burns EYE for doing so.
+  Attack: flash loan manipulates balance of Dai on Behodler for both stamps.
+  Fix to grief: require eye burnt if sampled too frequently
+  Counter grief fix: intentionally stamps bad price to lure good actors into burning EYE by prematurely stamping bad price out of existence before it can be used. 
+  
+  New potential fix: 2 samplings and then a reject function. 
+    Griefer: if you call too often, eye is burnt. The value of eye burnt increases with each attempt until a good round when it is reset
+    Attacker: you flash loan stamp two bad dai balances. Then there's a cooloff period in which the price can be rejected with a flash loan
+    Post fix grief: griefer keeps stamping bad prices to tie up flash gov eye and pays very low fee for doing so.
+    new fix: stamping requires an EYE stake. reject burns the EYE. The eye stake increases with each rejection.
+    problem: too much staking complexity
 
+  Uniswap v2 fix: use TWAP oracle for flan/scx (no dai) and drop daiBalanceOnBehodler as it's not really necessary
+  https://github.com/Uniswap/v2-periphery/blob/master/contracts/examples/ExampleOracleSimple.sol
+  Remember to apply similar fix to LimboDAO burn and stake LP 
+  Remember to use unsafe blocks to allow for overlow in current solidity
+  */
+  function getLatestFLNQuote() internal view returns (uint256 dai_scx, uint256 daiBalanceOnBehodler) {
+    dai_scx = BehodlerLike(VARS.behodler).withdrawLiquidityFindSCX(VARS.DAI, 10000, 1 ether, VARS.precision);
     daiBalanceOnBehodler = IERC20(VARS.DAI).balanceOf(VARS.behodler);
   }
 

@@ -11,8 +11,8 @@ const AddTokenPower = artifacts.require("LimboAddTokenToBehodler");
 const Angband = artifacts.require("AngbandLite");
 const AddressBalanceCheckLib = artifacts.require("AddressBalanceCheck");
 const BehodlerLite = artifacts.require("BehodlerLite");
-const UniswapFactory = artifacts.require("RealUniswapV2Factory");
-const SushiswapFactory = artifacts.require("RealUniswapV2Factory");
+const UniswapFactory = artifacts.require("UniswapV2Factory");
+const SushiswapFactory = artifacts.require("UniswapV2Factory");
 const MockToken1 = artifacts.require("MockToken");
 const MockToken2 = artifacts.require("MockToken");
 

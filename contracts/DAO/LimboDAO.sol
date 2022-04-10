@@ -9,7 +9,7 @@ import "../facades/SwapFactoryLike.sol";
 import "../facades/UniPairLike.sol";
 import "./Governable.sol";
 
-library TransferHelper {
+library NetTransferHelper {
   function ERC20NetTransfer(
     address token,
     address from,
@@ -95,7 +95,7 @@ contract LimboDAO is Ownable {
   event proposalExecuted(address proposal, bool approved);
   event assetBurnt(address burner, address asset, uint256 fateCreated);
 
-  using TransferHelper for address;
+  using NetTransferHelper for address;
   uint256 constant ONE = 1 ether;
   uint256 precision = 1e9;
 

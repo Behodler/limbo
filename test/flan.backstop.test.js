@@ -45,10 +45,10 @@ describe("FlanBackStop", function () {
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
 
-    const TransferHelperFactory = await ethers.getContractFactory("TransferHelper");
+    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        TransferHelper: (await TransferHelperFactory.deploy()).address,
+        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
       },
     });
 
@@ -190,7 +190,7 @@ describe("FlanBackStop", function () {
     this.flanBackStop = await FlanBackStop.deploy(this.limboDAO.address, this.flan.address, this.pyroFlan.address);
     await this.flan.whiteListMinting(this.flanBackStop.address, true);
 
-    const UniswapFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+    const UniswapFactory = await ethers.getContractFactory("UniswapV2Factory");
     this.uniswapFactory = await UniswapFactory.deploy(owner.address);
 
     await this.uniswapFactory.createPair(this.MIM.address, this.flan.address);
@@ -202,7 +202,7 @@ describe("FlanBackStop", function () {
     await this.uniswapFactory.createPair(this.USDC.address, this.flan.address);
     await this.uniswapFactory.createPair(this.USDC.address, this.pyroFlan.address);
 
-    const TokenPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const TokenPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
     //Mim/flan and mim/PyroFlan LPs
     const mimFlanAddress = await this.uniswapFactory.getPair(this.MIM.address, this.flan.address);

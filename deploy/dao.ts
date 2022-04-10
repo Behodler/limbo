@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
     libraries: {
-      TransferHelper: transferHelper.address,
+      NetTransferHelper: transferHelper.address,
     },
   });
 

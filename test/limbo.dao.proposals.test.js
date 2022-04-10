@@ -56,10 +56,10 @@ describe("DAO Proposals", function () {
       [3322, 5543, 22, 112]
     );
 
-    this.TransferHelperFactory = await ethers.getContractFactory("TransferHelper");
+    this.TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        TransferHelper: (await this.TransferHelperFactory.deploy()).address,
+        NetTransferHelper: (await this.TransferHelperFactory.deploy()).address,
       },
     });
 
@@ -366,10 +366,10 @@ describe("DAO Proposals", function () {
   });
 
   it("killDAO, only callable by owner, transfers ownership to new DAO", async function () {
-    this.TransferHelperFactory = await ethers.getContractFactory("TransferHelper");
+    this.TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        TransferHelper: (await this.TransferHelperFactory.deploy()).address,
+        NetTransferHelper: (await this.TransferHelperFactory.deploy()).address,
       },
     });
 

@@ -10,7 +10,7 @@ import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Callee.sol";
 import "hardhat/console.sol";
 
-contract RealUniswapV2Pair is UniswapV2ERC20 {
+contract UniswapV2Pair is UniswapV2ERC20 {
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
     event Burn(
         address indexed sender,

@@ -57,10 +57,10 @@ describe("DAO staking", function () {
       [3322, 5543, 22, 112]
     );
 
-    const TransferHelperFactory = await ethers.getContractFactory("TransferHelper");
+    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        TransferHelper: (await TransferHelperFactory.deploy()).address,
+        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
       },
     });
 

@@ -12,7 +12,7 @@ import {
   MockMigrationUniPair__factory,
   MockToken__factory,
   ProposalFactory__factory,
-  RealUniswapV2Factory__factory,
+  UniswapV2Factory__factory,
   UniswapHelper__factory,
   SoulReader__factory
 } from "../typechain";
@@ -37,8 +37,8 @@ async function main() {
   const uniswapHelper = UniswapHelper__factory.connect(DeployedContracts.UniswapHelper.address, deployer);
   const mockAngband = MockAngband__factory.connect(DeployedContracts.MockAngband.address, deployer);
   const mockAddTokenPower = MockAddTokenPower__factory.connect(DeployedContracts.MockAddTokenPower.address, deployer);
-  const uniswapFactory = RealUniswapV2Factory__factory.connect(DeployedContracts.UniswapFactory.address, deployer);
-  const sushiswapFactory = RealUniswapV2Factory__factory.connect(DeployedContracts.SushiswapFactory.address, deployer);
+  const uniswapFactory = UniswapV2Factory__factory.connect(DeployedContracts.UniswapFactory.address, deployer);
+  const sushiswapFactory = UniswapV2Factory__factory.connect(DeployedContracts.SushiswapFactory.address, deployer);
   const mockMigrationUnipair = MockMigrationUniPair__factory.connect(
     DeployedContracts.MockMigrationUniPair.address,
     deployer

@@ -33,7 +33,7 @@ describe("ropsten deployment", function () {
   
   it("illustrate a healthy deployment by having working LP tokens", async function () {
     const eyeDaiAddress = addresses["EYEDAI"];
-    const uniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const eyeDai = await uniswapPairFactory.attach(eyeDaiAddress);
     const totalSupply = await eyeDai.totalSupply();
     console.log(`eyeDai address ${eyeDaiAddress} has ${totalSupply} tokens`);

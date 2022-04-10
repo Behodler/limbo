@@ -22,10 +22,10 @@ describe("Limbo", function () {
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
 
-    const TransferHelperFactory = await ethers.getContractFactory("TransferHelper");
+    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        TransferHelper: (await TransferHelperFactory.deploy()).address,
+        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
       },
     });
 
@@ -1105,14 +1105,14 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -1386,13 +1386,13 @@ describe("Limbo", function () {
     await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     //configure uniswapHelper
     await this.uniswapHelper.configure(
@@ -1453,13 +1453,13 @@ describe("Limbo", function () {
     await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     //configure uniswapHelper
     await this.uniswapHelper.configure(
@@ -1567,10 +1567,10 @@ describe("Limbo", function () {
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi", [], []);
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(sushi.address, this.flan.address);
     await this.uniswapHelper.setFactory(realUniswapFactory.address);
 
@@ -1579,7 +1579,7 @@ describe("Limbo", function () {
     await sushi.transfer(pairAddress, "1000000000");
     await this.flan.mint(pairAddress, "80000000000");
 
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
     await scxFlanPair.mint(owner.address);
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
@@ -1622,13 +1622,13 @@ describe("Limbo", function () {
     await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     //configure uniswapHelper
     await this.uniswapHelper.configure(
@@ -1695,13 +1695,13 @@ describe("Limbo", function () {
     await realBehodler.addLiquidity(this.dai.address, "5000000000000000000000000");
 
     //create Uniswap pair for Flan/SCX
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     await this.eye.approve(this.flashGovernance.address, "100000000000000000000000000000");
 
@@ -1801,6 +1801,8 @@ describe("Limbo", function () {
     );
   });
 
+  
+
   it("token with proxy but baseToken zero simply migrates proxy", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
     const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
@@ -1830,14 +1832,14 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -1947,14 +1949,14 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -2065,14 +2067,14 @@ describe("Limbo", function () {
       this.registry.address
     );
 
-    const RealUniswapFactoryFactory = await ethers.getContractFactory("RealUniswapV2Factory");
-    const RealUniswapPairFactory = await ethers.getContractFactory("RealUniswapV2Pair");
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    const realUniswapFactory = await RealUniswapFactoryFactory.deploy(owner.address);
+    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
     await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
 
     const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await RealUniswapPairFactory.attach(pairAddress);
+    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -2153,4 +2155,5 @@ describe("Limbo", function () {
     const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
+  
 });
