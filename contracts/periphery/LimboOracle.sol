@@ -16,7 +16,7 @@ import "./UniswapV2/libraries/UniswapV2Library.sol";
  * Neither requires up to date accuracy but must simply be resitant to tampering.
  * @dev This contract is based on the UniswapV2 ExampleOracleSimple. Originally, a simpler version of an Oracle was created but a tension emerged between griefing and security that only resolved in a hell of complication.
  */
-contract SimpleTWAP is Governable {
+contract LimboOracle is Governable {
   using FixedPoint for *;
     using FixedPoint for FixedPoint.uq112x112;
   uint256 public constant PERIOD = 24 hours;
