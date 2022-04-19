@@ -7,6 +7,8 @@ import "../Flan.sol";
 import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
 import "../facades/UniPairLike.sol";
+import "../facades/LimboOracleLike.sol";
+import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./Governable.sol";
 
 library NetTransferHelper {
@@ -37,41 +39,41 @@ enum ProposalDecision {
 }
 
 struct DomainConfig {
-    address limbo;
-    address flan;
-    address eye;
-    address fate;
-    bool live;
-    address flashGoverner;
-    address sushiFactory;
-    address uniFactory;
-  }
+  address limbo;
+  address flan;
+  address eye;
+  address fate;
+  bool live;
+  address flashGoverner;
+  LimboOracleLike sushiOracle;
+  LimboOracleLike uniOracle;
+}
 
-  struct ProposalConfig {
-    uint256 votingDuration;
-    uint256 requiredFateStake;
-    address proposalFactory; //check this for creating proposals
-  }
+struct ProposalConfig {
+  uint256 votingDuration;
+  uint256 requiredFateStake;
+  address proposalFactory; //check this for creating proposals
+}
 
-  struct ProposalState {
-    int256 fate;
-    ProposalDecision decision;
-    address proposer;
-    uint256 start;
-    Proposal proposal;
-  }
+struct ProposalState {
+  int256 fate;
+  ProposalDecision decision;
+  address proposer;
+  uint256 start;
+  Proposal proposal;
+}
 
-  //rateCrate
-  struct FateState {
-    uint256 fatePerDay;
-    uint256 fateBalance;
-    uint256 lastDamnAdjustment;
-  }
+//rateCrate
+struct FateState {
+  uint256 fatePerDay;
+  uint256 fateBalance;
+  uint256 lastDamnAdjustment;
+}
 
-  struct AssetClout {
-    uint256 fateWeight;
-    uint256 balance;
-  }
+struct AssetClout {
+  uint256 fateWeight;
+  uint256 balance;
+}
 
 ///@title Limbo DAO
 ///@author Justin Goro
@@ -177,6 +179,11 @@ contract LimboDAO is Ownable {
     _;
   }
 
+  modifier updateOracle(address asset, bool uniswap) {
+    _updateOracle(asset, uniswap);
+    _;
+  }
+
   function incrementFateFor(address user) public {
     FateState storage state = fateState[user];
     state.fateBalance += (state.fatePerDay * (block.timestamp - state.lastDamnAdjustment)) / (1 days);
@@ -187,36 +194,37 @@ contract LimboDAO is Ownable {
   ///@param flan address of Flan
   ///@param eye address of EYE token
   ///@param proposalFactory authenticates and instantiates valid proposals for voting
-  ///@param sushiFactory is the SushiSwap Factory contract
-  ///@param uniFactory is the UniSwapV2 Factory contract
+  ///@param sushiOracle the SushiSwap oracle
+  ///@param uniOracle the Uniswap oracle
   ///@param precisionOrderOfMagnitude when comparing fractional values, it's not necessary to get every last digit right
-  ///@param sushiLPs valid EYE containing LP tokens elligible for earning Fate through staking
-  ///@param uniLPs valid EYE containing LP tokens elligible for earning Fate through staking
+  ///@param sushiMetaLPs Pairs of EYE and an EYE containing LP such as EYE/ETH for pricing EYE/ETH in terms of EYE.
+  ///@param uniMetaLPs valid EYE containing LP tokens elligible for earning Fate through staking
   function seed(
     address limbo,
     address flan,
     address eye,
     address proposalFactory,
-    address sushiFactory,
-    address uniFactory,
+    address sushiOracle,
+    address uniOracle,
     uint256 precisionOrderOfMagnitude,
-    address[] memory sushiLPs,
-    address[] memory uniLPs
+    address[] memory sushiMetaLPs,
+    address[] memory uniMetaLPs
   ) public onlyOwner {
-    _seed(limbo, flan, eye, sushiFactory, uniFactory);
+    _seed(limbo, flan, eye, sushiOracle, uniOracle);
     proposalConfig.votingDuration = 2 days;
     proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
     proposalConfig.proposalFactory = proposalFactory;
     precision = 10**precisionOrderOfMagnitude;
-    for (uint256 i = 0; i < sushiLPs.length; i++) {
-      require(UniPairLike(sushiLPs[i]).factory() == sushiFactory, "LimboDAO: invalid Sushi LP");
-      if (IERC20(eye).balanceOf(sushiLPs[i]) > 1000) assetApproved[sushiLPs[i]] = true;
-      fateGrowthStrategy[sushiLPs[i]] = FateGrowthStrategy.indirectTwoRootEye;
+    address sushiFactory = address(LimboOracleLike(sushiOracle).factory());
+    address uniFactory = address(LimboOracleLike(uniOracle).factory());
+    for (uint256 i = 0; i < sushiMetaLPs.length; i++) {
+      address pairFactory = UniPairLike(sushiMetaLPs[i]).factory();
+      require(pairFactory == sushiFactory, "LimboDAO: invalid Sushi LP");
+      _setApprovedAsset(sushiMetaLPs[i], true, false, 0);
     }
-    for (uint256 i = 0; i < uniLPs.length; i++) {
-      require(UniPairLike(uniLPs[i]).factory() == uniFactory, "LimboDAO: invalid Sushi LP");
-      if (IERC20(eye).balanceOf(uniLPs[i]) > 1000) assetApproved[uniLPs[i]] = true;
-      fateGrowthStrategy[uniLPs[i]] = FateGrowthStrategy.indirectTwoRootEye;
+    for (uint256 i = 0; i < uniMetaLPs.length; i++) {
+      require(UniPairLike(uniMetaLPs[i]).factory() == uniFactory, "LimboDAO: invalid Uni LP");
+      _setApprovedAsset(uniMetaLPs[i], true, true, 0);
     }
   }
 
@@ -308,10 +316,20 @@ contract LimboDAO is Ownable {
   }
 
   ///@notice Assets approved for earning Fate
-  function setApprovedAsset(address asset, bool approved) public onlySuccessfulProposal {
-    assetApproved[asset] = approved;
-    fateGrowthStrategy[asset] = FateGrowthStrategy.indirectTwoRootEye;
+  function setApprovedAsset(
+    address asset,
+    bool approved,
+    bool isUniswap,
+    uint256 period
+  ) public onlySuccessfulProposal {
+    _setApprovedAsset(asset, approved, isUniswap, period);
     emit assetApproval(asset, approved);
+  }
+
+  struct SquareChecker {
+    uint256 rootEYESquared;
+    uint256 rootEYEPlusOneSquared;
+    uint256 initialBalance;
   }
 
   ///@notice handles staking logic for EYE and EYE based assets so that correct rate of fate is earned.
@@ -323,22 +341,22 @@ contract LimboDAO is Ownable {
     uint256 finalAssetBalance,
     uint256 finalEYEBalance,
     uint256 rootEYE,
-    address asset
-  ) public isLive incrementFate {
+    address asset,
+    bool uniswap
+  ) public isLive incrementFate updateOracle(asset, uniswap) {
     require(assetApproved[asset], "LimboDAO: illegal asset");
     address sender = _msgSender();
     FateGrowthStrategy strategy = fateGrowthStrategy[asset];
 
+    SquareChecker memory rootInvariant = SquareChecker(rootEYE * rootEYE, (rootEYE + 1) * (rootEYE + 1), 0);
     //verifying that rootEYE value is accurate within precision.
-    uint256 rootEYESquared = rootEYE * rootEYE;
-    uint256 rootEYEPlusOneSquared = (rootEYE + 1) * (rootEYE + 1);
     require(
-      rootEYESquared <= finalEYEBalance && rootEYEPlusOneSquared > finalEYEBalance,
+      rootInvariant.rootEYESquared <= finalEYEBalance && rootInvariant.rootEYEPlusOneSquared > finalEYEBalance,
       "LimboDAO: Stake EYE invariant."
     );
     AssetClout storage clout = stakedUserAssetWeight[sender][asset];
     fateState[sender].fatePerDay -= clout.fateWeight;
-    uint256 initialBalance = clout.balance;
+    rootInvariant.initialBalance = clout.balance;
     //EYE
     if (strategy == FateGrowthStrategy.directRoot) {
       require(finalAssetBalance == finalEYEBalance, "LimboDAO: staking eye invariant.");
@@ -349,24 +367,21 @@ contract LimboDAO is Ownable {
       fateState[sender].fatePerDay += rootEYE;
     } else if (strategy == FateGrowthStrategy.indirectTwoRootEye) {
       //LP
+
       clout.fateWeight = 2 * rootEYE;
       fateState[sender].fatePerDay += clout.fateWeight;
-
-      uint256 actualEyeBalance = IERC20(domainConfig.eye).balanceOf(asset);
-      require(actualEyeBalance > 0, "LimboDAO: No EYE");
-      uint256 totalSupply = IERC20(asset).totalSupply();
-      uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
-      uint256 impliedEye = (eyePerUnit * finalAssetBalance) / (ONE * precision);
       finalEYEBalance /= precision;
+
       require(
-        finalEYEBalance == impliedEye, //precision cap
+        finalEYEBalance == EYEEquivalentOfLP(asset, uniswap, finalAssetBalance) / precision,
         "LimboDAO: stake invariant check 2."
       );
+
       clout.balance = finalAssetBalance;
     } else {
       revert("LimboDAO: asset growth strategy not accounted for");
     }
-    int256 netBalance = int256(finalAssetBalance) - int256(initialBalance);
+    int256 netBalance = int256(finalAssetBalance) - int256(rootInvariant.initialBalance);
     asset.ERC20NetTransfer(sender, address(this), netBalance);
   }
 
@@ -379,7 +394,11 @@ contract LimboDAO is Ownable {
    *@param asset the asset to burn and can be EYE or EYE based assets
    *@param amount the amount of asset to burn
    */
-  function burnAsset(address asset, uint256 amount) public isLive incrementFate {
+  function burnAsset(
+    address asset,
+    uint256 amount,
+    bool uniswap
+  ) public isLive incrementFate updateOracle(asset, uniswap) {
     require(assetApproved[asset], "LimboDAO: illegal asset");
     address sender = _msgSender();
     require(ERC677(asset).transferFrom(sender, address(this), amount), "LimboDAO: transferFailed");
@@ -388,11 +407,7 @@ contract LimboDAO is Ownable {
       fateCreated = amount * 10;
       ERC677(domainConfig.eye).burn(amount);
     } else {
-      uint256 actualEyeBalance = IERC20(domainConfig.eye).balanceOf(asset);
-      require(actualEyeBalance > 0, "LimboDAO: No EYE");
-      uint256 totalSupply = IERC20(asset).totalSupply();
-      uint256 eyePerUnit = (actualEyeBalance * ONE) / totalSupply;
-      uint256 impliedEye = (eyePerUnit * amount) / ONE;
+      uint256 impliedEye = EYEEquivalentOfLP(asset, uniswap, amount);
       fateCreated = impliedEye * 20;
     }
     fateState[_msgSender()].fateBalance += fateCreated;
@@ -432,15 +447,15 @@ contract LimboDAO is Ownable {
     address limbo,
     address flan,
     address eye,
-    address sushiFactory,
-    address uniFactory
+    address sushiV1Oracle,
+    address uniV2Oracle
   ) internal {
     require(domainConfig.flashGoverner != address(0), "LimboDAO: flashGovernor not initialized.");
     domainConfig.limbo = limbo;
     domainConfig.flan = flan;
     domainConfig.eye = eye;
-    domainConfig.uniFactory = uniFactory;
-    domainConfig.sushiFactory = sushiFactory;
+    domainConfig.sushiOracle = LimboOracleLike(sushiV1Oracle);
+    domainConfig.uniOracle = LimboOracleLike(uniV2Oracle);
     assetApproved[eye] = true;
     fateGrowthStrategy[eye] = FateGrowthStrategy.directRoot;
   }
@@ -448,5 +463,57 @@ contract LimboDAO is Ownable {
   function getFlashGoverner() external view returns (address) {
     require(domainConfig.flashGoverner != address(0), "LimboDAO: no flash governer");
     return domainConfig.flashGoverner;
+  }
+
+  function _setApprovedAsset(
+    address metaAsset,
+    bool approved,
+    bool isUniswap,
+    uint256 period
+  ) private {
+    IUniswapV2Pair pair = IUniswapV2Pair(metaAsset);
+    address token0 = pair.token0();
+    address token1 = pair.token1();
+
+    address underlyingLP = token0 == domainConfig.eye ? token1 : token0;
+    assetApproved[underlyingLP] = approved;
+    fateGrowthStrategy[underlyingLP] = FateGrowthStrategy.indirectTwoRootEye;
+
+    if (isUniswap) {
+      domainConfig.uniOracle.RegisterPair(metaAsset, period == 0 ? 1 : period);
+    } else {
+      domainConfig.sushiOracle.RegisterPair(metaAsset, period == 0 ? 1 : period);
+    }
+  }
+
+  function _updateOracle(address asset, bool uniswap) private {
+    require(assetApproved[asset], "LimboDAO: illegal asset");
+    if (fateGrowthStrategy[asset] == FateGrowthStrategy.indirectTwoRootEye) {
+      LimboOracleLike oracle = uniswap ? domainConfig.uniOracle : domainConfig.sushiOracle;
+      oracle.update(oracle.factory().getPair(asset, domainConfig.eye));
+    }
+  }
+
+  /*
+Discussion: we wish to know the weight of EYE in an LP. For instance, suppose we have an LP with 100 units of EYE and 20 units of Dai 
+and that you own 10% of the pool. This means you have 10 EYE and 2 Dai.
+We don't want to penalize holders of EYE LPs by only counting the EYE component of the LP token. Instead, the DAI balance represents their bolstering
+of liquidity of the remaining EYE. Since tokens in trading pairs at rest are equal in value, we can assume that the 2 Dai is equal to 10 EYE.
+So the EYE weight of this portfolio is 20 EYE.
+If we just take the balances of EYE and Dai and calculate this weight, we open up the calculation to short term price manipulation which can inflate the perceived EYE weight of a
+portfolio. UniswapV2 provides a robust way to sample the price but not the reserve levels (TWAP). The trick is to registthat Inder the LP token against EYE, to create a 
+pool of EYE/DAI and EYE. Then with sufficient liquidity, EYE/DAI will be priced in EYE via the TWAP so that we know the market value of the EYE weight of the LP token safely.
+Then when someone stakes EYE/DAI, we take the spot price and multiply by the units staked. 
+To concern that taking the spot price opens up the DAO to attack by whales is mitigated by the fact that Fate is earned quadratically: a whale with a large quantity to stake will
+have a much lower incentive to game the prices than in a linear system. 
+Gas prices prevent the whale from spreading their LP balance amongst 1000s of accounts.
+*/
+  function EYEEquivalentOfLP(
+    address pair,
+    bool uni,
+    uint256 units
+  ) private view returns (uint256) {
+    LimboOracleLike oracle = uni ? domainConfig.uniOracle : domainConfig.sushiOracle;
+    return (oracle.consult(address(pair), domainConfig.eye, 1e6) * units) / 1e6;
   }
 }

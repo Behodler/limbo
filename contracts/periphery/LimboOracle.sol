@@ -10,7 +10,7 @@ import "./UniswapV2/libraries/UniswapV2OracleLibrary.sol";
 import "./UniswapV2/libraries/UniswapV2Library.sol";
 
 /**
- *@title SoulReader
+ *@title LimboOracle
  * @author Justin Goro
  * @notice There are two reasons to gather reliable prices in Limbo: calculating Fate from relative EYE containing LP prices and pricing Flan during a migration to Behodler.
  * Neither requires up to date accuracy but must simply be resitant to tampering.
@@ -18,8 +18,8 @@ import "./UniswapV2/libraries/UniswapV2Library.sol";
  */
 contract LimboOracle is Governable {
   using FixedPoint for *;
-    using FixedPoint for FixedPoint.uq112x112;
-  uint256 public constant PERIOD = 24 hours;
+  using FixedPoint for FixedPoint.uq112x112;
+
   IUniswapV2Factory public factory;
   struct PairMeasurement {
     uint256 price0CumulativeLast;
@@ -35,7 +35,11 @@ contract LimboOracle is Governable {
     factory = IUniswapV2Factory(V2factory);
   }
 
-  function RegisterPair(address pairAddress, uint period) public onlySuccessfulProposal {
+  /**
+   *@param pairAddress the UniswapV2 pair address
+   *@param period the minimum duration in hours between sampling
+   */
+  function RegisterPair(address pairAddress, uint256 period) public onlySuccessfulProposal {
     IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
     uint256 price0CumulativeLast = pair.price0CumulativeLast(); // fetch the current accumulated price value (1 / 0)
     uint256 price1CumulativeLast = pair.price1CumulativeLast(); // fetch the current accumulated price value (0 / 1)
@@ -48,24 +52,50 @@ contract LimboOracle is Governable {
       price0CumulativeLast: price0CumulativeLast,
       price1CumulativeLast: price1CumulativeLast,
       blockTimestampLast: blockTimestampLast,
-        price0Average: FixedPoint.uq112x112(0),
-        price1Average: FixedPoint.uq112x112(0),
-        period: period * (1 hours)
+      price0Average: FixedPoint.uq112x112(0),
+      price1Average: FixedPoint.uq112x112(0),
+      period: period * (1 hours)
     });
   }
 
-    function isPair(address tokenA, address tokenB) private view returns (bool){
-        return factory.getPair(tokenA, tokenB)!=address(0);
-    }
-
-  function update(address token0, address token1) external {
+  /**
+   *@dev the order of tokens doesn't matter
+   */
+  function update(address token0, address token1) public {
     require(isPair(token0, token1), "ORACLE: PAIR_NOT_FOUND");
     address pair = factory.getPair(token0, token1);
     _update(pair);
   }
 
-  function update(address pair) external {
+  /**
+   *@param pair the UniswapV2 pair
+   */
+  function update(address pair) public {
     _update(pair);
+  }
+
+  /**
+   *@param pricedToken the token for which the price is required
+   *@param referenceToken the token that the priced token is being priced in.
+   *@param amountIn the quantity of pricedToken to allow for price impact
+   */
+  function consult(
+    address pricedToken,
+    address referenceToken,
+    uint256 amountIn
+  ) external view returns (uint256 amountOut) {
+    require(isPair(pricedToken, referenceToken), "ORACLE: PAIR_NOT_FOUND");
+    IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(pricedToken, referenceToken));
+    PairMeasurement memory measurement = pairMeasurements[address(pair)];
+
+
+    if (pricedToken == pair.token0()) {
+      amountOut = (measurement.price0Average.decode() * amountIn);
+    } else {
+      require(pricedToken == pair.token1(), "ORACLE: INVALID_TOKEN");
+      amountOut = measurement.price1Average.decode() * amountIn;
+    }
+    require(amountOut > 0, "ORACLE: UPDATE FIRST");
   }
 
   function _update(address _pair) private {
@@ -73,15 +103,16 @@ contract LimboOracle is Governable {
       .currentCumulativePrices(_pair);
     PairMeasurement memory measurement = pairMeasurements[_pair];
 
+    require(measurement.period > 0, "ORACLE: Asset not registered");
     uint32 timeElapsed;
     unchecked {
       timeElapsed = blockTimestamp - measurement.blockTimestampLast; // overflow is desired
     }
     // ensure that at least one full period has passed since the last update
-    require(timeElapsed >= PERIOD, "ORACLE: PERIOD_NOT_ELAPSED");
+    if (timeElapsed < measurement.period) {
+      return;
+    }
 
-    // overflow is desired, casting never truncates
-    // cumulative price is in (uq112x112 price * seconds) units so we simply wrap it after division by time elapsed
     measurement.price0Average = FixedPoint.uq112x112(
       uint224((price0Cumulative - measurement.price0CumulativeLast) / timeElapsed)
     );
@@ -95,22 +126,7 @@ contract LimboOracle is Governable {
     pairMeasurements[_pair] = measurement;
   }
 
-  function consult(
-    address pricedToken,
-    address referenceToken,
-    uint256 amountIn
-  ) external view returns (uint256 amountOut) {
-    require(isPair(pricedToken, referenceToken), "ORACLE: PAIR_NOT_FOUND");
-    IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(pricedToken, referenceToken));
-    PairMeasurement memory measurement = pairMeasurements[address(pair)];
-
-    if (pricedToken == pair.token0()) {
-      amountOut = (measurement.price0Average.decode() * amountIn);
-    } else {
-      require(pricedToken == pair.token1(), "ORACLE: INVALID_TOKEN");
-      amountOut = measurement.price1Average.decode() *amountIn;
-    }
-
-    require(amountOut > 0, "ORACLE: UPDATE FIRST");
+  function isPair(address tokenA, address tokenB) private view returns (bool) {
+    return factory.getPair(tokenA, tokenB) != address(0);
   }
 }
