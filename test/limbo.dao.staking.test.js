@@ -187,7 +187,7 @@ describe("DAO staking", function () {
       await metaPair.swap("0", "10000000000000000000", owner.address, []);
     };
   };
-  
+
   it("only eye or approved assets can be staked", async function () {
     await dao.makeLive();
     await expect(dao.setEYEBasedAssetStake(100, 400, 20, daiSushiSLP.address, false)).to.be.revertedWith(
@@ -274,7 +274,6 @@ describe("DAO staking", function () {
 
     await this.sushiTrade(dai);
 
-
     const eyeBalanceOfMetaDai = await eye.balanceOf(this.metaDaiEYESLP.address);
     const daiEYEBalanceOfMetaDai = await daiEYESLP.balanceOf(this.metaDaiEYESLP.address);
 
@@ -348,9 +347,8 @@ describe("DAO staking", function () {
     );
 
     const daiEYESLPBalanceAfterReducedStake = await daiEYESLP.balanceOf(owner.address);
-    expect(daiEYESLPBalanceAfterReducedStake.sub(balanceOfDaiEYESLPAftertake).toString()).to.equal(
-      "2075527328640318845352"
-    );
+    const difference = BigInt(daiEYESLPBalanceAfterReducedStake.sub(balanceOfDaiEYESLPAftertake).toString());
+    expect(difference >= 2075527328640318845352n).to.be.true;
 
     expectedFateWeight = rootEYEOfLP * 2n;
     fateState = await dao.stakedUserAssetWeight(owner.address, daiEYESLP.address);
@@ -378,5 +376,4 @@ describe("DAO staking", function () {
 
     await expect(fateAfter[1].sub(fateBefore[1]).toString()).to.equal("16400");
   });
-
 });
