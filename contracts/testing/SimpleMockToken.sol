@@ -10,4 +10,8 @@ contract SimpleMockTokenToken is ERC677 {
         _mint(msg.sender, 100000 ether);
      
     }
+
+    function mint(uint amount) public {
+        _mint(msg.sender, amount) ;
+    }
 }

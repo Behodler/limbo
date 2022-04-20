@@ -388,9 +388,9 @@ contract LimboDAO is Ownable {
   /**
    *@notice Acquiring enough fate to either influence a decision or to lodge a proposal can take very long.
    * If a very important decision has to be acted on via a proposal, the option exists to buy large quantities for fate instantly by burning an EYE based asset
-   * This may be necessary if a vote is nearly complete by the looming outcome is considered unacceptable.
-   * While Fate accumulation is quadratic for staking, burning is linear and subject to a factor of 10. This gives whales effective veto power but at the cost of a permanent
-   * loss of EYE.
+   * This may be necessary if a vote is nearly complete but the looming outcome is considered unacceptable.
+   * While Fate accumulation is quadratic for staking, burning is linear and amplified by a factor of 10.
+   * This gives whales effective veto power but at the cost of a permanent loss of EYE.
    *@param asset the asset to burn and can be EYE or EYE based assets
    *@param amount the amount of asset to burn
    */

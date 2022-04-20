@@ -2,6 +2,10 @@ const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
 const web3 = require("web3");
 
+const requireCondition = (condition, message) => {
+  if (!condition) throw message;
+};
+
 describe("DAO Proposals", function () {
   let owner, secondPerson, feeSetter, dai, eye, link, sushi;
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
@@ -11,70 +15,86 @@ describe("DAO Proposals", function () {
 
   beforeEach(async function () {
     [owner, secondPerson] = await ethers.getSigners();
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapFactory");
-    const UniswapPairFactory = await ethers.getContractFactory("UniswapPair");
+    sushiSwapFactory = await UniswapFactoryFactory.deploy(owner.address);
+    uniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
+    requireCondition(sushiSwapFactory.address !== uniswapFactory.address);
 
-    const sushiSwapFactory = await UniswapFactoryFactory.deploy();
-    const uniswapFactory = await UniswapFactoryFactory.deploy();
+    const RouterFactory = await ethers.getContractFactory("UniswapV2Router02");
+    const sushiRouter = await RouterFactory.deploy(sushiSwapFactory.address, owner.address);
+    const uniRouter = await RouterFactory.deploy(uniswapFactory.address, owner.address);
 
-    daiEYESLP = await UniswapPairFactory.deploy(sushiSwapFactory.address, "Univ2", "Uv2");
-    linkEYESLP = await UniswapPairFactory.deploy(sushiSwapFactory.address, "Univ2", "Uv2");
-    sushiEYESLP = await UniswapPairFactory.deploy(sushiSwapFactory.address, "Univ2", "Uv2");
-    daiSushiSLP = await UniswapPairFactory.deploy(sushiSwapFactory.address, "Univ2", "Uv2");
+    const TokenFactory = await ethers.getContractFactory("SimpleMockTokenToken");
+    dai = await TokenFactory.deploy("DAI", "DAI");
+    link = await TokenFactory.deploy("LINK", "LINK");
+    sushi = await TokenFactory.deploy("SUSHI", "SUSHI");
+    eye = await TokenFactory.deploy("EYE", "EYE");
+    const createSLP = await metaPairFactory(eye, sushiSwapFactory, false);
+    daiEYESLP = await createSLP(dai);
+    linkEYESLP = await createSLP(link);
+    sushiEYESLP = await createSLP(sushi);
 
-    daiEYEULP = await UniswapPairFactory.deploy(uniswapFactory.address, "Univ2", "Uv2");
-    linkEYEULP = await UniswapPairFactory.deploy(uniswapFactory.address, "Univ2", "Uv2");
-    sushiEYEULP = await UniswapPairFactory.deploy(uniswapFactory.address, "Univ2", "Uv2");
-    daiSushiULP = await UniswapPairFactory.deploy(uniswapFactory.address, "Univ2", "Uv2");
+    const createDAISLP = await metaPairFactory(dai, sushiSwapFactory);
+    daiSushiSLP = await createDAISLP(sushi);
 
-    const TokenFactory = await ethers.getContractFactory("MockToken");
-    dai = await TokenFactory.deploy(
-      "dai",
-      "dai",
-      [daiEYESLP.address, daiSushiSLP.address, daiEYEULP.address, daiSushiULP.address],
-      [120, 400, 500, 66]
-    );
-    eye = await TokenFactory.deploy(
-      "eye",
-      "eye",
-      [
-        daiEYESLP.address,
-        linkEYESLP.address,
-        sushiEYESLP.address,
-        daiEYEULP.address,
-        linkEYEULP.address,
-        sushiEYEULP.address,
-      ],
-      [112, 332, 554, 33, 22, 121]
-    );
-    link = await TokenFactory.deploy("link", "link", [linkEYESLP.address, linkEYEULP.address], [1123, 9]);
-    sushi = await TokenFactory.deploy(
-      "sushi",
-      "sushi",
-      [sushiEYESLP.address, daiSushiSLP.address, sushiEYEULP.address, daiSushiULP.address],
-      [3322, 5543, 22, 112]
-    );
+    const createULP = await metaPairFactory(eye, uniswapFactory);
+    daiEYEULP = await createULP(dai);
+    linkEYEULP = await createULP(link);
+    sushiEYEULP = await createULP(sushi);
 
-    this.TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
+    const createDAIULP = await metaPairFactory(dai, uniswapFactory);
+    daiSushiULP = await createDAIULP(sushi);
+
+    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        NetTransferHelper: (await this.TransferHelperFactory.deploy()).address,
+        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
       },
     });
 
     dao = await daoFactory.deploy();
-    const firstProposalFactory = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
-    this.whiteListingProposal = await firstProposalFactory.deploy(dao.address, "toggle whitelist");
 
-    const morgothTokenApproverFactory = await ethers.getContractFactory("MockMorgothTokenApprover");
+    const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
+    flashGovernance = await flashGovernanceFactory.deploy(dao.address);
+    await dao.setFlashGoverner(flashGovernance.address);
 
     const GovernableStubFactory = await ethers.getContractFactory("GovernableStub");
+    this.limbo = await GovernableStubFactory.deploy(dao.address);
+
+    const LimboOracleFactory = await ethers.getContractFactory("LimboOracle");
+    this.sushiOracle = await LimboOracleFactory.deploy(sushiSwapFactory.address, dao.address);
+    this.uniOracle = await LimboOracleFactory.deploy(uniswapFactory.address, dao.address);
+
+    const sushiMetaPairCreator = await metaPairFactory(eye, sushiSwapFactory, false);
+    this.metaDaiEYESLP = await sushiMetaPairCreator(daiEYESLP);
+    this.metaLinkEYESLP = await sushiMetaPairCreator(linkEYESLP);
+    this.metaSushiEYESLP = await sushiMetaPairCreator(sushiEYESLP);
+
+    const uniMetaPairCreator = await metaPairFactory(eye, uniswapFactory);
+    this.metaDaiEYEULP = await uniMetaPairCreator(daiEYEULP);
+    this.metaLinkEYEULP = await uniMetaPairCreator(linkEYEULP);
+    this.metaSushiEYEULP = await uniMetaPairCreator(sushiEYEULP);
+
+    this.sushiTrade = await tradeOn(sushiRouter, eye);
+    await this.sushiTrade(dai, false);
+    await this.sushiTrade(link);
+    await this.sushiTrade(sushi);
+
+    this.uniTrade = await tradeOn(uniRouter, eye);
+    await this.uniTrade(dai);
+    await this.uniTrade(link);
+    await this.uniTrade(sushi);
 
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(dao.address);
     this.flan.transferOwnership(dao.address);
-    this.limbo = await GovernableStubFactory.deploy(dao.address);
+
+    const firstProposalFactory = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
+    this.whiteListingProposal = await firstProposalFactory.deploy(dao.address, "toggle whitelist");
+
+    const morgothTokenApproverFactory = await ethers.getContractFactory("MockMorgothTokenApprover");
 
     this.morgothTokenApprover = await morgothTokenApproverFactory.deploy();
 
@@ -94,39 +114,20 @@ describe("DAO Proposals", function () {
       this.soulUpdateProposal.address
     );
 
-    const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
-    this.flashGovernance = await flashGovernanceFactory.deploy(dao.address);
-    await dao.setFlashGoverner(this.flashGovernance.address);
-
     await dao.seed(
       this.limbo.address,
       this.flan.address,
       eye.address,
       proposalFactory.address,
-      sushiSwapFactory.address,
-      uniswapFactory.address,
+      this.sushiOracle.address,
+      this.uniOracle.address,
       9,
-      [daiEYESLP.address, linkEYESLP.address, sushiEYESLP.address],
-      [daiEYEULP.address, linkEYEULP.address, sushiEYEULP.address]
+      [this.metaDaiEYESLP.address, this.metaLinkEYESLP.address, this.metaSushiEYESLP.address],
+      [this.metaDaiEYEULP.address, this.metaLinkEYEULP.address, this.metaSushiEYEULP.address]
     );
 
-    const allAssets = [
-      daiEYESLP,
-      linkEYESLP,
-      sushiEYESLP,
-      daiSushiSLP,
-      daiEYEULP,
-      linkEYEULP,
-      sushiEYEULP,
-      daiSushiULP,
-      eye,
-    ];
-    for (let i = 0; i < allAssets.length; i++) {
-      await allAssets[i].approve(
-        dao.address,
-        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
-      );
-    }
+    await dao.setFlashGoverner(flashGovernance.address);
+
     await dao.makeLive();
     await proposalFactory.setDAO(dao.address);
 
@@ -142,7 +143,7 @@ describe("DAO Proposals", function () {
 
     await eye.mint(requiredFateToLodge);
     await eye.approve(dao.address, requiredFateToLodge.mul(2));
-    await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10));
+    await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false);
 
     await proposalFactory.lodgeProposal(whiteListingProposal.address);
     await dao.vote(whiteListingProposal.address, "100");
@@ -153,6 +154,66 @@ describe("DAO Proposals", function () {
   const advanceTime = async (seconds) => {
     await network.provider.send("evm_increaseTime", [seconds]); //6 hours
     await network.provider.send("evm_mine");
+  };
+
+  const logFactory = (log) => {
+    let counter = 0;
+    return (message) => {
+      if (log) console.log(`${counter++}: ${message}`);
+    };
+  };
+
+  const metaPairFactory = async (eye, factory, canLog) => {
+    const log = logFactory(canLog);
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const uniFactory = await UniswapFactoryFactory.attach(factory.address);
+
+    let eyeBase = 1;
+    return async (LP) => {
+      const length = await uniFactory.allPairsLength();
+      await uniFactory.createPair(eye.address, LP.address);
+      const metaPairAddress = await uniFactory.getPair(eye.address, LP.address);
+      const LPBalance = await LP.balanceOf(owner.address);
+      log(`LP balance ${await LP.balanceOf(owner.address)}, eye balance ${await eye.balanceOf(owner.address)}`);
+
+      await LP.transfer(metaPairAddress, LPBalance.div(10));
+
+      const eyeBalance = await eye.balanceOf(owner.address);
+
+      await eye.transfer(metaPairAddress, `${eyeBalance.div(10)}`);
+      log("post transfer");
+      const PairFactory = await ethers.getContractFactory("UniswapV2Pair");
+      const metaPair = await PairFactory.attach(metaPairAddress);
+      log("mint");
+      await metaPair.mint(owner.address);
+      log("post mint");
+      return metaPair;
+    };
+  };
+
+  const tradeOn = async (router, eye) => {
+    return async (input, canLog) => {
+      const log = logFactory(canLog);
+      const factoryAddress = await router.factory();
+      const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+      const uniFactory = await UniswapFactoryFactory.attach(factoryAddress);
+
+      const baseAddress = await uniFactory.getPair(input.address, eye.address);
+      const metaPairAddress = await uniFactory.getPair(baseAddress, eye.address);
+      log(`baseAddress ${baseAddress}, metaPairAddress ${metaPairAddress}`);
+
+      const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+      //trade input
+      const uniPair = await UniswapPairFactory.attach(baseAddress);
+      await input.transfer(baseAddress, "1000000000000000000000");
+      await uniPair.swap("0", "10000000000000000000", owner.address, []);
+
+      //trade metaLP
+      const metaPair = await UniswapPairFactory.attach(metaPairAddress);
+
+      await eye.transfer(metaPairAddress, "1000000000000000000000");
+      await metaPair.swap("0", "10000000000000000000", owner.address, []);
+    };
   };
   const ONE = BigInt("1000000000000000000");
   const NAUGHT_POINT_ONE = ONE / 10n;
@@ -166,7 +227,7 @@ describe("DAO Proposals", function () {
   it("lodging proposal when none exist accepted", async function () {
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
     await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
     const currentProposalAfter = (await dao.currentProposalState())[4];
     expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address);
@@ -176,7 +237,7 @@ describe("DAO Proposals", function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
     await updateProposalConfigProposal.parameterize(100, 200, proposalFactory.address);
     await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
     const params = await updateProposalConfigProposal.params();
@@ -195,7 +256,7 @@ describe("DAO Proposals", function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
     await updateProposalConfigProposal.parameterize(100, 200, proposalFactory.address);
     await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
     //end lodge
@@ -203,7 +264,7 @@ describe("DAO Proposals", function () {
     let SetAssetApprovalProposalFactory = await ethers.getContractFactory("SetAssetApprovalProposal");
     let setAssetApprovalProposal = await SetAssetApprovalProposalFactory.deploy(dao.address, "ASSET");
 
-    await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false);
+    await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false,false,1);
 
     await expect(toggleWhiteList(setAssetApprovalProposal.address, this.whiteListingProposal)).to.be.revertedWith(
       "LimboDAO: active proposal."
@@ -214,7 +275,7 @@ describe("DAO Proposals", function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
 
     //fate before
     const fateBeforeLodge = (await dao.fateState(owner.address))[1];
@@ -229,14 +290,13 @@ describe("DAO Proposals", function () {
     //second person acquires fate and votes on current proposal
     await eye.transfer(secondPerson.address, "1000000000");
     await eye.connect(secondPerson).approve(dao.address, "1000000000");
-    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "10000000000");
 
     //fast forward to after proposal finished
     //3*24*60*60 =259200
     await advanceTime(259200);
     const fateBeforeExecute = (await dao.fateState(owner.address))[1];
-    console.log("owner: " + owner.address);
     await dao.executeCurrentProposal();
     const fateAfterExecute = (await dao.fateState(owner.address))[1];
     expect(fateAfterExecute.sub(fateBeforeExecute).toString()).to.equal("223000000000000000000");
@@ -246,7 +306,7 @@ describe("DAO Proposals", function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
 
     //fate before
     const fateBeforeLodge = (await dao.fateState(owner.address))[1];
@@ -261,7 +321,7 @@ describe("DAO Proposals", function () {
     //second person acquires fate and votes NO on current proposal
     await eye.transfer(secondPerson.address, "1000000000");
     await eye.connect(secondPerson).approve(dao.address, "1000000000");
-    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-10000000000");
 
     //fast forward to after proposal finished
@@ -285,12 +345,12 @@ describe("DAO Proposals", function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
 
     let SetAssetApprovalProposalFactory = await ethers.getContractFactory("SetAssetApprovalProposal");
     let setAssetApprovalProposal = await SetAssetApprovalProposalFactory.deploy(dao.address, "ASSET");
 
-    await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false);
+    await setAssetApprovalProposal.parameterize(this.metaSushiEYEULP.address, false, false, 1);
 
     await toggleWhiteList(setAssetApprovalProposal.address, this.whiteListingProposal);
     await proposalFactory.lodgeProposal(setAssetApprovalProposal.address);
@@ -304,7 +364,7 @@ describe("DAO Proposals", function () {
     //second person acquires fate and votes on current proposal
     await eye.transfer(secondPerson.address, "1000000000");
     await eye.connect(secondPerson).approve(dao.address, "1000000000");
-    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
     await dao.connect(secondPerson).vote(setAssetApprovalProposal.address, "10000000000");
 
     //fast forward to after proposal finished
@@ -312,7 +372,6 @@ describe("DAO Proposals", function () {
     await advanceTime(259200);
 
     await dao.executeCurrentProposal();
-
     const assetApprovedAfter = await dao.assetApproved(sushiEYEULP.address);
     expect(assetApprovedAfter).to.be.false;
   });
@@ -321,7 +380,7 @@ describe("DAO Proposals", function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
 
     //fate before
     const fateBeforeLodge = (await dao.fateState(owner.address))[1];
@@ -336,7 +395,7 @@ describe("DAO Proposals", function () {
     //second person acquires fate and votes NO on current proposal
     await eye.transfer(secondPerson.address, "1000000000");
     await eye.connect(secondPerson).approve(dao.address, "1000000000");
-    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-100");
 
     //fast forward to after proposal finished
@@ -397,7 +456,7 @@ describe("DAO Proposals", function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await dao.burnAsset(eye.address, eyeToBurn);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
 
     await expect(this.soulUpdateProposal.parameterize(sushiEYEULP.address, "100", 1, 1, 1, 1)).to.be.revertedWith(
       "MORGOTH: token not approved for listing on Behodler"
@@ -417,7 +476,7 @@ describe("DAO Proposals", function () {
     await fateToFlanProposal.parameterize("2000000000000000000");
     const requiredFate = (await dao.proposalConfig())[1];
 
-    await dao.burnAsset(eye.address, requiredFate);
+    await dao.burnAsset(eye.address, requiredFate, false);
 
     await toggleWhiteList(fateToFlanProposal.address, this.whiteListingProposal);
 
@@ -427,7 +486,7 @@ describe("DAO Proposals", function () {
 
     await eye.transfer(secondPerson.address, "1000000000");
     await eye.connect(secondPerson).approve(dao.address, "1000000000");
-    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
     await dao.connect(secondPerson).vote(fateToFlanProposal.address, "10000");
 
     await advanceTime(259200);
