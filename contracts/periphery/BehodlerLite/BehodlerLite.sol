@@ -107,7 +107,7 @@ contract ScarcityLite is CommonIERC20 {
     emit Burn(value);
   }
 
-  function mint(address recipient, uint256 value) internal {
+  function mint(address recipient, uint256 value) public {
     balances[recipient] = balances[recipient] + (value);
     _totalSupply = _totalSupply + (value);
     emit Mint(msg.sender, recipient, value);
@@ -356,7 +356,7 @@ contract BehodlerLite is ScarcityLite {
   }
 
   modifier onlyValidToken(address token) {
-    if (!validTokens[token]) console.log("invalid token %s", token);
+    if (!validTokens[token]) console.log("BEHODLER LITE: invalid token %s", token);
     require(lachesis == address(0) || validTokens[token], "BehodlerLite: tokenInvalid");
     _;
   }

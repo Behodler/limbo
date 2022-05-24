@@ -2,16 +2,14 @@
 pragma solidity 0.8.13;
 
 abstract contract AMMHelper {
-    function stabilizeFlan(uint256 rectangleOfFairness)
+    function stabilizeFlan(uint mintedSCX)
         public
         virtual
         returns (uint256 lpMinted);
 
-    function generateFLNQuote() public virtual;
-
     function minAPY_to_FPS(uint256 minAPY, uint256 daiThreshold)
         public
-        view
+        pure
         virtual
         returns (uint256 fps);
 

@@ -178,13 +178,15 @@ export async function deployLimbo(
     pauser
   );
 
+  await broadcast("set dai", uniswapHelper.setDAI(dai, await getNonce()), pauser);
+
+
   await broadcast(
     "configure uniswaphelper",
     uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 180, 3, 20, 10, await getNonce()),
     pauser
   );
 
-  await broadcast("set dai", uniswapHelper.setDAI(dai, await getNonce()), pauser);
 
   let addressList: OutputAddress = {};
   addressList["limbo"] = limbo.address;

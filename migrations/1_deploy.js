@@ -149,6 +149,8 @@ module.exports = async function (deployer, network, accounts) {
     behodlerInstance.address
   );
 
+  await uniswapHelperInstance.setDAI(daiInstance.address);
+
   await uniswapHelperInstance.configure(
     limboInstance.address,
     pairaddress,
@@ -160,7 +162,7 @@ module.exports = async function (deployer, network, accounts) {
     20,
     0
   );
-  await uniswapHelperInstance.setDAI(daiInstance.address);
+
   await uniswapHelperInstance.setFactory(uniswapFactoryInstance.address)
 
   await flanInstance.whiteListMinting(limboInstance.address, true);

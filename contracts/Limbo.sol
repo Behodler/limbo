@@ -8,14 +8,14 @@ import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
 import "./facades/FlanLike.sol";
-import "./facades/UniPairLike.sol";
+import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./facades/MigratorLike.sol";
 import "./facades/AMMHelper.sol";
 import "./facades/AngbandLike.sol";
 import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
 import "./DAO/Governable.sol";
 import "./facades/FlashGovernanceArbiterLike.sol";
-
+// import "hardhat/console.sol";
 /*
 Contract: LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
 Context: Limbo is a part of the Behodler ecosystem. All dapps within the Behodler ecosystem either support or are supported by the Behodler AMM.
@@ -131,6 +131,8 @@ Governance action failed.                      EJ
 Access Denied                                  EK
 ERC20 Transfer Failed                          EL
 Incorrect SCX transfer to AMMHelper            EM
+Legacy Attack Vector Removed                   EN
+Oracle LPs zeroed                              EO   
 */
 
 struct Soul {
@@ -158,7 +160,6 @@ struct CrossingConfig {
   address morgothPower;
   address angband;
   address ammHelper;
-  uint16 rectangleOfFairnessInflationFactor; //0-100: if the community finds the requirement to be too strict, they can inflate how much SCX to hold back
 }
 
 library SoulLib {
@@ -205,28 +206,19 @@ library MigrationLib {
     CrossingParameters memory crossingParams,
     CrossingConfig memory crossingConfig,
     FlanLike flan,
-    uint256 RectangleOfFairness,
     Soul storage soul
   ) external returns (uint256, uint256) {
     power.parameterize(token, crossingParams.burnable);
     //invoke Angband execute on power that migrates token type to Behodler
     uint256 tokenBalance = IERC20(token).balanceOf(address(this));
     IERC20(token).transfer(address(crossingConfig.morgothPower), tokenBalance);
+    IERC20 scx = IERC20(address(crossingConfig.behodler));
+    uint scxBalance  = scx.balanceOf(address(this));
     AngbandLike(crossingConfig.angband).executePower(address(crossingConfig.morgothPower));
-
-    uint256 scxMinted = IERC20(address(crossingConfig.behodler)).balanceOf(address(this));
-    uint256 adjustedRectangle = ((crossingConfig.rectangleOfFairnessInflationFactor) * RectangleOfFairness) / 100;
-    //for top up or exotic high value migrations.
-    if (scxMinted <= adjustedRectangle) {
-      adjustedRectangle = scxMinted / 2;
-    }
-
-    //burn SCX - rectangle
-    uint256 excessSCX = scxMinted - adjustedRectangle;
-    require(BehodlerLike(crossingConfig.behodler).burn(excessSCX), "E8");
+    scxBalance = scx.balanceOf(address(this)) - scxBalance;
     //use remaining scx to buy flan and pool it on an external AMM
-    IERC20(crossingConfig.behodler).transfer(crossingConfig.ammHelper, adjustedRectangle);
-    uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(adjustedRectangle);
+    IERC20(crossingConfig.behodler).transfer(crossingConfig.ammHelper, scxBalance);
+    uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(scxBalance);
     //reward caller and update soul state
     require(flan.mint(msg.sender, crossingConfig.migrationInvocationReward), "E9");
     soul.state = SoulState.crossedOver;
@@ -318,6 +310,7 @@ contract Limbo is Governable {
     uint256 balance = IERC20(token).balanceOf(address(this));
 
     if (balance > 0) {
+      //console.log("LIMBO: finalTimeStamp %s, soul.lastRewardTimestamp %s, flan per second %s", finalTimeStamp, soul.lastRewardTimestamp, soul.flanPerSecond);
       uint256 flanReward = (finalTimeStamp - soul.lastRewardTimestamp) * soul.flanPerSecond;
 
       soul.accumulatedFlanPerShare = soul.accumulatedFlanPerShare + ((flanReward * TERA) / balance);
@@ -336,8 +329,7 @@ contract Limbo is Governable {
     address ammHelper,
     address morgothPower,
     uint256 migrationInvocationReward,
-    uint256 crossingMigrationDelay,
-    uint16 rectInflationFactor //0 to 100
+    uint256 crossingMigrationDelay
   ) public onlySuccessfulProposal {
     crossingConfig.migrationInvocationReward = migrationInvocationReward * (1 ether);
     crossingConfig.behodler = behodler;
@@ -345,8 +337,6 @@ contract Limbo is Governable {
     crossingConfig.angband = angband;
     crossingConfig.ammHelper = ammHelper;
     crossingConfig.morgothPower = morgothPower;
-    require(rectInflationFactor <= 10000, "E6");
-    crossingConfig.rectangleOfFairnessInflationFactor = rectInflationFactor;
   }
 
   ///@notice if an exploit in any part of Limbo or its souls is detected, anyone with sufficient EYE balance can disable the protocol instantly
@@ -400,19 +390,18 @@ contract Limbo is Governable {
     uint256 index,
     uint256 fps
   ) public onlySoulUpdateProposal {
-    {
-      latestIndex[token] = index > latestIndex[token] ? latestIndex[token] + 1 : latestIndex[token];
+    latestIndex[token] = index > latestIndex[token] ? latestIndex[token] + 1 : latestIndex[token];
 
-      Soul storage soul = currentSoul(token);
-      bool fallingBack = soul.state != SoulState.calibration && SoulState(state) == SoulState.calibration;
-      soul.set(crossingThreshold, soulType, state, fps);
-      if (SoulState(state) == SoulState.staking) {
-        tokenCrossingParameters[token][latestIndex[token]].stakingBeginsTimestamp = block.timestamp;
-      }
-      if (fallingBack) {
-        tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
-      }
+    Soul storage soul = currentSoul(token);
+    bool fallingBack = soul.state != SoulState.calibration && SoulState(state) == SoulState.calibration;
+    soul.set(crossingThreshold, soulType, state, fps);
+    if (SoulState(state) == SoulState.staking) {
+      tokenCrossingParameters[token][latestIndex[token]].stakingBeginsTimestamp = block.timestamp;
     }
+    if (fallingBack) {
+      tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
+    }
+
     emit SoulUpdated(token, fps);
   }
 
@@ -590,7 +579,6 @@ contract Limbo is Governable {
       tokenCrossingParameters[token][latestIndex[token]],
       crossingConfig,
       Flan,
-      RectangleOfFairness,
       soul
     );
     emit TokenListed(token, tokenBalance, lpMinted);

@@ -34,7 +34,7 @@ contract MockBehodler is ERC677 {
     string memory symbol,
     address _addTokenPower
   ) ERC677(name, symbol) {
-    _mint(msg.sender, 100 ether);
+    _mint(msg.sender, 1000000 ether);
     addTokenPower = _addTokenPower;
   }
 

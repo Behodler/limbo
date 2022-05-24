@@ -6,7 +6,7 @@ import "../ERC677/ERC677.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
-import "../facades/UniPairLike.sol";
+import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "../facades/LimboOracleLike.sol";
 import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./Governable.sol";
@@ -218,12 +218,12 @@ contract LimboDAO is Ownable {
     address sushiFactory = address(LimboOracleLike(sushiOracle).factory());
     address uniFactory = address(LimboOracleLike(uniOracle).factory());
     for (uint256 i = 0; i < sushiMetaLPs.length; i++) {
-      address pairFactory = UniPairLike(sushiMetaLPs[i]).factory();
+      address pairFactory = IUniswapV2Pair(sushiMetaLPs[i]).factory();
       require(pairFactory == sushiFactory, "LimboDAO: invalid Sushi LP");
       _setApprovedAsset(sushiMetaLPs[i], true, false, 0);
     }
     for (uint256 i = 0; i < uniMetaLPs.length; i++) {
-      require(UniPairLike(uniMetaLPs[i]).factory() == uniFactory, "LimboDAO: invalid Uni LP");
+      require(IUniswapV2Pair(uniMetaLPs[i]).factory() == uniFactory, "LimboDAO: invalid Uni LP");
       _setApprovedAsset(uniMetaLPs[i], true, true, 0);
     }
   }
