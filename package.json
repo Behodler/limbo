@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "typechain": "typechain --target=ethers-v5 'build/contracts/*.json' --out-dir 'typechain'",
-    "test": "npx hardhat test test/*.test.*",
+    "test": "npx hardhat test test/*.test.ts",
     "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "test:wargames": "npx hardhat test test/wargames/*",
     "build:debug": "sudo rm -rf build/ && truffle build && yarn typechain",

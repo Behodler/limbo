@@ -18,33 +18,33 @@ describe("DAO Proposals", function () {
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
 
-    sushiSwapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    uniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    requireCondition(sushiSwapFactory.address !== uniswapFactory.address);
+    this.sushiSwapFactory = await UniswapFactoryFactory.deploy(owner.address);
+    this.uniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
+    requireCondition(this.sushiSwapFactory.address !== this.uniswapFactory.address,"factories cannot be the same");
 
     const RouterFactory = await ethers.getContractFactory("UniswapV2Router02");
-    const sushiRouter = await RouterFactory.deploy(sushiSwapFactory.address, owner.address);
-    const uniRouter = await RouterFactory.deploy(uniswapFactory.address, owner.address);
+    const sushiRouter = await RouterFactory.deploy(this.sushiSwapFactory.address, owner.address);
+    const uniRouter = await RouterFactory.deploy(this.uniswapFactory.address, owner.address);
 
     const TokenFactory = await ethers.getContractFactory("SimpleMockTokenToken");
     dai = await TokenFactory.deploy("DAI", "DAI");
     link = await TokenFactory.deploy("LINK", "LINK");
     sushi = await TokenFactory.deploy("SUSHI", "SUSHI");
     eye = await TokenFactory.deploy("EYE", "EYE");
-    const createSLP = await metaPairFactory(eye, sushiSwapFactory, false);
+    const createSLP = await metaPairFactory(eye, this.sushiSwapFactory, false);
     daiEYESLP = await createSLP(dai);
     linkEYESLP = await createSLP(link);
     sushiEYESLP = await createSLP(sushi);
 
-    const createDAISLP = await metaPairFactory(dai, sushiSwapFactory);
+    const createDAISLP = await metaPairFactory(dai, this.sushiSwapFactory);
     daiSushiSLP = await createDAISLP(sushi);
 
-    const createULP = await metaPairFactory(eye, uniswapFactory);
+    const createULP = await metaPairFactory(eye, this.uniswapFactory);
     daiEYEULP = await createULP(dai);
     linkEYEULP = await createULP(link);
     sushiEYEULP = await createULP(sushi);
 
-    const createDAIULP = await metaPairFactory(dai, uniswapFactory);
+    const createDAIULP = await metaPairFactory(dai, this.uniswapFactory);
     daiSushiULP = await createDAIULP(sushi);
 
     const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
@@ -57,22 +57,22 @@ describe("DAO Proposals", function () {
     dao = await daoFactory.deploy();
 
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
-    flashGovernance = await flashGovernanceFactory.deploy(dao.address);
-    await dao.setFlashGoverner(flashGovernance.address);
+    this.flashGovernance = await flashGovernanceFactory.deploy(dao.address);
+    await dao.setFlashGoverner(this.flashGovernance.address);
 
     const GovernableStubFactory = await ethers.getContractFactory("GovernableStub");
     this.limbo = await GovernableStubFactory.deploy(dao.address);
 
     const LimboOracleFactory = await ethers.getContractFactory("LimboOracle");
-    this.sushiOracle = await LimboOracleFactory.deploy(sushiSwapFactory.address, dao.address);
-    this.uniOracle = await LimboOracleFactory.deploy(uniswapFactory.address, dao.address);
+    this.sushiOracle = await LimboOracleFactory.deploy(this.sushiSwapFactory.address, dao.address);
+    this.uniOracle = await LimboOracleFactory.deploy(this.uniswapFactory.address, dao.address);
 
-    const sushiMetaPairCreator = await metaPairFactory(eye, sushiSwapFactory, false);
+    const sushiMetaPairCreator = await metaPairFactory(eye, this.sushiSwapFactory, false);
     this.metaDaiEYESLP = await sushiMetaPairCreator(daiEYESLP);
     this.metaLinkEYESLP = await sushiMetaPairCreator(linkEYESLP);
     this.metaSushiEYESLP = await sushiMetaPairCreator(sushiEYESLP);
 
-    const uniMetaPairCreator = await metaPairFactory(eye, uniswapFactory);
+    const uniMetaPairCreator = await metaPairFactory(eye, this.uniswapFactory);
     this.metaDaiEYEULP = await uniMetaPairCreator(daiEYEULP);
     this.metaLinkEYEULP = await uniMetaPairCreator(linkEYEULP);
     this.metaSushiEYEULP = await uniMetaPairCreator(sushiEYEULP);
@@ -126,7 +126,7 @@ describe("DAO Proposals", function () {
       [this.metaDaiEYEULP.address, this.metaLinkEYEULP.address, this.metaSushiEYEULP.address]
     );
 
-    await dao.setFlashGoverner(flashGovernance.address);
+    await dao.setFlashGoverner(this.flashGovernance.address);
 
     await dao.makeLive();
     await proposalFactory.setDAO(dao.address);
@@ -163,7 +163,7 @@ describe("DAO Proposals", function () {
     };
   };
 
-  const metaPairFactory = async (eye, factory, canLog) => {
+  const metaPairFactory = async (eye, factory, canLog?:boolean) => {
     const log = logFactory(canLog);
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const uniFactory = await UniswapFactoryFactory.attach(factory.address);
@@ -432,7 +432,7 @@ describe("DAO Proposals", function () {
       },
     });
 
-    newDAO = await daoFactory.deploy();
+    this.newDAO = await daoFactory.deploy();
 
     const limboDAObefore = await this.limbo.DAO();
     expect(limboDAObefore).to.equal(dao.address);
@@ -440,16 +440,16 @@ describe("DAO Proposals", function () {
     const flanDAObefore = await this.flan.DAO();
     expect(flanDAObefore).to.equal(dao.address);
 
-    await expect(dao.connect(secondPerson).killDAO(newDAO.address)).to.be.revertedWith(
+    await expect(dao.connect(secondPerson).killDAO(this.newDAO.address)).to.be.revertedWith(
       "Ownable: caller is not the owner"
     );
-    await dao.killDAO(newDAO.address);
+    await dao.killDAO(this.newDAO.address);
 
     const limboDAOafter = await this.limbo.DAO();
 
-    expect(limboDAOafter).to.equal(newDAO.address);
+    expect(limboDAOafter).to.equal(this.newDAO.address);
     const flanDAOafter = await this.flan.DAO();
-    expect(flanDAOafter).to.equal(newDAO.address);
+    expect(flanDAOafter).to.equal(this.newDAO.address);
   });
 
   it("lisitng unapproved token fails", async function () {

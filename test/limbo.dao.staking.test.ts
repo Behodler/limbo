@@ -1,10 +1,13 @@
-const { expect, assert } = require("chai");
+// const { expect, assert } = require("chai");
 const { create } = require("domain");
-const { ethers, network } = require("hardhat");
+import { ethers, network } from "hardhat";
+
+
 
 const requireCondition = (condition, message) => {
   if (!condition) throw message;
 };
+
 describe("DAO staking", function () {
   let owner, secondPerson, proposalFactory, feeSetter, dai, eye, link, sushi;
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
@@ -19,7 +22,7 @@ describe("DAO staking", function () {
 
     sushiSwapFactory = await UniswapFactoryFactory.deploy(owner.address);
     uniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    requireCondition(sushiSwapFactory.address !== uniswapFactory.address);
+    requireCondition(sushiSwapFactory.address !== uniswapFactory.address,"factories cannot be the same contract");
 
     const RouterFactory = await ethers.getContractFactory("UniswapV2Router02");
     const sushiRouter = await RouterFactory.deploy(sushiSwapFactory.address, owner.address);
@@ -135,7 +138,7 @@ describe("DAO staking", function () {
     };
   };
 
-  const metaPairFactory = async (eye, factory, canLog) => {
+  const metaPairFactory = async (eye, factory, canLog?:boolean) => {
     const log = logFactory(canLog);
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const uniFactory = await UniswapFactoryFactory.attach(factory.address);
