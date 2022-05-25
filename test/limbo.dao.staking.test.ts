@@ -1,8 +1,8 @@
 // const { expect, assert } = require("chai");
 const { create } = require("domain");
 import { ethers, network } from "hardhat";
-
-
+import { expect } from "chai";
+import { executionResult, numberClose, queryChain } from "./helpers";
 
 const requireCondition = (condition, message) => {
   if (!condition) throw message;
@@ -22,7 +22,7 @@ describe("DAO staking", function () {
 
     sushiSwapFactory = await UniswapFactoryFactory.deploy(owner.address);
     uniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    requireCondition(sushiSwapFactory.address !== uniswapFactory.address,"factories cannot be the same contract");
+    requireCondition(sushiSwapFactory.address !== uniswapFactory.address, "factories cannot be the same contract");
 
     const RouterFactory = await ethers.getContractFactory("UniswapV2Router02");
     const sushiRouter = await RouterFactory.deploy(sushiSwapFactory.address, owner.address);
@@ -96,7 +96,6 @@ describe("DAO staking", function () {
       proposalFactory.address,
       this.sushiOracle.address,
       this.uniOracle.address,
-      9,
       [this.metaDaiEYESLP.address, this.metaLinkEYESLP.address, this.metaSushiEYESLP.address],
       [this.metaDaiEYEULP.address, this.metaLinkEYEULP.address, this.metaSushiEYEULP.address]
     );
@@ -138,7 +137,7 @@ describe("DAO staking", function () {
     };
   };
 
-  const metaPairFactory = async (eye, factory, canLog?:boolean) => {
+  const metaPairFactory = async (eye, factory, canLog?: boolean) => {
     const log = logFactory(canLog);
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const uniFactory = await UniswapFactoryFactory.attach(factory.address);
@@ -191,7 +190,7 @@ describe("DAO staking", function () {
     };
   };
 
-  it("only eye or approved assets can be staked", async function () {
+  it("1. only eye or approved assets can be staked", async function () {
     await dao.makeLive();
     await expect(dao.setEYEBasedAssetStake(100, 400, 20, daiSushiSLP.address, false)).to.be.revertedWith(
       "LimboDAO: illegal asset"
@@ -201,13 +200,13 @@ describe("DAO staking", function () {
     );
   });
 
-  it("Only live staking", async function () {
+  it("2. Only live staking", async function () {
     await expect(dao.setEYEBasedAssetStake(100, 400, 20, sushiEYEULP.address, false)).to.be.revertedWith(
       "LimboDAO: DAO is not live."
     );
   });
 
-  it("Staking Eye sets fate per day to root EYE ", async function () {
+  it("3. Staking Eye sets fate per day to root EYE ", async function () {
     const cloutBefore = await dao.stakedUserAssetWeight(owner.address, eye.address);
     expect(cloutBefore[0].toString()).to.equal("0");
     expect(cloutBefore[1].toString()).to.equal("0");
@@ -227,7 +226,7 @@ describe("DAO staking", function () {
     expect(cloutAfter[1].toString()).to.equal("100");
   });
 
-  it("Staking Eye and wait increases fate correctly", async function () {
+  it("4. Staking Eye and wait increases fate correctly", async function () {
     await dao.makeLive();
 
     await dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false);
@@ -254,20 +253,17 @@ describe("DAO staking", function () {
     expect(fateState[1].toString()).to.equal("148");
   });
 
-  it("Staking LP set growth to 2 root eye balance", async function () {
+  it("5. Staking LP set growth to 2 root eye balance", async function () {
     await dao.makeLive();
     const finalEyeBalance = 30n * ONE;
     const finalAssetBalance = 5n * ONE;
     const lpBalanceBefore = await daiEYESLP.balanceOf(owner.address);
     advanceTime(10000);
 
-    await dao.setEYEBasedAssetStake(
-      finalAssetBalance,
-      finalEyeBalance.toString(),
-      "5477225575",
-      daiEYESLP.address,
-      false
+    let result = await executionResult(
+      dao.setEYEBasedAssetStake(finalAssetBalance, finalEyeBalance.toString(), "5477225575", daiEYESLP.address, false)
     );
+    expect(result.success).to.equal(true, result.error);
 
     const lpBalanceAfter = await daiEYESLP.balanceOf(owner.address);
     expect(lpBalanceBefore.sub(lpBalanceAfter).toString()).to.equal(finalAssetBalance.toString());
@@ -284,19 +280,22 @@ describe("DAO staking", function () {
 
     const reducedAssetBalance = 25n * NAUGHT_POINT_ONE; // 2.5
     //21428890
-    const reducedFinalEyeBalance = 15000000000000000000n;
-
-    await dao.setEYEBasedAssetStake(
-      reducedAssetBalance,
-      reducedFinalEyeBalance.toString(),
-      "3872983346",
-      daiEYESLP.address,
-      false
+    const reducedFinalEyeBalance = 18659057500000000000n;
+    await advanceTime(90000);
+    result = await executionResult(
+      dao.setEYEBasedAssetStake(
+        reducedAssetBalance,
+        reducedFinalEyeBalance.toString(),
+        "4319613119",
+        daiEYESLP.address,
+        false
+      )
     );
+    expect(result.success).to.equal(true, result.error);
   });
 
   //Tests staking and unstaking
-  it("Staking multiple asset types sets fate rate correctly", async function () {
+  it("6. Staking multiple asset types sets fate rate correctly", async function () {
     await dao.makeLive();
     let balanceOfDaiEYESLPBeforeStake = await daiEYEULP.balanceOf(owner.address);
 
@@ -358,7 +357,7 @@ describe("DAO staking", function () {
     expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
   });
 
-  it("burn eye gives 10x fate", async function () {
+  it("7. burn eye gives 10x fate", async function () {
     await dao.makeLive();
     const fateBefore = await dao.fateState(owner.address);
     await expect(fateBefore[1].toString()).to.equal("0");
@@ -377,6 +376,6 @@ describe("DAO staking", function () {
 
     const fateAfter = await dao.fateState(owner.address);
 
-    await expect(fateAfter[1].sub(fateBefore[1]).toString()).to.equal("16400");
+    await expect(numberClose(fateAfter[1].sub(fateBefore[1]),"16400")).to.equal(true);
   });
 });

@@ -99,7 +99,6 @@ contract LimboDAO is Ownable {
 
   using NetTransferHelper for address;
   uint256 constant ONE = 1 ether;
-  uint256 precision = 1e9;
 
   DomainConfig public domainConfig;
   ProposalConfig public proposalConfig;
@@ -196,7 +195,6 @@ contract LimboDAO is Ownable {
   ///@param proposalFactory authenticates and instantiates valid proposals for voting
   ///@param sushiOracle the SushiSwap oracle
   ///@param uniOracle the Uniswap oracle
-  ///@param precisionOrderOfMagnitude when comparing fractional values, it's not necessary to get every last digit right
   ///@param sushiMetaLPs Pairs of EYE and an EYE containing LP such as EYE/ETH for pricing EYE/ETH in terms of EYE.
   ///@param uniMetaLPs valid EYE containing LP tokens elligible for earning Fate through staking
   function seed(
@@ -206,7 +204,6 @@ contract LimboDAO is Ownable {
     address proposalFactory,
     address sushiOracle,
     address uniOracle,
-    uint256 precisionOrderOfMagnitude,
     address[] memory sushiMetaLPs,
     address[] memory uniMetaLPs
   ) public onlyOwner {
@@ -214,7 +211,6 @@ contract LimboDAO is Ownable {
     proposalConfig.votingDuration = 2 days;
     proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
     proposalConfig.proposalFactory = proposalFactory;
-    precision = 10**precisionOrderOfMagnitude;
     address sushiFactory = address(LimboOracleLike(sushiOracle).factory());
     address uniFactory = address(LimboOracleLike(uniOracle).factory());
     for (uint256 i = 0; i < sushiMetaLPs.length; i++) {
@@ -330,6 +326,7 @@ contract LimboDAO is Ownable {
     uint256 rootEYESquared;
     uint256 rootEYEPlusOneSquared;
     uint256 initialBalance;
+    uint256 eyeEquivalent;
   }
 
   ///@notice handles staking logic for EYE and EYE based assets so that correct rate of fate is earned.
@@ -348,7 +345,7 @@ contract LimboDAO is Ownable {
     address sender = _msgSender();
     FateGrowthStrategy strategy = fateGrowthStrategy[asset];
 
-    SquareChecker memory rootInvariant = SquareChecker(rootEYE * rootEYE, (rootEYE + 1) * (rootEYE + 1), 0);
+    SquareChecker memory rootInvariant = SquareChecker(rootEYE * rootEYE, (rootEYE + 1) * (rootEYE + 1), 0, 0);
     //verifying that rootEYE value is accurate within precision.
     require(
       rootInvariant.rootEYESquared <= finalEYEBalance && rootInvariant.rootEYEPlusOneSquared > finalEYEBalance,
@@ -370,10 +367,13 @@ contract LimboDAO is Ownable {
 
       clout.fateWeight = 2 * rootEYE;
       fateState[sender].fatePerDay += clout.fateWeight;
-      finalEYEBalance /= precision;
+      rootInvariant.eyeEquivalent = EYEEquivalentOfLP(asset, uniswap, finalAssetBalance);
 
+      //require oracle deviation <= 10%
       require(
-        finalEYEBalance == EYEEquivalentOfLP(asset, uniswap, finalAssetBalance) / precision,
+        finalEYEBalance > rootInvariant.eyeEquivalent
+          ? ((finalEYEBalance - rootInvariant.eyeEquivalent) * 100) / finalEYEBalance <= 10
+          : ((rootInvariant.eyeEquivalent - finalEYEBalance) * 100) / finalEYEBalance <= 10,
         "LimboDAO: stake invariant check 2."
       );
 
@@ -440,6 +440,33 @@ contract LimboDAO is Ownable {
     return proposalConfig.votingDuration - elapsed;
   }
 
+  /**
+   *@notice we wish to know the weight of EYE in an LP. For instance, suppose we have an LP with 100 units of EYE and 20 units of Dai 
+and that you own 10% of the pool. This means you have 10 EYE and 2 Dai.
+We don't want to penalize holders of EYE LPs by only counting the EYE component of the LP token. Instead, the DAI balance represents their bolstering
+of liquidity of the remaining EYE. Since tokens in trading pairs at rest are equal in value, we can assume that the 2 Dai is equal to 10 EYE.
+So the EYE weight of this portfolio is 20 EYE.
+If we just take the balances of EYE and Dai and calculate this weight, we open up the calculation to short term price manipulation which can inflate the perceived EYE weight of a
+portfolio. UniswapV2 provides a robust way to sample the price but not the reserve levels (TWAP). The trick is to registthat Inder the LP token against EYE, to create a 
+pool of EYE/DAI and EYE. Then with sufficient liquidity, EYE/DAI will be priced in EYE via the TWAP so that we know the market value of the EYE weight of the LP token safely.
+Then when someone stakes EYE/DAI, we take the spot price and multiply by the units staked. 
+To concern that taking the spot price opens up the DAO to attack by whales is mitigated by the fact that Fate is earned quadratically: a whale with a large quantity to stake will
+have a much lower incentive to game the prices than in a linear system. 
+Gas prices prevent the whale from spreading their LP balance amongst 1000s of accounts.
+   *@param pair the token pair containing EYE
+   *@param uni only Uniswap and SushiSwap are elligible
+   *@param units scaling units
+   */
+  function EYEEquivalentOfLP(
+    address pair,
+    bool uni,
+    uint256 units
+  ) public view returns (uint256) {
+    LimboOracleLike oracle = uni ? domainConfig.uniOracle : domainConfig.sushiOracle;
+    uint256 result = (oracle.consult(address(pair), domainConfig.eye, 1e6) * units) / 1e6;
+    return result;
+  }
+
   /**@notice seed is a goro idiom for initialize that you tend to find in all the dapps I've written.
    * I prefer initialization funcitons to parameterized solidity constructors for reasons beyond the scope of this comment.
    */
@@ -490,30 +517,7 @@ contract LimboDAO is Ownable {
     require(assetApproved[asset], "LimboDAO: illegal asset");
     if (fateGrowthStrategy[asset] == FateGrowthStrategy.indirectTwoRootEye) {
       LimboOracleLike oracle = uniswap ? domainConfig.uniOracle : domainConfig.sushiOracle;
-      oracle.update(oracle.factory().getPair(asset, domainConfig.eye));
+      oracle.update(asset, domainConfig.eye);
     }
-  }
-
-  /*
-Discussion: we wish to know the weight of EYE in an LP. For instance, suppose we have an LP with 100 units of EYE and 20 units of Dai 
-and that you own 10% of the pool. This means you have 10 EYE and 2 Dai.
-We don't want to penalize holders of EYE LPs by only counting the EYE component of the LP token. Instead, the DAI balance represents their bolstering
-of liquidity of the remaining EYE. Since tokens in trading pairs at rest are equal in value, we can assume that the 2 Dai is equal to 10 EYE.
-So the EYE weight of this portfolio is 20 EYE.
-If we just take the balances of EYE and Dai and calculate this weight, we open up the calculation to short term price manipulation which can inflate the perceived EYE weight of a
-portfolio. UniswapV2 provides a robust way to sample the price but not the reserve levels (TWAP). The trick is to registthat Inder the LP token against EYE, to create a 
-pool of EYE/DAI and EYE. Then with sufficient liquidity, EYE/DAI will be priced in EYE via the TWAP so that we know the market value of the EYE weight of the LP token safely.
-Then when someone stakes EYE/DAI, we take the spot price and multiply by the units staked. 
-To concern that taking the spot price opens up the DAO to attack by whales is mitigated by the fact that Fate is earned quadratically: a whale with a large quantity to stake will
-have a much lower incentive to game the prices than in a linear system. 
-Gas prices prevent the whale from spreading their LP balance amongst 1000s of accounts.
-*/
-  function EYEEquivalentOfLP(
-    address pair,
-    bool uni,
-    uint256 units
-  ) private view returns (uint256) {
-    LimboOracleLike oracle = uni ? domainConfig.uniOracle : domainConfig.sushiOracle;
-    return (oracle.consult(address(pair), domainConfig.eye, 1e6) * units) / 1e6;
   }
 }

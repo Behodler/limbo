@@ -21,7 +21,13 @@ export const queryChain = async (query): Promise<{ success: boolean; error: stri
 export const numberClose = (actual,expected) => {
     let expectedBig = BigInt(expected.toString())
     const actualBig = BigInt(actual.toString())
-    const lower = expectedBig/100n*90n
-    const higher = expectedBig *110n/100n
-    return lower < actualBig && higher > actualBig
+    const lower = expectedBig/100n*80n
+    const higher = expectedBig *120n/100n
+    const condition = lower < actualBig && higher > actualBig
+    if(!condition){
+        const perc = parseFloat((`${actualBig*10000n/ expectedBig}`))/10000
+        console.log("actual percentage of expected: "+perc)
+    }
+    
+    return condition
 }

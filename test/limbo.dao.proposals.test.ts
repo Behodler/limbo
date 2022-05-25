@@ -121,7 +121,6 @@ describe("DAO Proposals", function () {
       proposalFactory.address,
       this.sushiOracle.address,
       this.uniOracle.address,
-      9,
       [this.metaDaiEYESLP.address, this.metaLinkEYESLP.address, this.metaSushiEYESLP.address],
       [this.metaDaiEYEULP.address, this.metaLinkEYEULP.address, this.metaSushiEYEULP.address]
     );
@@ -218,13 +217,13 @@ describe("DAO Proposals", function () {
   const ONE = BigInt("1000000000000000000");
   const NAUGHT_POINT_ONE = ONE / 10n;
 
-  it("Insufficient fate to lodge rejected", async function () {
+  it("1. Insufficient fate to lodge rejected", async function () {
     await expect(proposalFactory.lodgeProposal(updateProposalConfigProposal.address)).to.be.revertedWith(
       "Arithmetic operation underflowed or overflowed outside of an unchecked block"
     );
   });
 
-  it("lodging proposal when none exist accepted", async function () {
+  it("2. lodging proposal when none exist accepted", async function () {
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await dao.burnAsset(eye.address, eyeToBurn, false);
@@ -233,7 +232,7 @@ describe("DAO Proposals", function () {
     expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address);
   });
 
-  it("paramerterize once proposal is lodged fails", async function () {
+  it("3. paramerterize once proposal is lodged fails", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -252,7 +251,7 @@ describe("DAO Proposals", function () {
     );
   });
 
-  it("Lodging proposal while existing proposal valid rejected", async function () {
+  it("4. Lodging proposal while existing proposal valid rejected", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -271,7 +270,7 @@ describe("DAO Proposals", function () {
     );
   });
 
-  it("success returns half of required fate", async function () {
+  it("5. success returns half of required fate", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -302,7 +301,7 @@ describe("DAO Proposals", function () {
     expect(fateAfterExecute.sub(fateBeforeExecute).toString()).to.equal("223000000000000000000");
   });
 
-  it("voting no on current proposal makes it unexecutable.", async function () {
+  it("6. voting no on current proposal makes it unexecutable.", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -341,7 +340,7 @@ describe("DAO Proposals", function () {
     expect(configAfter[0].toString()).to.equal(configBefore[0].toString());
   });
 
-  it("asset approval proposal can add and remove approved assets", async function () {
+  it("7. asset approval proposal can add and remove approved assets", async function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -376,7 +375,7 @@ describe("DAO Proposals", function () {
     expect(assetApprovedAfter).to.be.false;
   });
 
-  it("vote that flips decision in last hour extends voting for 2 hours", async function () {
+  it("8. vote that flips decision in last hour extends voting for 2 hours", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -424,7 +423,7 @@ describe("DAO Proposals", function () {
     );
   });
 
-  it("killDAO, only callable by owner, transfers ownership to new DAO", async function () {
+  it("9. killDAO, only callable by owner, transfers ownership to new DAO", async function () {
     this.TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
@@ -452,7 +451,7 @@ describe("DAO Proposals", function () {
     expect(flanDAOafter).to.equal(this.newDAO.address);
   });
 
-  it("lisitng unapproved token fails", async function () {
+  it("10. lisitng unapproved token fails", async function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -466,11 +465,11 @@ describe("DAO Proposals", function () {
     await this.soulUpdateProposal.parameterize(sushiEYEULP.address, "100", 1, 1, 1, 1);
   });
 
-  it("trying to convert fate to flan without a rate mints zero flan", async function () {
+  it("12. trying to convert fate to flan without a rate mints zero flan", async function () {
     await expect(dao.convertFateToFlan(1000)).to.be.revertedWith("LimboDAO: Fate conversion to Flan disabled.");
   });
 
-  it("setting fateToFlan to positive number mints flan, depletes fate", async function () {
+  it("13. setting fateToFlan to positive number mints flan, depletes fate", async function () {
     const FateToFlanProposal = await ethers.getContractFactory("TurnOnFateMintingProposal");
     const fateToFlanProposal = await FateToFlanProposal.deploy(dao.address, "minting");
     await fateToFlanProposal.parameterize("2000000000000000000");
