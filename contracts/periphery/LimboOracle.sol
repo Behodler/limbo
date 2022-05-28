@@ -32,6 +32,13 @@ contract LimboOracle is Governable {
   }
   mapping(address => PairMeasurement) public pairMeasurements;
 
+  function getLastUpdate(address token0,address token1) public view returns (uint32, uint){
+     address pair = factory.getPair(token0, token1);
+    PairMeasurement memory measurement = pairMeasurements[pair];
+    return (measurement.blockTimestampLast,measurement.period);
+
+  }
+
   modifier validPair(address token0, address token1) {
     require(isPair(token0, token1), "ORACLE: PAIR_NOT_FOUND");
     _;

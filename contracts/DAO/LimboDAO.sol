@@ -517,7 +517,12 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
     require(assetApproved[asset], "LimboDAO: illegal asset");
     if (fateGrowthStrategy[asset] == FateGrowthStrategy.indirectTwoRootEye) {
       LimboOracleLike oracle = uniswap ? domainConfig.uniOracle : domainConfig.sushiOracle;
-      oracle.update(asset, domainConfig.eye);
+      (uint32 blockTimeStamp, uint256 period) = oracle.getLastUpdate(asset, domainConfig.eye);
+
+      //we don't want oracle induced reversions on staking and unstaking of LP tokens in the DAO. Rather take a hit of a stale price
+      if (block.timestamp - blockTimeStamp > period) {
+        oracle.update(asset, domainConfig.eye);
+      }
     }
   }
 }

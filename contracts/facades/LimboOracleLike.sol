@@ -23,4 +23,6 @@ abstract contract LimboOracleLike {
     address referenceToken,
     uint256 amountIn
   ) external view virtual returns (uint256 amountOut);
+
+  function getLastUpdate (address token1, address token2) public virtual view returns (uint32,uint);
 }
