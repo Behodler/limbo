@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.13;
 import "./facades/AngbandLike.sol";
 import "./facades/FlanLike.sol";
 // import "./facades/AddTokenToBehodlerPowerLike.sol";

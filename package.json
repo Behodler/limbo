@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "typechain": "typechain --target=ethers-v5 'build/contracts/*.json' --out-dir 'typechain'",
-    "test": "npx hardhat test test/*.test.js",
+    "test": "npx hardhat test test/limbo.dao.*.test.ts && test/limbo.test.ts",
+    "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "test:wargames": "npx hardhat test test/wargames/*",
     "build:debug": "sudo rm -rf build/ && truffle build && yarn typechain",
     "build": "docker-compose up build",
@@ -21,7 +22,7 @@
     "deploy:ropsten": "npx hardhat run --network ropsten scripts/testnet-deploy.ts",
     "configureThreshold:ropsten": "npx hardhat run --network ropsten scripts/testnet-configure-threshold.ts",
     "configurePerpetual:ropsten": "npx hardhat run --network ropsten scripts/testnet-configure-perpetual.ts",
-    "configure:ropsten":"yarn configureThreshold:ropsten && yarn configurePerpetual:ropsten",
+    "configure:ropsten": "yarn configureThreshold:ropsten && yarn configurePerpetual:ropsten",
     "deploy:local2": "sudo touch scripts/testnet/addresses/hardhat.json && sudo rm scripts/testnet/addresses/hardhat.json && npx hardhat run scripts/testnet/orchestrate.ts"
   },
   "repository": {
@@ -69,7 +70,6 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.1.0",
-    "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "hardhat-deploy": "^0.10.5",
     "truffle-contract-size": "^2.0.1"
   }

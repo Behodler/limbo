@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.13;
 import "./facades/FlanLike.sol";
 import "./facades/PyroTokenLike.sol";
 import "./DAO/Governable.sol";
 import "./ERC677/ERC20Burnable.sol";
-import "./facades/UniPairLike.sol";
+import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 // import "hardhat/console.sol";
 
 ///@title FlanBackstop (placeholder name)
@@ -87,13 +87,13 @@ contract FlanBackstop is Governable {
     IERC20(config.flan).transfer(flanLP, normalizedAmount / 4);
     IERC20(stablecoin).transferFrom(msg.sender, flanLP, amount / 2);
 
-    UniPairLike(flanLP).mint(address(this));
+    IUniswapV2Pair(flanLP).mint(address(this));
     uint256 redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();
     PyroTokenLike(config.pyroFlan).mint(pyroFlanLP, normalizedAmount / 4);
     redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();
     redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();
     IERC20(stablecoin).transferFrom(msg.sender, pyroFlanLP, amount / 2);
-    UniPairLike(pyroFlanLP).mint(address(this));
+    IUniswapV2Pair(pyroFlanLP).mint(address(this));
 
     uint256 balanceOfFlan = IERC20(config.flan).balanceOf(flanLP);
     uint256 balanceOfStable = IERC20(stablecoin).balanceOf(flanLP);

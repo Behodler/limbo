@@ -11,8 +11,8 @@ const AddTokenPower = artifacts.require("LimboAddTokenToBehodler");
 const Angband = artifacts.require("AngbandLite");
 const AddressBalanceCheckLib = artifacts.require("AddressBalanceCheck");
 const BehodlerLite = artifacts.require("BehodlerLite");
-const UniswapFactory = artifacts.require("RealUniswapV2Factory");
-const SushiswapFactory = artifacts.require("RealUniswapV2Factory");
+const UniswapFactory = artifacts.require("UniswapV2Factory");
+const SushiswapFactory = artifacts.require("UniswapV2Factory");
 const MockToken1 = artifacts.require("MockToken");
 const MockToken2 = artifacts.require("MockToken");
 
@@ -149,6 +149,8 @@ module.exports = async function (deployer, network, accounts) {
     behodlerInstance.address
   );
 
+  await uniswapHelperInstance.setDAI(daiInstance.address);
+
   await uniswapHelperInstance.configure(
     limboInstance.address,
     pairaddress,
@@ -160,7 +162,7 @@ module.exports = async function (deployer, network, accounts) {
     20,
     0
   );
-  await uniswapHelperInstance.setDAI(daiInstance.address);
+
   await uniswapHelperInstance.setFactory(uniswapFactoryInstance.address)
 
   await flanInstance.whiteListMinting(limboInstance.address, true);

@@ -82,7 +82,7 @@ export async function deployProposalFactory(
   pauser: Function
 ): Promise<OutputAddress> {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { TransferHelper: transferHelperAddress },
+    libraries: { NetTransferHelper: transferHelperAddress },
   });
   const dao = await LimboDAOFactory.attach(daoAddress);
 
@@ -143,7 +143,7 @@ export async function deployLimbo(
   pauser: Function
 ): Promise<OutputAddress> {
   const daoFactory: ContractFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { TransferHelper: transferHelperAddress },
+    libraries: { NetTransferHelper: transferHelperAddress },
   });
   const dao = await daoFactory.attach(daoAddress);
   const SoulLib = await ethers.getContractFactory("SoulLib");
@@ -178,13 +178,15 @@ export async function deployLimbo(
     pauser
   );
 
+  await broadcast("set dai", uniswapHelper.setDAI(dai, await getNonce()), pauser);
+
+
   await broadcast(
     "configure uniswaphelper",
     uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 180, 3, 20, 10, await getNonce()),
     pauser
   );
 
-  await broadcast("set dai", uniswapHelper.setDAI(dai, await getNonce()), pauser);
 
   let addressList: OutputAddress = {};
   addressList["limbo"] = limbo.address;
@@ -207,7 +209,7 @@ export async function seedLimboDAO(
   pauser: Function
 ) {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { TransferHelper: transferHelperAddress },
+    libraries: { NetTransferHelper: transferHelperAddress },
   });
   const dao = await LimboDAOFactory.attach(daoAddress);
   await pauser();
@@ -288,7 +290,7 @@ export async function deployFlan(
   pauser: Function
 ): Promise<OutputAddress> {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { TransferHelper: transferHelperAddress },
+    libraries: { NetTransferHelper: transferHelperAddress },
   });
 
   const dao = await LimboDAOFactory.attach(daoAddress);
@@ -301,7 +303,7 @@ export async function deployFlan(
   });
   const behodler = await BehodlerFactory.attach(behodlerAddress);
 
-  const UniswapFactory = await ethers.getContractFactory("RealUniswapV2Factory");
+  const UniswapFactory = await ethers.getContractFactory("UniswapV2Factory");
   const uniswapFactory = await UniswapFactory.attach(uniswapFactoryAddress);
 
   const LiquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver");
@@ -335,7 +337,7 @@ export async function deployFlan(
 
   await broadcast("scx transfer to flanSCX", behodler.transfer(flanSCX, scxBalance.div(4), await getNonce()), pauser);
   await broadcast("flan mint", flan.mint(flanSCX, parseEther("200"), await getNonce()), pauser);
-  const UniswapPair = await ethers.getContractFactory("RealUniswapV2Pair");
+  const UniswapPair = await ethers.getContractFactory("UniswapV2Pair");
   const flanSCXPair = UniswapPair.attach(flanSCX);
 
   await broadcast("flanSCXPair mint", flanSCXPair.mint(deployer.address, await getNonce()), pauser);
@@ -367,11 +369,11 @@ export async function deployLimboDAO(
   eyeAddress: string,
   pauser: Function
 ): Promise<OutputAddress> {
-  const TransferHelper = await ethers.getContractFactory("TransferHelper");
+  const TransferHelper = await ethers.getContractFactory("NetTransferHelper");
   const transferHelper = await deploy("TransferHelper", TransferHelper, pauser, []);
 
   const LimboDAO = await ethers.getContractFactory("LimboDAO", {
-    libraries: { TransferHelper: transferHelper.address },
+    libraries: { NetTransferHelper: transferHelper.address },
   });
   const dao = await deploy("LimboDAO", LimboDAO, pauser, []);
   const FlashGovernanceArbiter = await ethers.getContractFactory("FlashGovernanceArbiter");
@@ -529,7 +531,7 @@ async function uniclone(
   pauser: Function
 ): Promise<OutputAddress> {
   let addressList: OutputAddress = {};
-  const UniswapV2Factory = await ethers.getContractFactory("RealUniswapV2Factory");
+  const UniswapV2Factory = await ethers.getContractFactory("UniswapV2Factory");
   if (!recognizedTestNet) {
     logger("WARNING: NETWORK DETECTED NOT PUBLIC TESTNET");
   }
@@ -543,7 +545,7 @@ async function uniclone(
 
   const scxAddress = tokenAddresses["SCX"];
 
-  const pair = await ethers.getContractFactory("RealUniswapV2Pair");
+  const pair = await ethers.getContractFactory("UniswapV2Pair");
   await pauser();
   let eyeDaiAddress = await uniswapFactory.getPair(daiAddress, eyeAddress);
   await pauser();
@@ -649,9 +651,9 @@ export async function seedUniswap(
   EYESCXaddress: string,
   pauser: Function
 ) {
-  const EYEDAI = (await ethers.getContractFactory("RealUniswapV2Pair")).attach(EYEDAIaddress);
-  const SCXWETH = (await ethers.getContractFactory("RealUniswapV2Pair")).attach(SCXWETHaddress);
-  const EYESCX = (await ethers.getContractFactory("RealUniswapV2Pair")).attach(EYESCXaddress);
+  const EYEDAI = (await ethers.getContractFactory("UniswapV2Pair")).attach(EYEDAIaddress);
+  const SCXWETH = (await ethers.getContractFactory("UniswapV2Pair")).attach(SCXWETHaddress);
+  const EYESCX = (await ethers.getContractFactory("UniswapV2Pair")).attach(EYESCXaddress);
 
   const scxInstance = (await ethers.getContractFactory("MockToken")).attach(scxAddress);
   const eyeInstance = (await ethers.getContractFactory("MockToken")).attach(eyeAddress);

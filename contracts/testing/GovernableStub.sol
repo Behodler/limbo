@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.13;
 import "../DAO/Governable.sol";
 
 contract GovernableStub is Governable {

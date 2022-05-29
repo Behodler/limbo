@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.13;
 import "../ERC677/ERC677.sol";
 import "../facades/BehodlerLike.sol";
 
@@ -34,7 +34,7 @@ contract MockBehodler is ERC677 {
     string memory symbol,
     address _addTokenPower
   ) ERC677(name, symbol) {
-    _mint(msg.sender, 100 ether);
+    _mint(msg.sender, 1000000 ether);
     addTokenPower = _addTokenPower;
   }
 
