@@ -137,7 +137,7 @@ contract FlashGovernanceArbiter is Governable {
       Burnable(asset).burn(amount);
     }
 
-    pendingFlashDecision[targetContract][user] = flashGovernanceConfig;
+    delete pendingFlashDecision[targetContract][user];
   }
 
   /**

@@ -720,6 +720,19 @@ describe.only("Limbo", function () {
 
     expect(this.eyeBefore.sub(this.eyeAfter).toString()).to.equal("21000000");
 
+    //assert pendingFlashDecision before
+    const pendingFlashDecisionBeforeQuery = await queryChain(
+      this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address)
+    );
+    expect(pendingFlashDecisionBeforeQuery.success).to.equal(true, pendingFlashDecisionBeforeQuery.error);
+
+    const pendingFlashDecisionBefore = pendingFlashDecisionBeforeQuery.result;
+    expect(pendingFlashDecisionBefore[0]).to.equal("21000000");
+    expect(numberClose(pendingFlashDecisionBefore[1],"1754463648")).to.be.true;
+    expect(pendingFlashDecisionBefore[2]).to.equal(this.eye.address);
+    expect(pendingFlashDecisionBefore[3]).to.equal(true);
+    //assert pendingFlashDecision after
+
     await this.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
     let currentProposal = (await this.limboDAO.currentProposalState())[4];
     expect(currentProposal.toString() !== "0x0000000000000000000000000000000000000000").to.be.true;
@@ -753,12 +766,24 @@ describe.only("Limbo", function () {
 
     this.eyeInFlashGovAfter = await this.eye.balanceOf(this.flashGovernance.address);
     this.eyeTotalsupplyAfter = await this.eye.totalSupply();
-    const pendingAfterAttempt = await this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address);
-
-    expect(pendingAfterAttempt[0].toString()).to.equal("21000000");
+    
     //assert this.eye has declined by 21000000
     expect(this.eyeInFlashGovBefore.sub(this.eyeInFlashGovAfter).toString()).to.equal("21000000");
     expect(this.eyeTotalsupplyBefore.sub(this.eyeTotalsupplyAfter).toString()).to.equal("21000000");
+
+    //assert pendingFlashDecision after
+    const pendingFlashDecisionAfterQuery = await queryChain(
+      this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address)
+    );
+    expect(pendingFlashDecisionAfterQuery.success).to.equal(true, pendingFlashDecisionAfterQuery.error);
+
+
+    const pendingFlashDecisionAfter = pendingFlashDecisionAfterQuery.result;
+    expect(pendingFlashDecisionAfter[0]).to.equal("0");
+    expect(pendingFlashDecisionAfter[1]).to.equal("0");
+    expect(pendingFlashDecisionAfter[2]).to.equal("0x0000000000000000000000000000000000000000");
+    expect(pendingFlashDecisionAfter[3]).to.equal(false);
+    //assert pendingFlashDecision after
   });
 
   it("10. unstaking rewards user correctly and sets unclaimed to zero", async function () {
@@ -1399,7 +1424,7 @@ describe.only("Limbo", function () {
     const ratio = flanBalanceAfterSecondMigrate.mul(1000).div(scxBalanceOfPairAfterSecondMigrate);
 
     //flan strengthens
-    expect (numberClose(ratio,"84000")).to.be.true
+    expect(numberClose(ratio, "84000")).to.be.true;
 
     //  THIRD MIGRATION
     const mock2 = await this.TokenFactory.deploy("mock1", "mock1");
@@ -1452,7 +1477,7 @@ describe.only("Limbo", function () {
 
     const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfteThirdMigrate);
 
-    expect(numberClose(ratio2,"816655")).to.be.true;
+    expect(numberClose(ratio2, "816655")).to.be.true;
   });
 
   it("23. any whitelisted contract can mint flan", async function () {
