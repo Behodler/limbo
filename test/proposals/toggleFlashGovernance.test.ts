@@ -4,7 +4,7 @@ const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
 const web3 = require("web3");
 
-describe.only("Limbo", function () {
+describe.only("ToggleFlashLoanProposal", function () {
   let owner, secondPerson, link, sushi;
   let daieyeSLP, linkeyeSLP, sushieyeSLP, daiSushiSLP;
   let daieyeULP, linkeyeULP, sushieyeULP, daiSushiULP;
