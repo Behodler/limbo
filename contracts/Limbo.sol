@@ -133,6 +133,7 @@ ERC20 Transfer Failed                          EL
 Incorrect SCX transfer to AMMHelper            EM
 Legacy Attack Vector Removed                   EN
 Oracle LPs zeroed                              EO   
+Flash Governance Disabled                      EP
 */
 
 struct Soul {
