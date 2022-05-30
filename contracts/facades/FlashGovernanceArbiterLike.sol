@@ -18,4 +18,6 @@ abstract contract FlashGovernanceArbiterLike {
     ) public virtual;
 
      function setEnforcement(bool enforce) public virtual;
+
+     function setGoverned(address[] calldata governables, bool[] calldata isGoverned) external virtual;
 }

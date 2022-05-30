@@ -117,6 +117,10 @@ describe.only("Limbo", function () {
       //  10000000,
       this.limboDAO.address
     );
+
+      //enable flash governance on Limbo
+      await this.flashGovernance.setGoverned([this.limbo.address],[true]);
+
     await this.flan.whiteListMinting(this.limbo.address, true);
     await this.flan.whiteListMinting(owner.address, true);
     // await this.flan.endConfiguration();
@@ -408,7 +412,7 @@ describe.only("Limbo", function () {
 
   //TESTS START
 
-  it("1. governance actions free to be invoked until configured set to true", async function () {
+  it("t-1. governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
     //onlySuccessfulProposal:
@@ -475,7 +479,7 @@ describe.only("Limbo", function () {
     );
   });
 
-  it("2. old souls can be claimed from", async function () {
+  it("t-2. old souls can be claimed from", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
     await this.limbo.endConfiguration();
@@ -507,7 +511,7 @@ describe.only("Limbo", function () {
     expect(flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()).to.equal("0");
   });
 
-  it("3. old souls can be bonus claimed from (DELTA = 0)", async function () {
+  it("t-3. old souls can be bonus claimed from (DELTA = 0)", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
@@ -541,7 +545,7 @@ describe.only("Limbo", function () {
     assert.isTrue(difference >= lowerLimit && difference <= upperLimit);
   });
 
-  it("4. old souls can be bonus claimed from (DELTA > 0)", async function () {
+  it("t-4. old souls can be bonus claimed from (DELTA > 0)", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
@@ -570,7 +574,7 @@ describe.only("Limbo", function () {
     expect(numberClose(increase, 900019000410)).to.be.true;
   });
 
-  it("5. old souls can be bonus claimed from (DELTA < 0)", async function () {
+  it("t-5. old souls can be bonus claimed from (DELTA < 0)", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
@@ -604,7 +608,7 @@ describe.only("Limbo", function () {
     expect(gtLB && ltUP).to.be.true;
   });
 
-  it("6. perpetual pools have no upper limit", async function () {
+  it("t-6. perpetual pools have no upper limit", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 2, 1, 0, 10000000);
 
@@ -619,7 +623,7 @@ describe.only("Limbo", function () {
     expect(stats[0].toNumber()).to.equal(1);
   });
 
-  it("7. use flashGovernance to adjustSoul", async function () {
+  it("t-7. use flashGovernance to adjustSoul", async function () {
     //configure soul
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
@@ -653,7 +657,7 @@ describe.only("Limbo", function () {
     expect(stringNewStates[1]).to.equal("-1001");
   });
 
-  it("8. flashGovernance adjust configureCrossingParameters", async function () {
+  it("t-8. flashGovernance adjust configureCrossingParameters", async function () {
     //set flash loan params
     await this.flashGovernance.configureFlashGovernance(
       this.eye.address,
@@ -680,7 +684,7 @@ describe.only("Limbo", function () {
     expect(this.eyeBalanceAfter.sub(this.eyeBalanceBefore).toString()).to.equal("21000000");
   });
 
-  it("9. burn asset for flashGov decision", async function () {
+  it("t-9. burn asset for flashGov decision", async function () {
     //set flash loan params
     await this.flashGovernance.configureFlashGovernance(
       this.eye.address,
@@ -786,7 +790,7 @@ describe.only("Limbo", function () {
     //assert pendingFlashDecision after
   });
 
-  it("10. unstaking rewards user correctly and sets unclaimed to zero", async function () {
+  it("t-10. unstaking rewards user correctly and sets unclaimed to zero", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(
       this.aave.address,
@@ -825,7 +829,7 @@ describe.only("Limbo", function () {
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
-  it("11. staking and claim for multiple stakers divides reward correctly", async function () {
+  it("t-11. staking and claim for multiple stakers divides reward correctly", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(
       this.aave.address,
@@ -862,7 +866,7 @@ describe.only("Limbo", function () {
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
-  it("12. manually setting fps changes reward", async function () {
+  it("t-12. manually setting fps changes reward", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(
       this.aave.address,
@@ -902,7 +906,7 @@ describe.only("Limbo", function () {
     expect(userInfoAfterUnstake[0].toNumber()).to.equal(6000);
   });
 
-  it("13. staking only possible in staking state, unstaking possible in staking and config", async function () {
+  it("t-13. staking only possible in staking state, unstaking possible in staking and config", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       1000, //crossingThreshold
@@ -1014,7 +1018,7 @@ describe.only("Limbo", function () {
     await this.limbo.unstake(this.aave.address, "500");
   });
 
-  it("14. staking an invalid token fails", async function () {
+  it("t-14. staking an invalid token fails", async function () {
     this.titan = await this.TokenFactory.deploy("iron", "finance");
 
     //stake tokens
@@ -1030,7 +1034,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.stake(this.titan.address, "10000")).to.be.revertedWith("E1");
   });
 
-  it("15. unstaking amount larger than balance reverts with E4", async function () {
+  it("t-15. unstaking amount larger than balance reverts with E4", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1048,7 +1052,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
   });
 
-  it("16. unstaking amount larger than balance reverts with E4", async function () {
+  it("t-16. unstaking amount larger than balance reverts with E4", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1066,7 +1070,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
   });
 
-  it("17. claiming staked reward resets unclaimed to zero", async function () {
+  it("t-17. claiming staked reward resets unclaimed to zero", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1091,7 +1095,7 @@ describe.only("Limbo", function () {
     expect(flanAfterSecondClaim).to.equal(flanAfterFirstClaim.add("10000000"));
   });
 
-  it("18. claim bonus disabled during staking", async function () {
+  it("t-18. claim bonus disabled during staking", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1108,7 +1112,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("E2");
   });
 
-  it("19. claiming negative bonus fails", async function () {
+  it("t-19. claiming negative bonus fails", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000, //crossingThreshold
@@ -1130,7 +1134,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("ED");
   });
 
-  it("20. migration fails on not waitingToCross", async function () {
+  it("t-20. migration fails on not waitingToCross", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1145,7 +1149,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("E2");
   });
 
-  it("21. only threshold souls can migrate", async function () {
+  it("t-21. only threshold souls can migrate", async function () {
     await this.limbo.configureCrossingConfig(
       this.mockBehodler.address,
       this.mockAngband.address,
@@ -1196,7 +1200,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("EB");
   });
 
-  it("22. multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
+  it("t-22. multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
     const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
     const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
     const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
@@ -1480,7 +1484,7 @@ describe.only("Limbo", function () {
     expect(numberClose(ratio2, "816655")).to.be.true;
   });
 
-  it("23. any whitelisted contract can mint flan", async function () {
+  it("t-23. any whitelisted contract can mint flan", async function () {
     //assert secondPerson can't mint flan
     await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
       "Flan: Mint allowance exceeded"
@@ -1503,7 +1507,7 @@ describe.only("Limbo", function () {
     );
   });
 
-  it("24. flan burn fee on transfer proposal", async function () {
+  it("t-24. flan burn fee on transfer proposal", async function () {
     const feechangeProposalFactory = await ethers.getContractFactory("AdjustFlanFeeOnTransferProposal");
     const feechangeProposal = await feechangeProposalFactory.deploy(this.limboDAO.address, "changer");
 
@@ -1539,7 +1543,7 @@ describe.only("Limbo", function () {
     expect(totalSupplyBefore.sub(totalSupplyAfter)).to.equal(3);
   });
 
-  it("25. attemptToTargetAPY for non threshold soul fails", async function () {
+  it("t-25. attemptToTargetAPY for non threshold soul fails", async function () {
     await this.limbo.configureSoul(this.aave.address, 10000000, 2, 1, 0, 10000000);
 
     //create real behodler
@@ -1657,7 +1661,7 @@ describe.only("Limbo", function () {
     ).to.be.revertedWith("EI");
   });
 
-  it("26. attemptToTargetAPY sets fps correctly, use to test multiple token migrations", async function () {
+  it("t-26. attemptToTargetAPY sets fps correctly, use to test multiple token migrations", async function () {
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
     //create real behodler
@@ -1842,7 +1846,7 @@ describe.only("Limbo", function () {
     expect(poolDetails[5]).to.equal("41222729578893962"); //fps
   });
 
-  it("27. protocol token buy buck works", async function () {
+  it("t-27. protocol token buy buck works", async function () {
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
@@ -1876,7 +1880,6 @@ describe.only("Limbo", function () {
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
     await sushi.approve(this.limbo.address, "10000000000");
-    console.log(`JS: sushi ${sushi.address}, flan: ${this.flan.address}`);
     result = await executionResult(this.limbo.claimSecondaryRewards(sushi.address));
     expect(result.success).to.equal(true, result.error);
 
@@ -1894,7 +1897,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.claimSecondaryRewards(sushi.address)).to.be.revertedWith("E7");
   });
 
-  it("28. flash governance tolerance enforced for flash loan but not successful proposals or unconfigured", async function () {
+  it("t-28. flash governance tolerance enforced for flash loan but not successful proposals or unconfigured", async function () {
     await this.flashGovernance.configureSecurityParameters(10, 100, 3);
 
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
@@ -2022,7 +2025,7 @@ describe.only("Limbo", function () {
     );
   });
 
-  it("29. flash governance enforcement works immediately after configuring", async function () {
+  it("t-29. flash governance enforcement works immediately after configuring", async function () {
     await this.flashGovernance.configureSecurityParameters(10, 100, 3);
 
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
@@ -2153,7 +2156,7 @@ describe.only("Limbo", function () {
     ).to.be.revertedWith("FE1");
   });
 
-  it("30. FOT token accounting handled correctly", async function () {
+  it("t-30. FOT token accounting handled correctly", async function () {
     const feeOnTransferTokenFactory = await ethers.getContractFactory("MockFOTToken");
     const feeOnTransferToken = await feeOnTransferTokenFactory.deploy("FOT", "FOT", 50);
     await this.limbo.configureSoul(feeOnTransferToken.address, "10000000000", 1, 1, 0, 10000000);
@@ -2175,7 +2178,7 @@ describe.only("Limbo", function () {
     expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal("90250000");
   });
 
-  it("31. test unstaking from another user more than allowance fails", async function () {
+  it("t-31. test unstaking from another user more than allowance fails", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -2208,7 +2211,7 @@ describe.only("Limbo", function () {
     );
   });
 
-  it("32. token with proxy but baseToken zero simply migrates proxy", async function () {
+  it("t-32. token with proxy but baseToken zero simply migrates proxy", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
     const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
     await this.registry.setProxy("0x0000000000000000000000000000000000000000", proxy.address, false);
@@ -2379,7 +2382,7 @@ describe.only("Limbo", function () {
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
 
-  it("33. token with proxy and baseToken with migrateToBehodler true migrates baseToken", async function () {
+  it("t-33. token with proxy and baseToken with migrateToBehodler true migrates baseToken", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
     const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
     await this.registry.setProxy(this.aave.address, proxy.address, true);
@@ -2542,12 +2545,11 @@ describe.only("Limbo", function () {
     expect(aaveBalanceOnBehodler).to.not.equal("0");
   });
 
-  it("34. token with proxy and baseToken with migrateToBehodler false migrates proxy", async function () {
+  it("t-34. token with proxy and baseToken with migrateToBehodler false migrates proxy", async function () {
     const proxyFactory = await ethers.getContractFactory("TokenProxy");
     const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
     await this.registry.setProxy(this.aave.address, proxy.address, false);
     const aaveBalance = await this.aave.balanceOf(owner.address);
-    console.log("aave balance" + aaveBalance);
     await this.aave.approve(proxy.address, "100000000000000000000");
     await proxy.mint(owner.address, "100000000000000000000");
 
@@ -2563,7 +2565,6 @@ describe.only("Limbo", function () {
 
     await realBehodler.mint(owner.address, "10000000000000000000000");
     const realSCXBalance = await realBehodler.balanceOf(owner.address);
-    console.log("realSCXBalance " + realSCXBalance.toString());
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
     await this.flan.mint(owner.address, "10000000000000000000000000");
     const realflanSCX = await createGov(this.flan);
@@ -2651,7 +2652,6 @@ describe.only("Limbo", function () {
     );
 
     await this.uniswapHelper.setDAI(this.dai.address);
-    console.log("Dai (in js) " + this.dai.address);
     await this.uniswapHelper.configure(
       this.limbo.address,
       realBehodler.address,
@@ -2689,9 +2689,6 @@ describe.only("Limbo", function () {
 
     const scxBalanceOfPair = await realBehodler.balanceOf(real_SCX_fln_scx.address);
 
-    console.log({ daiBalanceDaiSCX, scxBalanceOfDaiScx, flanBalanceFlanSCX, scxBalanceOfFlanScx, scxBalanceOfPair });
-
-    console.log("flan " + this.flan.address);
     await advanceTime(100000);
     let result = await executionResult(this.limbo.migrate(proxy.address));
     expect(result.success).to.equal(true, result.error);
@@ -2703,5 +2700,29 @@ describe.only("Limbo", function () {
     expect(aaveBalanceOnBehodler).to.equal("0");
   });
 
+  it("t-35. disabled flash governance fails", async function () {
+    //configure soul
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
+
+    await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
+
+    //set flash loan params
+    await this.flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      604800, //lock duration = 1 week,
+      true // asset is burnable
+    );
+
+    await this.flashGovernance.setGoverned([this.limbo.address],[false]);
+    await this.flashGovernance.endConfiguration();
+    //end configuration
+    await this.limbo.endConfiguration();
+
+    //stake requisite tokens, try again and succeed.
+    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await expect(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001))
+    .to.be.revertedWith("LIMBO: EP")
+  });
   //TESTS END
 });

@@ -50,6 +50,27 @@ contract FlashGovernanceArbiter is Governable {
   FlashGovernanceConfig public flashGovernanceConfig;
   SecurityParameters public security;
 
+
+  /**@notice contracts with flash governance enabled
+   */
+  mapping(address => bool) public governed;
+
+  /**@notice sets contracts LimboDAO has authority to govern
+   *@param governables candidate contracts for flash governance
+   *@param isGoverned flags whether contract is governanble FlashGovernance Arbtier
+   */
+  function setGoverned(address[] calldata governables, bool[] calldata isGoverned) external onlySuccessfulProposal {
+    require(governables.length == isGoverned.length, "LIMBO: length mismatch");
+    for (uint256 i = 0; i < governables.length; i++) {
+      governed[governables[i]] = isGoverned[i];
+    }
+  }
+
+  modifier flashEnabled(){
+    require(msg.sender == DAO || governed[msg.sender], "LIMBO: EP");
+    _;
+  }
+
   /*For every decision, we record the config at the time of the decision. This allows governance to change the rules
    *without undermining the terms under which pending decisions were made.
    */
@@ -67,14 +88,14 @@ contract FlashGovernanceArbiter is Governable {
     address sender,
     address target,
     bool emergency
-  ) public {
+  ) public flashEnabled{
     if (
       IERC20(flashGovernanceConfig.asset).transferFrom(sender, address(this), flashGovernanceConfig.amount) &&
       pendingFlashDecision[target][sender].unlockTime < block.timestamp
     ) {
       require(
         emergency || (block.timestamp - security.lastFlashGovernanceAct > security.epochSize),
-        "Limbo: flash governance disabled for rest of epoch"
+        "LIMBO: flash governance disabled for rest of epoch"
       );
       pendingFlashDecision[target][sender] = flashGovernanceConfig;
       pendingFlashDecision[target][sender].unlockTime += block.timestamp;
