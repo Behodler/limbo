@@ -45,7 +45,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     uint256 index,
     uint256 targetAPY,
     uint256 daiThreshold
-  ) public notCurrent {
+  ) public {
     require(morgothApprover.approved(token), "MORGOTH: token not approved for listing on Behodler");
     params.push(
       Parameters({
@@ -59,6 +59,9 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
       })
     );
   }
+
+  //for safe lodging
+  function lockDown() public lockUntilComplete{}
 
   function execute() internal override returns (bool) {
     for (uint256 i = 0; i < params.length; i++) {

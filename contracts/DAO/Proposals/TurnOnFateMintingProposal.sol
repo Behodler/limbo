@@ -15,7 +15,7 @@ contract TurnOnFateMintingProposal is Proposal {
 
     uint256 rate;
 
-    function parameterize(uint256 _rate) public notCurrent {
+    function parameterize(uint256 _rate) public lockUntilComplete {
         rate = _rate;
     }
 

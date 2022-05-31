@@ -32,10 +32,12 @@ enum FateGrowthStrategy {
   indirectTwoRootEye
 }
 
+//TODO: add failed for reverted executions
 enum ProposalDecision {
   voting,
   approved,
-  rejected
+  rejected,
+  failed
 }
 
 struct DomainConfig {
@@ -94,7 +96,7 @@ contract LimboDAO is Ownable {
   event proposalLodged(address proposal, address proposer);
   event voteCast(address voter, address proposal, int256 fateCast);
   event assetApproval(address asset, bool appoved);
-  event proposalExecuted(address proposal, bool approved);
+  event proposalExecuted(address proposal, bool status);
   event assetBurnt(address burner, address asset, uint256 fateCreated);
 
   using NetTransferHelper for address;
@@ -131,6 +133,7 @@ contract LimboDAO is Ownable {
 
   function nextProposal() internal {
     previousProposalState = currentProposalState;
+    currentProposalState.proposal.setLocked(false);
     currentProposalState.proposal = Proposal(address(0));
     currentProposalState.fate = 0;
     currentProposalState.decision = ProposalDecision.voting;
@@ -153,20 +156,20 @@ contract LimboDAO is Ownable {
     incrementFateFor(_msgSender());
     if (address(currentProposalState.proposal) != address(0)) {
       uint256 durationSinceStart = block.timestamp - currentProposalState.start;
+      bool success;
       if (
         durationSinceStart >= proposalConfig.votingDuration && currentProposalState.decision == ProposalDecision.voting
       ) {
         if (currentProposalState.fate > 0) {
           currentProposalState.decision = ProposalDecision.approved;
-          currentProposalState.proposal.orchestrateExecute();
+          (success, ) = address(currentProposalState.proposal).call(abi.encodeWithSignature("orchestrateExecute()"));
           fateState[currentProposalState.proposer].fateBalance += proposalConfig.requiredFateStake;
+          if (!success) currentProposalState.decision = ProposalDecision.failed;
         } else {
           currentProposalState.decision = ProposalDecision.rejected;
         }
-        emit proposalExecuted(
-          address(currentProposalState.proposal),
-          currentProposalState.decision == ProposalDecision.approved
-        );
+
+        emit proposalExecuted(address(currentProposalState.proposal), success);
         nextProposal();
       }
     }

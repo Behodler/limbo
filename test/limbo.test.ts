@@ -118,8 +118,8 @@ describe.only("Limbo", function () {
       this.limboDAO.address
     );
 
-      //enable flash governance on Limbo
-      await this.flashGovernance.setGoverned([this.limbo.address],[true]);
+    //enable flash governance on Limbo
+    await this.flashGovernance.setGoverned([this.limbo.address], [true]);
 
     await this.flan.whiteListMinting(this.limbo.address, true);
     await this.flan.whiteListMinting(owner.address, true);
@@ -732,7 +732,7 @@ describe.only("Limbo", function () {
 
     const pendingFlashDecisionBefore = pendingFlashDecisionBeforeQuery.result;
     expect(pendingFlashDecisionBefore[0]).to.equal("21000000");
-    expect(numberClose(pendingFlashDecisionBefore[1],"1754463648")).to.be.true;
+    expect(numberClose(pendingFlashDecisionBefore[1], "1754463648")).to.be.true;
     expect(pendingFlashDecisionBefore[2]).to.equal(this.eye.address);
     expect(pendingFlashDecisionBefore[3]).to.equal(true);
     //assert pendingFlashDecision after
@@ -770,7 +770,7 @@ describe.only("Limbo", function () {
 
     this.eyeInFlashGovAfter = await this.eye.balanceOf(this.flashGovernance.address);
     this.eyeTotalsupplyAfter = await this.eye.totalSupply();
-    
+
     //assert this.eye has declined by 21000000
     expect(this.eyeInFlashGovBefore.sub(this.eyeInFlashGovAfter).toString()).to.equal("21000000");
     expect(this.eyeTotalsupplyBefore.sub(this.eyeTotalsupplyAfter).toString()).to.equal("21000000");
@@ -780,7 +780,6 @@ describe.only("Limbo", function () {
       this.flashGovernance.pendingFlashDecision(this.limbo.address, owner.address)
     );
     expect(pendingFlashDecisionAfterQuery.success).to.equal(true, pendingFlashDecisionAfterQuery.error);
-
 
     const pendingFlashDecisionAfter = pendingFlashDecisionAfterQuery.result;
     expect(pendingFlashDecisionAfter[0]).to.equal("0");
@@ -1354,13 +1353,8 @@ describe.only("Limbo", function () {
 
     const flanPairBalanceBefore = await this.flan.balanceOf(realflanSCX.address);
 
-    const scxWithinRange =
-      scxBalanceOfPairBefore.gt("129560000000000000000") && scxBalanceOfPairBefore.lt("129570000000000000000");
-    const flanPairBalanceWithinRange =
-      flanPairBalanceBefore.gt("10610000000000000000000") && flanPairBalanceBefore.lt("10620000000000000000000");
-
-    expect(scxWithinRange).to.be.true;
-    expect(flanPairBalanceWithinRange).to.be.true;
+    expect(numberClose(scxBalanceOfPairBefore, "129565000000000000000"));
+    expect(numberClose(flanPairBalanceBefore, "10615000000000000000000"));
 
     await advanceTime(600000);
     result = await executionResult(this.limbo.migrate(this.aave.address));
@@ -1812,8 +1806,9 @@ describe.only("Limbo", function () {
     );
     await updateMultiSoulConfigProposal.parameterize(sushi.address, 0, 2, 0, 0, 2600, "5000000000000000000000000");
     await updateMultiSoulConfigProposal.parameterize(pool.address, 123456, 1, 0, 0, 1300, "10000000000000000000000000");
-    //lodge
+    await updateMultiSoulConfigProposal.lockDown()
 
+    //lodge
     const proposalConfig = await this.limboDAO.proposalConfig();
     const requiredFate = proposalConfig[1].mul(2);
     await this.eye.approve(this.limboDAO.address, requiredFate);
@@ -2714,15 +2709,16 @@ describe.only("Limbo", function () {
       true // asset is burnable
     );
 
-    await this.flashGovernance.setGoverned([this.limbo.address],[false]);
+    await this.flashGovernance.setGoverned([this.limbo.address], [false]);
     await this.flashGovernance.endConfiguration();
     //end configuration
     await this.limbo.endConfiguration();
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
-    await expect(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001))
-    .to.be.revertedWith("LIMBO: EP")
+    await expect(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001)).to.be.revertedWith(
+      "LIMBO: EP"
+    );
   });
   //TESTS END
 });

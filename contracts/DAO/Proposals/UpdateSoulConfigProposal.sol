@@ -39,7 +39,7 @@ contract UpdateSoulConfigProposal is Proposal {
         uint256 state,
         uint256 index,
         uint256 fps
-    ) public notCurrent {
+    ) public lockUntilComplete {
         require(
             morgothApprover.approved(token),
             "MORGOTH: token not approved for listing on Behodler"

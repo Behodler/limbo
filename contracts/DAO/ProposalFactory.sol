@@ -3,12 +3,14 @@ pragma solidity 0.8.13;
 import "../facades/LimboDAOLike.sol";
 import "./Governable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+// import "hardhat/console.sol";
 
 ///@title Proposal
 ///@author Justin Goro
 ///@notice suggested base contract for proposals on Limbo. Not strictly enforced but strongly recommended
 abstract contract Proposal {
   string public description;
+  bool public locked;
   LimboDAOLike DAO;
 
   constructor(address dao, string memory _description) {
@@ -16,21 +18,25 @@ abstract contract Proposal {
     description = _description;
   }
 
-  modifier onlyDAO() {
+  modifier onlyProposalFactoryOrDAO() {
     address dao = address(DAO);
     require(dao != address(0), "PROPOSAL: DAO not set");
-    require(msg.sender == dao, "PROPOSAL: only DAO can invoke");
+    (, , address proposalFactory) = DAO.proposalConfig();
+    require(msg.sender == dao || msg.sender == proposalFactory, "PROPOSAL: access denied");
     _;
   }
 
-  //Use this modifier on a parameterize funtion. This allows the proposal to lock itself into a readonly state during voting.
-  modifier notCurrent() {
-    (, , , , address proposal) = DAO.currentProposalState();
-    require(proposal != address(this), "LimboDAO: proposal locked");
+  modifier lockUntilComplete() {
+    require(!locked, "PROPOSAL: locked");
     _;
+    locked = true;
   }
 
-  function orchestrateExecute() public onlyDAO {
+  function setLocked(bool _locked) public onlyProposalFactoryOrDAO {
+    locked = _locked;
+  }
+
+  function orchestrateExecute() public onlyProposalFactoryOrDAO {
     require(execute(), "LimboDAO: execution of proposal failed");
   }
 
@@ -45,6 +51,7 @@ abstract contract Proposal {
 contract ProposalFactory is Governable, Ownable {
   mapping(address => bool) public whitelistedProposalContracts;
   address public soulUpdateProposal;
+  event LodgingStatus(address indexed proposal, bool success);
 
   constructor(
     address _dao,
@@ -72,7 +79,16 @@ contract ProposalFactory is Governable, Ownable {
   ///@notice user facing function to vote on a new proposal. Note that the proposal contract must first be whitelisted for usage
   ///@param proposal whitelisted popular contract
   function lodgeProposal(address proposal) public {
-    require(whitelistedProposalContracts[proposal], "LimboDAO: invalid proposal");
-    LimboDAOLike(DAO).makeProposal(proposal, msg.sender);
+    bool success;
+    if (whitelistedProposalContracts[proposal]) {
+      require(Proposal(proposal).locked(), "PROPOSAL: must be locked.");
+      (success, ) = DAO.call(abi.encodeWithSignature("makeProposal(address,address)", proposal, msg.sender));
+
+    } else {
+      success = false;
+    }
+    if(!success)
+      Proposal(proposal).setLocked(false);
+    emit LodgingStatus(proposal, success);
   }
 }

@@ -23,7 +23,7 @@ contract UpdateProposalConfigProposal is Proposal {
         uint256 votingDuration,
         uint256 requiredFateStake,
         address proposalFactory
-    ) public notCurrent {
+    ) public lockUntilComplete {
         params.proposalFactory = proposalFactory;
         params.requiredFateStake = requiredFateStake;
         params.votingDuration = votingDuration;

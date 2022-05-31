@@ -14,7 +14,7 @@ contract ToggleFlashGovernanceProposal is Proposal {
 
   constructor(address dao, string memory _description) Proposal(dao, description) {}
 
-  function parameterize(address[] calldata governed, bool[] calldata areGoverned) public notCurrent {
+  function parameterize(address[] calldata governed, bool[] calldata areGoverned) public lockUntilComplete {
     params.areGoverned = areGoverned;
     params.governed = governed;
   }

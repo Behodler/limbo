@@ -22,6 +22,12 @@ export default {
       accounts: {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
       },
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200,
+        },
+      },
       //comment out mining block for non wargame tests
       // mining: {
       //   auto: false,
@@ -36,6 +42,12 @@ export default {
       },
       from: mnemonic.primary,
       gasMultiplier: 6,
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200,
+        },
+      },
       // maxFeePerGas: "0x17D78400",
       // maxPriorityFeePerGas: "0x17D78400",
     },

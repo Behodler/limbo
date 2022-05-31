@@ -25,7 +25,7 @@ contract WithdrawERC20Proposal is Proposal {
 
     function parameterize(address token, address destination)
         public
-        notCurrent
+        lockUntilComplete
     {
         params.token = token;
         params.destination = destination;
