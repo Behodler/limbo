@@ -109,7 +109,7 @@ This section explains all public properties and unguarded public functions, and 
 ### Properties
 * string description
 * LimboDAO
-* modifiers: onlyDAO allows the DAO to execute the proposal. notCurrent prevents accidental recalibration of a live proposal, undermining cast votes. This isn't mandatory so whitelisting proposal votes are encouraged to require this.
+* modifiers: onlyDAO allows the DAO to execute the proposal. lockUntilComplete prevents accidental recalibration of a live proposal, undermining cast votes. This isn't mandatory so whitelisting proposal votes are encouraged to require this.
 
 ### Functions
 * **orchestrateExecute: called by DAO to kick off execution**

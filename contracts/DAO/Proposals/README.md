@@ -30,7 +30,7 @@ At this point, anyone with sufficient Fate can lodge a proposal by staking Fate.
 Once lodged, the proposal can be voted on for a certain duration. Positive voting == YES, Negative == NO. Absolute value is deducted from Fate balance.
 
 ## Decision
-If the proposal passed, the proposer is returned half of the Fate they put up for lodging. The proposal is then executed or ignored. It then enters into a dormant state. If the notCurrent modifier is applied to a parameterize function, this function now becomes accessible again.
+If the proposal passed, the proposer is returned half of the Fate they put up for lodging. The proposal is then executed or ignored. It then enters into a dormant state. If the lockUntilComplete modifier is applied to a parameterize function, this function now becomes accessible again.
 
 
 # How to add your own proposal

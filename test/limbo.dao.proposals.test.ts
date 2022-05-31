@@ -1,3 +1,5 @@
+import { executionResult, queryChain } from "./helpers";
+
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
 const web3 = require("web3");
@@ -20,7 +22,7 @@ describe("DAO Proposals", function () {
 
     this.sushiSwapFactory = await UniswapFactoryFactory.deploy(owner.address);
     this.uniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    requireCondition(this.sushiSwapFactory.address !== this.uniswapFactory.address,"factories cannot be the same");
+    requireCondition(this.sushiSwapFactory.address !== this.uniswapFactory.address, "factories cannot be the same");
 
     const RouterFactory = await ethers.getContractFactory("UniswapV2Router02");
     const sushiRouter = await RouterFactory.deploy(this.sushiSwapFactory.address, owner.address);
@@ -133,21 +135,28 @@ describe("DAO Proposals", function () {
     const UpdateProposalConfigProposalFactory = await ethers.getContractFactory("UpdateProposalConfigProposal");
     updateProposalConfigProposal = await UpdateProposalConfigProposalFactory.deploy(dao.address, "UPDATE_CONFIG");
 
-    await toggleWhiteList(updateProposalConfigProposal.address, this.whiteListingProposal);
+    let result = await executionResult(
+      toggleWhiteList(updateProposalConfigProposal.address, this.whiteListingProposal)
+    );
+    expect(result.success).to.equal(true, result.error);
   });
 
   const toggleWhiteList = async (contractToToggle, whiteListingProposal) => {
-    await whiteListingProposal.parameterize(proposalFactory.address, contractToToggle);
+    let result = await executionResult(whiteListingProposal.parameterize(proposalFactory.address, contractToToggle));
+    expect(result.success).to.equal(true, result.error);
     const requiredFateToLodge = (await dao.proposalConfig())[1];
 
     await eye.mint(requiredFateToLodge);
     await eye.approve(dao.address, requiredFateToLodge.mul(2));
     await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false);
-
-    await proposalFactory.lodgeProposal(whiteListingProposal.address);
-    await dao.vote(whiteListingProposal.address, "100");
+    await expect(proposalFactory.lodgeProposal(whiteListingProposal.address))
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(whiteListingProposal.address, true);
+    result = await executionResult(dao.vote(whiteListingProposal.address, "100"));
+    expect(result.success).to.equal(true, result.error);
     await advanceTime(100000000);
-    await dao.executeCurrentProposal();
+    result = await executionResult(dao.executeCurrentProposal());
+    expect(result.success).to.equal(true, result.error);
   };
 
   const advanceTime = async (seconds) => {
@@ -162,7 +171,7 @@ describe("DAO Proposals", function () {
     };
   };
 
-  const metaPairFactory = async (eye, factory, canLog?:boolean) => {
+  const metaPairFactory = async (eye, factory, canLog?: boolean) => {
     const log = logFactory(canLog);
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const uniFactory = await UniswapFactoryFactory.attach(factory.address);
@@ -217,22 +226,58 @@ describe("DAO Proposals", function () {
   const ONE = BigInt("1000000000000000000");
   const NAUGHT_POINT_ONE = ONE / 10n;
 
-  it("1. Insufficient fate to lodge rejected", async function () {
-    await expect(proposalFactory.lodgeProposal(updateProposalConfigProposal.address)).to.be.revertedWith(
-      "Arithmetic operation underflowed or overflowed outside of an unchecked block"
-    );
+  var toggleWhiteListFactory = (eye, dao, whiteListingProposal, proposalFactory) => {
+    return async function (contractToToggle) {
+      await whiteListingProposal.parameterize(proposalFactory.address, contractToToggle);
+      const requiredFateToLodge = (await dao.proposalConfig())[1];
+
+      await eye.mint(requiredFateToLodge);
+      await eye.approve(dao.address, requiredFateToLodge.mul(2));
+      await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false);
+
+      await proposalFactory.lodgeProposal(whiteListingProposal.address);
+      await dao.vote(whiteListingProposal.address, "100");
+      await advanceTime(100000000);
+      await dao.executeCurrentProposal();
+    };
+  };
+
+  it("t1-Insufficient fate to lodge rejected, proposal unlocks", async function () {
+    let query;
+    let result;
+
+    query = await queryChain(proposalFactory.whitelistedProposalContracts(updateProposalConfigProposal.address));
+    expect(query.success).to.equal(true, query.error);
+    expect(query.result).to.equal(true);
+
+    query = await queryChain(updateProposalConfigProposal.locked());
+    expect(query.success).to.equal(true, query.error);
+    expect(query.result).to.be.false;
+
+    await updateProposalConfigProposal.parameterize(100, 200, proposalFactory.address);
+
+    await expect(proposalFactory.lodgeProposal(updateProposalConfigProposal.address))
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(updateProposalConfigProposal.address, false);
+
+    query = await queryChain(updateProposalConfigProposal.locked());
+    expect(query.success).to.equal(true, query.error);
+    expect(query.result).to.be.false;
   });
 
-  it("2. lodging proposal when none exist accepted", async function () {
+  it("t2. lodging proposal when none exist accepted", async function () {
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await dao.burnAsset(eye.address, eyeToBurn, false);
+
+    await updateProposalConfigProposal.parameterize(100, 200, proposalFactory.address);
+
     await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
     const currentProposalAfter = (await dao.currentProposalState())[4];
     expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address);
   });
 
-  it("3. paramerterize once proposal is lodged fails", async function () {
+  it("t3. paramerterize once proposal is locked fails", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -247,11 +292,11 @@ describe("DAO Proposals", function () {
     expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address);
 
     await expect(updateProposalConfigProposal.parameterize(110, 220, proposalFactory.address)).to.be.revertedWith(
-      "LimboDAO: proposal locked"
+      "PROPOSAL: locked"
     );
   });
 
-  it("4. Lodging proposal while existing proposal valid rejected", async function () {
+  it("t4. Lodging proposal while existing proposal valid rejected", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -263,14 +308,15 @@ describe("DAO Proposals", function () {
     let SetAssetApprovalProposalFactory = await ethers.getContractFactory("SetAssetApprovalProposal");
     let setAssetApprovalProposal = await SetAssetApprovalProposalFactory.deploy(dao.address, "ASSET");
 
-    await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false,false,1);
-
-    await expect(toggleWhiteList(setAssetApprovalProposal.address, this.whiteListingProposal)).to.be.revertedWith(
-      "LimboDAO: active proposal."
-    );
+    await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false, false, 1);
+    let result = await executionResult(toggleWhiteList(setAssetApprovalProposal.address, this.whiteListingProposal));
+    expect(result.success).to.equal(false);
+    console.log("actual error");
+    console.log(result.error);
+    expect(result.error.toString().substring(0, 44)).to.equal("AssertionError: expected false to equal true");
   });
 
-  it("5. success returns half of required fate", async function () {
+  it("t5. success returns half of required fate", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -299,9 +345,13 @@ describe("DAO Proposals", function () {
     await dao.executeCurrentProposal();
     const fateAfterExecute = (await dao.fateState(owner.address))[1];
     expect(fateAfterExecute.sub(fateBeforeExecute).toString()).to.equal("223000000000000000000");
+
+    let query = await queryChain(updateProposalConfigProposal.locked());
+    expect(query.success).to.equal(true, query.error);
+    expect(query.result).to.be.false;
   });
 
-  it("6. voting no on current proposal makes it unexecutable.", async function () {
+  it("t6. voting no on current proposal makes it unexecutable.", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -340,7 +390,7 @@ describe("DAO Proposals", function () {
     expect(configAfter[0].toString()).to.equal(configBefore[0].toString());
   });
 
-  it("7. asset approval proposal can add and remove approved assets", async function () {
+  it("t7. asset approval proposal can add and remove approved assets", async function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -375,7 +425,7 @@ describe("DAO Proposals", function () {
     expect(assetApprovedAfter).to.be.false;
   });
 
-  it("8. vote that flips decision in last hour extends voting for 2 hours", async function () {
+  it("t8. vote that flips decision in last hour extends voting for 2 hours", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -423,7 +473,7 @@ describe("DAO Proposals", function () {
     );
   });
 
-  it("9. killDAO, only callable by owner, transfers ownership to new DAO", async function () {
+  it("t9. killDAO, only callable by owner, transfers ownership to new DAO", async function () {
     this.TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
@@ -451,7 +501,7 @@ describe("DAO Proposals", function () {
     expect(flanDAOafter).to.equal(this.newDAO.address);
   });
 
-  it("10. lisitng unapproved token fails", async function () {
+  it("t10. lisitng unapproved token fails", async function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -465,11 +515,11 @@ describe("DAO Proposals", function () {
     await this.soulUpdateProposal.parameterize(sushiEYEULP.address, "100", 1, 1, 1, 1);
   });
 
-  it("12. trying to convert fate to flan without a rate mints zero flan", async function () {
+  it("t12. trying to convert fate to flan without a rate mints zero flan", async function () {
     await expect(dao.convertFateToFlan(1000)).to.be.revertedWith("LimboDAO: Fate conversion to Flan disabled.");
   });
 
-  it("13. setting fateToFlan to positive number mints flan, depletes fate", async function () {
+  it("t13. setting fateToFlan to positive number mints flan, depletes fate", async function () {
     const FateToFlanProposal = await ethers.getContractFactory("TurnOnFateMintingProposal");
     const fateToFlanProposal = await FateToFlanProposal.deploy(dao.address, "minting");
     await fateToFlanProposal.parameterize("2000000000000000000");
@@ -497,4 +547,77 @@ describe("DAO Proposals", function () {
 
     expect(flanBalance).to.equal(expectedFlan.toString());
   });
+
+  it("t14. proposal that isn't whitelisted is unlocked and can be lodged again", async function () {
+    const TurnOnFateMintingProposalFactory = await ethers.getContractFactory("TurnOnFateMintingProposal");
+    const turnOnFateMintingProposal = await TurnOnFateMintingProposalFactory.deploy(dao.address, "minting");
+    await turnOnFateMintingProposal.parameterize("2000000000000000000");
+
+    let locked = await turnOnFateMintingProposal.locked();
+    expect(locked).to.be.true;
+
+    await proposalFactory.lodgeProposal(turnOnFateMintingProposal.address);
+
+    locked = await turnOnFateMintingProposal.locked();
+    expect(locked).to.be.false;
+  });
+
+  it("t15. proposal that fails on execution is unlocked and can be lodged again", async function () {
+    const BogusProposalFactory = await ethers.getContractFactory("BogusProposal");
+    const bogusProposal = await BogusProposalFactory.deploy(dao.address, "bogus");
+
+    await bogusProposal.parameterize(10);
+    let result = await executionResult(toggleWhiteList(bogusProposal.address, this.whiteListingProposal));
+    expect(result.success).to.equal(true, result.error);
+
+    let locked = await bogusProposal.locked();
+    expect(locked).to.be.true;
+
+    await expect(proposalFactory.lodgeProposal(bogusProposal.address))
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(bogusProposal.address, true);
+
+    locked = await bogusProposal.locked();
+    expect(locked).to.be.true;
+
+    const requiredFateToLodge = (await dao.proposalConfig())[1];
+
+    await eye.mint(requiredFateToLodge);
+    await eye.approve(dao.address, requiredFateToLodge.mul(2));
+    await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false);
+
+    result = await executionResult(dao.vote(bogusProposal.address, "100"));
+    expect(result.success).to.equal(true, result.error);
+
+    await advanceTime(100000000);
+    expect(dao.executeCurrentProposal())
+    .to.emit(dao,"proposalExecuted")
+    .withArgs(bogusProposal.address,false)
+  
+    locked = await bogusProposal.locked();
+    expect(locked).to.be.false;
+
+    //assert that DAO isn't locked and can lodge and execute again
+    await bogusProposal.parameterize(100000000);
+
+    await eye.mint(requiredFateToLodge);
+    await eye.approve(dao.address, requiredFateToLodge.mul(2));
+    await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false);
+
+    await expect(proposalFactory.lodgeProposal(bogusProposal.address))
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(bogusProposal.address, true);
+
+    result = await executionResult(dao.vote(bogusProposal.address, "100"));
+    expect(result.success).to.equal(true, result.error);
+
+    await advanceTime(100000000);
+    expect(dao.executeCurrentProposal())
+    .to.emit(dao,"proposalExecuted")
+    .withArgs(bogusProposal.address,true)
+    
+    locked = await bogusProposal.locked();
+    expect(locked).to.be.false;
+  });
+
 });

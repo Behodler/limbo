@@ -23,7 +23,7 @@ contract SetAssetApprovalProposal is Proposal {
     bool approved,
     bool uniswap,
     uint256 period
-  ) public notCurrent {
+  ) public lockUntilComplete {
     params.asset = asset;
     params.approved = approved;
     params.uniswap = uniswap;
