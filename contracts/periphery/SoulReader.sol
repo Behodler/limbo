@@ -2,7 +2,8 @@
 pragma solidity 0.8.13;
 import "../facades/LimboLike.sol";
 import "../facades/LimboDAOLike.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../openzeppelin/SafeERC20.sol";
+import "../openzeppelin/IERC20.sol";
 
 /**
  *@title SoulReader

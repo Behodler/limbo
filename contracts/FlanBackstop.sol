@@ -3,8 +3,8 @@ pragma solidity 0.8.13;
 import "./facades/FlanLike.sol";
 import "./facades/PyroTokenLike.sol";
 import "./DAO/Governable.sol";
-import "./ERC677/ERC20Burnable.sol";
 import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
+import "./openzeppelin/SafeERC20.sol";
 // import "hardhat/console.sol";
 
 ///@title FlanBackstop (placeholder name)
@@ -21,6 +21,7 @@ import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
  */
 ///@dev This contract uses Pyrotokens3. At the time of authoring, Pyrotokens3 implementation is incomplete and not fully tested but the interface (ABI) is locked.
 contract FlanBackstop is Governable {
+  using SafeERC20 for IERC20;
   /**
    *@param dao LimboDAO
    *@param flan Flan address
@@ -33,7 +34,7 @@ contract FlanBackstop is Governable {
   ) Governable(dao) {
     config.pyroFlan = pyroFlan;
     config.flan = flan;
-    IERC20(flan).approve(pyroFlan, 2**256 - 1);
+    IERC20(flan).safeApprove(pyroFlan, 2**256 - 1);
   }
 
   struct ConfigVars {
@@ -84,15 +85,15 @@ contract FlanBackstop is Governable {
 
     //Price tilt pairs and mint liquidity
     FlanLike(config.flan).mint(address(this), normalizedAmount / 2);
-    IERC20(config.flan).transfer(flanLP, normalizedAmount / 4);
-    IERC20(stablecoin).transferFrom(msg.sender, flanLP, amount / 2);
+    IERC20(config.flan).safeTransfer(flanLP, normalizedAmount / 4);
+    IERC20(stablecoin).safeTransferFrom(msg.sender, flanLP, amount / 2);
 
     IUniswapV2Pair(flanLP).mint(address(this));
     uint256 redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();
     PyroTokenLike(config.pyroFlan).mint(pyroFlanLP, normalizedAmount / 4);
     redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();
     redeemRate = PyroTokenLike(config.pyroFlan).redeemRate();
-    IERC20(stablecoin).transferFrom(msg.sender, pyroFlanLP, amount / 2);
+    IERC20(stablecoin).safeTransferFrom(msg.sender, pyroFlanLP, amount / 2);
     IUniswapV2Pair(pyroFlanLP).mint(address(this));
 
     uint256 balanceOfFlan = IERC20(config.flan).balanceOf(flanLP);

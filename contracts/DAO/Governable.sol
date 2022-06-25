@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../periphery/Errors.sol";
 import "../facades/LimboDAOLike.sol";
 import "../facades/FlashGovernanceArbiterLike.sol";
 import "../facades/ProposalFactoryLike.sol";
+
 
 ///@title Governable
 ///@author Justin Goro

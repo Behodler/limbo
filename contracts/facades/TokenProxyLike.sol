@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-abstract contract TokenProxyLike is IERC20 {
+abstract contract TokenProxyLike {
     address internal baseToken;
     uint constant internal ONE = 1 ether;
     constructor (address _baseToken) {

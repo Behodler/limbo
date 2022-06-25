@@ -59,11 +59,9 @@ describe.only("ToggleFlashLoanProposal", function () {
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
     this.SCX = this.mockBehodler;
-    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
+    const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
-      libraries: {
-        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
-      },
+
     });
 
     this.limboDAO = await daoFactory.deploy();

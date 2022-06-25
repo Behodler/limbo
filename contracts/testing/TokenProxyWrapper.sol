@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 import "../facades/TokenProxyLike.sol";
-
+import "../openzeppelin/SafeERC20.sol";
 contract TokenProxy is TokenProxyLike {
+     event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
  string public name;
  string public symbol; 
  constructor (string memory _name, string memory  _symbol, address _baseToken) TokenProxyLike(_baseToken){
@@ -30,14 +33,14 @@ contract TokenProxy is TokenProxyLike {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() public view returns (uint8) {
+    function decimals() public pure returns (uint8) {
         return 18;
     }
 
     /**
      * @dev See {IERC20-totalSupply}.
      */
-    function totalSupply() public view virtual override returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
@@ -48,7 +51,6 @@ contract TokenProxy is TokenProxyLike {
         public
         view
         virtual
-        override
         returns (uint256)
     {
         return _balances[account];
@@ -65,7 +67,6 @@ contract TokenProxy is TokenProxyLike {
     function transfer(address recipient, uint256 amount)
         public
         virtual
-        override
         returns (bool)
     {
         _transfer(msg.sender, recipient, amount);
@@ -79,7 +80,6 @@ contract TokenProxy is TokenProxyLike {
         public
         view
         virtual
-        override
         returns (uint256)
     {
         return _allowances[owner][spender];
@@ -95,7 +95,6 @@ contract TokenProxy is TokenProxyLike {
     function approve(address spender, uint256 amount)
         public
         virtual
-        override
         returns (bool)
     {
         _approve(msg.sender, spender, amount);
@@ -119,7 +118,7 @@ contract TokenProxy is TokenProxyLike {
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual override returns (bool) {
+    ) public  returns (bool) {
         _transfer(sender, recipient, amount);
 
         uint256 currentAllowance = _allowances[sender][msg.sender];

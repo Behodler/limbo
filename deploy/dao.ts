@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
     libraries: {
-      NetTransferHelper: transferHelper.address,
+      SafeERC20: transferHelper.address,
     },
   });
 

@@ -82,7 +82,7 @@ export async function deployProposalFactory(
   pauser: Function
 ): Promise<OutputAddress> {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { NetTransferHelper: transferHelperAddress },
+    libraries: { },
   });
   const dao = await LimboDAOFactory.attach(daoAddress);
 
@@ -143,7 +143,7 @@ export async function deployLimbo(
   pauser: Function
 ): Promise<OutputAddress> {
   const daoFactory: ContractFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { NetTransferHelper: transferHelperAddress },
+    libraries: { },
   });
   const dao = await daoFactory.attach(daoAddress);
   const SoulLib = await ethers.getContractFactory("SoulLib");
@@ -209,7 +209,7 @@ export async function seedLimboDAO(
   pauser: Function
 ) {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { NetTransferHelper: transferHelperAddress },
+    libraries: { },
   });
   const dao = await LimboDAOFactory.attach(daoAddress);
   await pauser();
@@ -290,7 +290,7 @@ export async function deployFlan(
   pauser: Function
 ): Promise<OutputAddress> {
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
-    libraries: { NetTransferHelper: transferHelperAddress },
+    libraries: { },
   });
 
   const dao = await LimboDAOFactory.attach(daoAddress);
@@ -369,11 +369,9 @@ export async function deployLimboDAO(
   eyeAddress: string,
   pauser: Function
 ): Promise<OutputAddress> {
-  const TransferHelper = await ethers.getContractFactory("NetTransferHelper");
-  const transferHelper = await deploy("TransferHelper", TransferHelper, pauser, []);
 
   const LimboDAO = await ethers.getContractFactory("LimboDAO", {
-    libraries: { NetTransferHelper: transferHelper.address },
+
   });
   const dao = await deploy("LimboDAO", LimboDAO, pauser, []);
   const FlashGovernanceArbiter = await ethers.getContractFactory("FlashGovernanceArbiter");
@@ -391,7 +389,7 @@ export async function deployLimboDAO(
     pauser
   );
   let addressList: OutputAddress = {};
-  addressList["transferHelper"] = transferHelper.address;
+  // addressList[""] = .address;
   addressList["dao"] = dao.address;
   addressList["flashGovernanceArbiter"] = flashGovernanceArbiter.address;
   return addressList;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "../ERC677/ERC677.sol";
+import "../openzeppelin/ERC677.sol";
 
 contract SimpleMockTokenToken is ERC677 {
     constructor(

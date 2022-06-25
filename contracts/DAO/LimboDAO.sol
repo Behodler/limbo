@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../ERC677/ERC677.sol";
+import "../openzeppelin/ERC677.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
@@ -10,21 +9,9 @@ import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "../facades/LimboOracleLike.sol";
 import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./Governable.sol";
-
-library NetTransferHelper {
-  function ERC20NetTransfer(
-    address token,
-    address from,
-    address to,
-    int256 amount
-  ) public {
-    if (amount > 0) {
-      require(IERC20(token).transferFrom(from, to, uint256(amount)), "LimboDAO: ERC20 transfer from failed.");
-    } else {
-      require(IERC20(token).transfer(from, uint256(amount * (-1))), "LimboDAO: ERC20 transfer failed.");
-    }
-  }
-}
+// import "hardhat/console.sol";
+import "../periphery/Errors.sol";
+import "../openzeppelin/SafeERC20.sol";
 
 enum FateGrowthStrategy {
   straight,
@@ -32,7 +19,6 @@ enum FateGrowthStrategy {
   indirectTwoRootEye
 }
 
-//TODO: add failed for reverted executions
 enum ProposalDecision {
   voting,
   approved,
@@ -92,6 +78,7 @@ struct AssetClout {
  */
 ///@dev Contracts subject to LimboDAO must inherit the Governable abstract contract.
 contract LimboDAO is Ownable {
+  using SafeERC20 for IERC20;
   event daoKilled(address newOwner);
   event proposalLodged(address proposal, address proposer);
   event voteCast(address voter, address proposal, int256 fateCast);
@@ -99,7 +86,6 @@ contract LimboDAO is Ownable {
   event proposalExecuted(address proposal, bool status);
   event assetBurnt(address burner, address asset, uint256 fateCreated);
 
-  using NetTransferHelper for address;
   uint256 constant ONE = 1 ether;
 
   DomainConfig public domainConfig;
@@ -122,7 +108,9 @@ contract LimboDAO is Ownable {
   uint256 public fateToFlan;
 
   modifier isLive() {
-    require(domainConfig.live, "LimboDAO: DAO is not live.");
+    if (!domainConfig.live) {
+      revert NotLive();
+    }
     _;
   }
 
@@ -142,7 +130,7 @@ contract LimboDAO is Ownable {
   }
 
   modifier onlySuccessfulProposal() {
-    require(successfulProposal(msg.sender), "LimboDAO: approve proposal");
+    if (!successfulProposal(msg.sender)) revert ProposalNotApproved(msg.sender);
     _;
   }
 
@@ -218,17 +206,18 @@ contract LimboDAO is Ownable {
     address uniFactory = address(LimboOracleLike(uniOracle).factory());
     for (uint256 i = 0; i < sushiMetaLPs.length; i++) {
       address pairFactory = IUniswapV2Pair(sushiMetaLPs[i]).factory();
-      require(pairFactory == sushiFactory, "LimboDAO: invalid Sushi LP");
+      if (pairFactory != sushiFactory) revert UniswapV2FactoryMismatch(pairFactory, sushiFactory);
       _setApprovedAsset(sushiMetaLPs[i], true, false, 0);
     }
     for (uint256 i = 0; i < uniMetaLPs.length; i++) {
-      require(IUniswapV2Pair(uniMetaLPs[i]).factory() == uniFactory, "LimboDAO: invalid Uni LP");
+      if (IUniswapV2Pair(uniMetaLPs[i]).factory() != uniFactory)
+        revert UniswapV2FactoryMismatch(IUniswapV2Pair(uniMetaLPs[i]).factory(), sushiFactory);
       _setApprovedAsset(uniMetaLPs[i], true, true, 0);
     }
   }
 
-  ///@notice allows Limbo to be governed by a new DAO
-  ///@dev functions marked by onlyOwner are governed by MorgothDAO
+  // ///@notice allows Limbo to be governed by a new DAO
+  // ///@dev functions marked by onlyOwner are governed by MorgothDAO
   function killDAO(address newOwner) public onlyOwner isLive {
     domainConfig.live = false;
     Governable(domainConfig.flan).setDAO(newOwner);
@@ -236,14 +225,14 @@ contract LimboDAO is Ownable {
     emit daoKilled(newOwner);
   }
 
-  ///@notice optional conversion rate of Fate to Flan
+  // ///@notice optional conversion rate of Fate to Flan
   function setFateToFlan(uint256 rate) public onlySuccessfulProposal {
     fateToFlan = rate;
   }
 
-  ///@notice caller spends their Fate to earn Flan
+  // ///@notice caller spends their Fate to earn Flan
   function convertFateToFlan(uint256 fate) public returns (uint256 flan) {
-    require(fateToFlan > 0, "LimboDAO: Fate conversion to Flan disabled.");
+    if (fateToFlan == 0) revert FateToFlanConversionDisabled();
     fateState[msg.sender].fateBalance -= fate;
     flan = (fateToFlan * fate) / ONE;
     Flan(domainConfig.flan).mint(msg.sender, flan);
@@ -255,8 +244,10 @@ contract LimboDAO is Ownable {
    */
   function makeProposal(address proposal, address proposer) public updateCurrentProposal {
     address sender = _msgSender();
-    require(sender == proposalConfig.proposalFactory, "LimboDAO: only Proposal Factory");
-    require(address(currentProposalState.proposal) == address(0), "LimboDAO: active proposal.");
+    if (sender != proposalConfig.proposalFactory) revert OnlyProposalFactory(sender, proposalConfig.proposalFactory);
+    if (address(currentProposalState.proposal) != address(0)) {
+      revert LodgeFailActiveProposal(address(currentProposalState.proposal), proposal);
+    }
 
     fateState[proposer].fateBalance = fateState[proposer].fateBalance - proposalConfig.requiredFateStake * 2;
     currentProposalState.proposal = Proposal(proposal);
@@ -271,11 +262,12 @@ contract LimboDAO is Ownable {
   ///@param proposal contract to be voted on
   ///@param fate positive is YES, negative is NO. Absolute value is deducted from caller.
   function vote(address proposal, int256 fate) public incrementFate isLive {
-    require(
-      proposal == address(currentProposalState.proposal), //this is just to protect users with out of sync UIs
-      "LimboDAO: stated proposal does not match current proposal"
-    );
-    require(currentProposalState.decision == ProposalDecision.voting, "LimboDAO: voting on proposal closed");
+    //this is just to protect users with out of sync UIs
+    if (proposal != address(currentProposalState.proposal))
+      revert ProposalMismatch(proposal, address(currentProposalState.proposal));
+    if (currentProposalState.decision != ProposalDecision.voting)
+      revert ProposalNotInVoting(address(currentProposalState.proposal));
+
     if (block.timestamp - currentProposalState.start > proposalConfig.votingDuration - 1 hours) {
       int256 currentFate = currentProposalState.fate;
       //check if voting has ended
@@ -344,23 +336,28 @@ contract LimboDAO is Ownable {
     address asset,
     bool uniswap
   ) public isLive incrementFate updateOracle(asset, uniswap) {
-    require(assetApproved[asset], "LimboDAO: illegal asset");
+    if (!assetApproved[asset]) revert AssetNotApproved(asset);
     address sender = _msgSender();
     FateGrowthStrategy strategy = fateGrowthStrategy[asset];
 
     SquareChecker memory rootInvariant = SquareChecker(rootEYE * rootEYE, (rootEYE + 1) * (rootEYE + 1), 0, 0);
     //verifying that rootEYE value is accurate within precision.
-    require(
-      rootInvariant.rootEYESquared <= finalEYEBalance && rootInvariant.rootEYEPlusOneSquared > finalEYEBalance,
-      "LimboDAO: Stake EYE invariant."
-    );
+    if (!(rootInvariant.rootEYESquared <= finalEYEBalance && rootInvariant.rootEYEPlusOneSquared > finalEYEBalance)) {
+      revert AssetStakeInvariantViolation1(
+        rootInvariant.rootEYESquared,
+        finalEYEBalance,
+        rootInvariant.rootEYEPlusOneSquared
+      );
+    }
     AssetClout storage clout = stakedUserAssetWeight[sender][asset];
     fateState[sender].fatePerDay -= clout.fateWeight;
     rootInvariant.initialBalance = clout.balance;
     //EYE
     if (strategy == FateGrowthStrategy.directRoot) {
-      require(finalAssetBalance == finalEYEBalance, "LimboDAO: staking eye invariant.");
-      require(asset == domainConfig.eye);
+      if (finalAssetBalance != finalEYEBalance) {
+        revert AssetStakeInvariantViolation(2, finalAssetBalance, finalEYEBalance);
+      }
+      if (asset != domainConfig.eye) revert AssetMustBeEYE(domainConfig.eye, asset);
 
       clout.fateWeight = rootEYE;
       clout.balance = finalAssetBalance;
@@ -373,19 +370,20 @@ contract LimboDAO is Ownable {
       rootInvariant.eyeEquivalent = EYEEquivalentOfLP(asset, uniswap, finalAssetBalance);
 
       //require oracle deviation <= 10%
-      require(
-        finalEYEBalance > rootInvariant.eyeEquivalent
-          ? ((finalEYEBalance - rootInvariant.eyeEquivalent) * 100) / finalEYEBalance <= 10
-          : ((rootInvariant.eyeEquivalent - finalEYEBalance) * 100) / finalEYEBalance <= 10,
-        "LimboDAO: stake invariant check 2."
-      );
+      if (
+        !(
+          finalEYEBalance > rootInvariant.eyeEquivalent
+            ? ((finalEYEBalance - rootInvariant.eyeEquivalent) * 100) / finalEYEBalance <= 10
+            : ((rootInvariant.eyeEquivalent - finalEYEBalance) * 100) / finalEYEBalance <= 10
+        )
+      ) revert AssetStakeInvariantViolation(3, finalEYEBalance, rootInvariant.eyeEquivalent);
 
       clout.balance = finalAssetBalance;
     } else {
       revert("LimboDAO: asset growth strategy not accounted for");
     }
     int256 netBalance = int256(finalAssetBalance) - int256(rootInvariant.initialBalance);
-    asset.ERC20NetTransfer(sender, address(this), netBalance);
+    IERC20(asset).safeNetTransferFrom(sender, address(this), netBalance);
   }
 
   /**
@@ -402,9 +400,9 @@ contract LimboDAO is Ownable {
     uint256 amount,
     bool uniswap
   ) public isLive incrementFate updateOracle(asset, uniswap) {
-    require(assetApproved[asset], "LimboDAO: illegal asset");
+    if (!assetApproved[asset]) revert AssetNotApproved(asset);
     address sender = _msgSender();
-    require(ERC677(asset).transferFrom(sender, address(this), amount), "LimboDAO: transferFailed");
+    IERC20(asset).safeTransferFrom(sender, address(this), amount);
     uint256 fateCreated = fateState[_msgSender()].fateBalance;
     if (asset == domainConfig.eye) {
       fateCreated = amount * 10;
@@ -424,10 +422,9 @@ contract LimboDAO is Ownable {
 
   ///@notice call this after initial config is complete.
   function makeLive() public onlyOwner {
-    require(
-      Governable(domainConfig.limbo).DAO() == address(this) && Governable(domainConfig.flan).DAO() == address(this),
-      "LimboDAO: transfer ownership of limbo and flan."
-    );
+    if (Governable(domainConfig.limbo).DAO() != address(this) || Governable(domainConfig.flan).DAO() != address(this)) {
+      revert LimboAndFlanNotOwnedByDAO(domainConfig.limbo, domainConfig.flan);
+    }
     domainConfig.live = true;
   }
 
@@ -436,8 +433,10 @@ contract LimboDAO is Ownable {
     Ownable(thing).transferOwnership(destination);
   }
 
+  ///@notice for proposals in voting state, how much longer until voting closes.
   function timeRemainingOnProposal() public view returns (uint256) {
-    require(currentProposalState.decision == ProposalDecision.voting, "LimboDAO: proposal finished.");
+    if (currentProposalState.decision != ProposalDecision.voting)
+      revert ProposalNotInVoting(address(currentProposalState.proposal));
     uint256 elapsed = block.timestamp - currentProposalState.start;
     if (elapsed > proposalConfig.votingDuration) return 0;
     return proposalConfig.votingDuration - elapsed;
@@ -480,10 +479,12 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
     address sushiV1Oracle,
     address uniV2Oracle
   ) internal {
-    require(domainConfig.flashGoverner != address(0), "LimboDAO: flashGovernor not initialized.");
+    if (domainConfig.flashGoverner == address(0)) revert FlashGovNotInitialized();
+
     domainConfig.limbo = limbo;
     domainConfig.flan = flan;
     domainConfig.eye = eye;
+
     domainConfig.sushiOracle = LimboOracleLike(sushiV1Oracle);
     domainConfig.uniOracle = LimboOracleLike(uniV2Oracle);
     assetApproved[eye] = true;
@@ -491,7 +492,7 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
   }
 
   function getFlashGoverner() external view returns (address) {
-    require(domainConfig.flashGoverner != address(0), "LimboDAO: no flash governer");
+    if (domainConfig.flashGoverner == address(0)) revert FlashGovernerNotSet();
     return domainConfig.flashGoverner;
   }
 
@@ -502,6 +503,7 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
     uint256 period
   ) private {
     IUniswapV2Pair pair = IUniswapV2Pair(metaAsset);
+
     address token0 = pair.token0();
     address token1 = pair.token1();
 
@@ -517,7 +519,8 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
   }
 
   function _updateOracle(address asset, bool uniswap) private {
-    require(assetApproved[asset], "LimboDAO: illegal asset");
+    if (!assetApproved[asset]) revert AssetNotApproved(asset);
+
     if (fateGrowthStrategy[asset] == FateGrowthStrategy.indirectTwoRootEye) {
       LimboOracleLike oracle = uniswap ? domainConfig.uniOracle : domainConfig.sushiOracle;
       (uint32 blockTimeStamp, uint256 period) = oracle.getLastUpdate(asset, domainConfig.eye);

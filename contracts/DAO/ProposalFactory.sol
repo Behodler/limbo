@@ -3,6 +3,7 @@ pragma solidity 0.8.13;
 import "../facades/LimboDAOLike.sol";
 import "./Governable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
 // import "hardhat/console.sol";
 
 ///@title Proposal
@@ -51,7 +52,7 @@ abstract contract Proposal {
 contract ProposalFactory is Governable, Ownable {
   mapping(address => bool) public whitelistedProposalContracts;
   address public soulUpdateProposal;
-  event LodgingStatus(address indexed proposal, bool success);
+  event LodgingStatus(address indexed proposal, string status);
 
   constructor(
     address _dao,
@@ -76,19 +77,27 @@ contract ProposalFactory is Governable, Ownable {
     whitelistedProposalContracts[proposal] = !whitelistedProposalContracts[proposal];
   }
 
-  ///@notice user facing function to vote on a new proposal. Note that the proposal contract must first be whitelisted for usage
-  ///@param proposal whitelisted popular contract
+  /**@notice user facing function to vote on a new proposal. 
+  Note that the proposal contract must first be whitelisted for usage
+  Does not revert on a failed lodging because the proposal must be unlocked on failure. 
+  If you wish to revert on lodging failure, please wrap this function in a lodging contract and treat that contract
+  as the "user" who must have the necessary fate balance tp lodge. But be aware that you may leave your proposal in an invalid state.
+  * @param proposal whitelisted popular contract
+  */
   function lodgeProposal(address proposal) public {
+    string memory status = "SUCCESS";
     bool success;
     if (whitelistedProposalContracts[proposal]) {
       require(Proposal(proposal).locked(), "PROPOSAL: must be locked.");
       (success, ) = DAO.call(abi.encodeWithSignature("makeProposal(address,address)", proposal, msg.sender));
-
+      if (!success) {
+        status = "FAILED";
+      }
     } else {
+      status = "NOT_WHITELISTED";
       success = false;
     }
-    if(!success)
-      Proposal(proposal).setLocked(false);
-    emit LodgingStatus(proposal, success);
+    if (!success) Proposal(proposal).setLocked(false);
+    emit LodgingStatus(proposal, status);
   }
 }

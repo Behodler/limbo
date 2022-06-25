@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.13;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "hardhat/console.sol";
 
@@ -188,7 +188,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
   ) public virtual override returns (bool) {
     _transfer(sender, recipient, amount);
     uint256 currentAllowance = _allowances[sender][_msgSender()];
-    // console.log("currentAllowance %s", currentAllowance);
+ 
     require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
     _approve(sender, _msgSender(), currentAllowance - amount);
     return true;
@@ -257,6 +257,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
     uint256 senderBalance = _balances[sender];
     require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+  
     _balances[sender] = senderBalance - amount;
     _balances[recipient] += amount;
 
