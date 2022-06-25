@@ -324,11 +324,13 @@ contract LimboDAO is Ownable {
     uint256 eyeEquivalent;
   }
 
-  ///@notice handles staking logic for EYE and EYE based assets so that correct rate of fate is earned.
-  ///@param finalAssetBalance after staking, what is the final user balance on LimboDAO of the asset in question
-  ///@param finalEYEBalance if EYE is being staked, this value is the same as finalAssetBalance but for LPs it's about half
-  ///@param rootEYE offload high gas arithmetic to the client. Cheap to verify. Square root in fixed point requires Babylonian algorithm
-  ///@param asset the asset being staked
+  /** @notice handles staking logic for EYE and EYE based assets so that correct rate
+   of fate is earned. Because of invariant checking, FOT tokens not supported.
+  * @param finalAssetBalance after staking, what is the final user balance on LimboDAO of the asset in question
+  * @param finalEYEBalance if EYE is being staked, this value is the same as finalAssetBalance but for LPs it's about half
+  * @param rootEYE offload high gas arithmetic to the client. Cheap to verify. Square root in fixed point requires Babylonian algorithm
+  * @param asset the asset being staked
+  **/
   function setEYEBasedAssetStake(
     uint256 finalAssetBalance,
     uint256 finalEYEBalance,
