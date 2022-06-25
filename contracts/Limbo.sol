@@ -201,6 +201,7 @@ library CrossingLib {
 
 library MigrationLib {
   using SafeERC20 for IERC20;
+
   function migrate(
     address token,
     LimboAddTokenToBehodlerPowerLike power,
@@ -214,7 +215,7 @@ library MigrationLib {
     uint256 tokenBalance = IERC20(token).balanceOf(address(this));
     IERC20(token).safeTransfer(address(crossingConfig.morgothPower), tokenBalance);
     IERC20 scx = IERC20(address(crossingConfig.behodler));
-    uint scxBalance  = scx.balanceOf(address(this));
+    uint256 scxBalance = scx.balanceOf(address(this));
     AngbandLike(crossingConfig.angband).executePower(address(crossingConfig.morgothPower));
     scxBalance = scx.balanceOf(address(this)) - scxBalance;
     //use remaining scx to buy flan and pool it on an external AMM
@@ -438,23 +439,22 @@ contract Limbo is Governable {
     updateSoul(token, soul);
     uint256 currentIndex = latestIndex[token];
     User storage user = userInfo[token][msg.sender][currentIndex];
-    if (amount > 0) {
-      //dish out accumulated rewards.
-      uint256 pending = getPending(user, soul);
-      if (pending > 0) {
-        Flan.mint(msg.sender, pending);
-      }
-      //Balance checking accounts for FOT discrepencies
-      uint256 oldBalance = IERC20(token).balanceOf(address(this));
 
-      IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-      uint256 newBalance = IERC20(token).balanceOf(address(this));
+    //dish out accumulated rewards.
+    uint256 pending = getPending(user, soul);
+    if (pending > 0) {
+      Flan.mint(msg.sender, pending);
+    }
+    //Balance checking accounts for FOT discrepencies
+    uint256 oldBalance = IERC20(token).balanceOf(address(this));
 
-      user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true difference accounts for FOT tokens
-      if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
-        soul.state = SoulState.waitingToCross;
-        tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
-      }
+    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    uint256 newBalance = IERC20(token).balanceOf(address(this));
+
+    user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true difference accounts for FOT tokens
+    if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
+      soul.state = SoulState.waitingToCross;
+      tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
     }
 
     user.rewardDebt = (user.stakedAmount * soul.accumulatedFlanPerShare) / TERA;

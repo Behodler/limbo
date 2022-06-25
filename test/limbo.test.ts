@@ -2879,5 +2879,27 @@ describe.only("Limbo", function () {
       expect(eyeBalanceAfterSecondJudgment.sub(eyeBalanceBeforeSecondJudgment)).to.equal(netAmount.toString());
     });
   });
+
+  it("t-38. User with pending rewards gets rewards when staking zero tokens", async function () {
+    //make a threshold pool.
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
+    await this.limbo.endConfiguration();
+
+    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+
+    //stake tokens
+    await this.aave.approve(this.limbo.address, "10000001");
+    await this.limbo.stake(this.aave.address, "10000");
+    //fast forward time
+    await advanceTime(90000); //just over a day
+
+    //stake zero tokens
+    await this.limbo.stake(this.aave.address, "0");
+
+    const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
+
+    const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
+    expect(numberClose(flanBalanceChangeAgterSecondStake, "900000000000")).to.be.true;
+  });
   //TESTS END
 });
