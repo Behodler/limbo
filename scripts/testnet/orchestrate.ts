@@ -194,7 +194,7 @@ export async function deployTestnet(
       uniswapAddresses["uniswapFactory"],
       liquidityReceiverAddresses["liquidityReceiver"],
       behodler["addressBalanceCheck"],
-      limboDaoAddresses["transferHelper"],
+      limboDaoAddresses["safeERC20"],
       pauser
     );
     updater("deployFlan", flanAddresses, existing);
@@ -212,7 +212,7 @@ export async function deployTestnet(
       tokens["DAI"],
       tokens["SCX"],
       limboDaoAddresses["dao"],
-      limboDaoAddresses["transferHelper"],
+      limboDaoAddresses["safeERC20"],
       pauser
     );
     updater("deployLimbo", limboAddresses, existing);
@@ -234,7 +234,7 @@ export async function deployTestnet(
       limboDaoAddresses["dao"],
       limboAddresses["limbo"],
       limboAddresses["uniswapHelper"],
-      limboDaoAddresses["transferHelper"],
+      limboDaoAddresses["safeERC20"],
       limboLibraries,
       pauser
     );
@@ -250,7 +250,7 @@ export async function deployTestnet(
     proposalFactoryAddresses["proposalFactory"],
     uniswapAddresses["uniswapFactory"],
     [uniswapAddresses["EYEDAI"], uniswapAddresses["EYESCX"]],
-    limboDaoAddresses["transferHelper"],
+    limboDaoAddresses["safeERC20"],
     pauser
   );
 

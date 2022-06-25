@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "../ERC677/ERC20Burnable.sol";
+import "../openzeppelin/ERC20Burnable.sol";
 
 contract MockMigrationUniPair is ERC20Burnable {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}

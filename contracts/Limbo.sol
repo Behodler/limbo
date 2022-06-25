@@ -2,8 +2,6 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
@@ -15,6 +13,7 @@ import "./facades/AngbandLike.sol";
 import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
 import "./DAO/Governable.sol";
 import "./facades/FlashGovernanceArbiterLike.sol";
+import "./openzeppelin/SafeERC20.sol";
 // import "hardhat/console.sol";
 /*
 Contract: LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
@@ -201,6 +200,7 @@ library CrossingLib {
 }
 
 library MigrationLib {
+  using SafeERC20 for IERC20;
   function migrate(
     address token,
     LimboAddTokenToBehodlerPowerLike power,
@@ -212,13 +212,13 @@ library MigrationLib {
     power.parameterize(token, crossingParams.burnable);
     //invoke Angband execute on power that migrates token type to Behodler
     uint256 tokenBalance = IERC20(token).balanceOf(address(this));
-    IERC20(token).transfer(address(crossingConfig.morgothPower), tokenBalance);
+    IERC20(token).safeTransfer(address(crossingConfig.morgothPower), tokenBalance);
     IERC20 scx = IERC20(address(crossingConfig.behodler));
     uint scxBalance  = scx.balanceOf(address(this));
     AngbandLike(crossingConfig.angband).executePower(address(crossingConfig.morgothPower));
     scxBalance = scx.balanceOf(address(this)) - scxBalance;
     //use remaining scx to buy flan and pool it on an external AMM
-    IERC20(crossingConfig.behodler).transfer(crossingConfig.ammHelper, scxBalance);
+    IERC20(crossingConfig.behodler).safeTransfer(crossingConfig.ammHelper, scxBalance);
     uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(scxBalance);
     //reward caller and update soul state
     require(flan.mint(msg.sender, crossingConfig.migrationInvocationReward), "E9");
@@ -469,7 +469,7 @@ contract Limbo is Governable {
   }
 
   ///@notice Allows for Limbo to be upgraded 1 user at a time without introducing a system wide security risk. Anticipates moving tokens to Limbo2 (wen Limbo2??)
-  ///@dev similar to ERC20.transferFrom, this function allows a user to approve an upgrade contract migrate their staked tokens safely.
+  ///@dev similar to ERC20.safeTransferFrom, this function allows a user to approve an upgrade contract migrate their staked tokens safely.
   function unstakeFor(
     address token,
     uint256 amount,

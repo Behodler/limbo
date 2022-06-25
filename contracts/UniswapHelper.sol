@@ -2,13 +2,13 @@
 pragma solidity 0.8.13;
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
-import "./ERC677/ERC20Burnable.sol";
+import "./openzeppelin/ERC20Burnable.sol";
 import "./facades/FlanLike.sol";
 import "./periphery/UniswapV2/interfaces/IUniswapV2Factory.sol";
 import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./facades/AMMHelper.sol";
 import "./facades/LimboOracleLike.sol";
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract BlackHole {}
 
@@ -115,7 +115,7 @@ contract UniswapHelper is Governable, AMMHelper {
     // console.log("scx__fln_scx %s", scx__fln_scx);
 
     address zero = address(0);
-  console.log('fln_scx %s, dai_scx %s, scx__fln_scx %s', fln_scx, dai_scx, scx__fln_scx);
+
     require(!(fln_scx == zero || dai_scx == zero || scx__fln_scx == zero), "EO");
 
     VARS.oracleSet = OracleSet({

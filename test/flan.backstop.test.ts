@@ -47,10 +47,10 @@
 //     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
 //     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
 
-//     const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
+//     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
 //     const LimboDAOFactory = await ethers.getContractFactory("LimboDAO", {
 //       libraries: {
-//         NetTransferHelper: (await TransferHelperFactory.deploy()).address,
+//         SafeERC20: (await SafeERC20Factory.deploy()).address,
 //       },
 //     });
 

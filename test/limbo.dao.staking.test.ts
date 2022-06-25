@@ -49,12 +49,8 @@ describe("DAO staking", function () {
     const createDAIULP = await metaPairFactory(dai, uniswapFactory);
     daiSushiULP = await createDAIULP(sushi);
 
-    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
-    const daoFactory = await ethers.getContractFactory("LimboDAO", {
-      libraries: {
-        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
-      },
-    });
+    const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
+    const daoFactory = await ethers.getContractFactory("LimboDAO", {});
 
     dao = await daoFactory.deploy();
 
@@ -193,17 +189,15 @@ describe("DAO staking", function () {
   it("1. only eye or approved assets can be staked", async function () {
     await dao.makeLive();
     await expect(dao.setEYEBasedAssetStake(100, 400, 20, daiSushiSLP.address, false)).to.be.revertedWith(
-      "LimboDAO: illegal asset"
+      `AssetNotApproved("${daiSushiSLP.address}")`
     );
     await expect(dao.setEYEBasedAssetStake(100, 400, 20, daiSushiULP.address, false)).to.be.revertedWith(
-      "LimboDAO: illegal asset"
+      `AssetNotApproved("${daiSushiULP.address}")`
     );
   });
 
   it("2. Only live staking", async function () {
-    await expect(dao.setEYEBasedAssetStake(100, 400, 20, sushiEYEULP.address, false)).to.be.revertedWith(
-      "LimboDAO: DAO is not live."
-    );
+    await expect(dao.setEYEBasedAssetStake(100, 400, 20, sushiEYEULP.address, false)).to.be.revertedWith("NotLive()");
   });
 
   it("3. Staking Eye sets fate per day to root EYE ", async function () {
@@ -229,26 +223,36 @@ describe("DAO staking", function () {
   it("4. Staking Eye and wait increases fate correctly", async function () {
     await dao.makeLive();
 
-    await dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false);
+    let result = await executionResult(dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false));
+    expect(result.success).to.equal(true, result.error);
 
     await advanceTime(21600); // 6 hours
 
-    await dao.incrementFateFor(owner.address);
+    result = await executionResult(dao.incrementFateFor(owner.address));
+    expect(result.success).to.equal(true, result.error);
+
     let fateState = await dao.fateState(owner.address);
     expect(fateState[1].toString()).to.equal("25");
 
-    await dao.setEYEBasedAssetStake(400, 400, 20, eye.address, false);
+    result = await executionResult(dao.setEYEBasedAssetStake(400, 400, 20, eye.address, false));
+    expect(result.success).to.equal(true, result.error);
 
     await advanceTime(172800); //2 days
-    await dao.incrementFateFor(owner.address);
+    result = await executionResult(dao.incrementFateFor(owner.address));
+    expect(result.success).to.equal(true, result.error);
+
     fateState = await dao.fateState(owner.address);
     expect(fateState[0].toString()).to.equal("20");
     expect(fateState[1].toString()).to.equal("65");
 
-    await dao.setEYEBasedAssetStake(62500, 62500, 250, eye.address, false);
+    result = await executionResult(dao.setEYEBasedAssetStake(62500, 62500, 250, eye.address, false));
+    expect(result.success).to.equal(true, result.error);
 
     await advanceTime(28800); //8 hours
-    await dao.incrementFateFor(owner.address);
+
+    result = await executionResult(dao.incrementFateFor(owner.address));
+    expect(result.success).to.equal(true, result.error);
+
     fateState = await dao.fateState(owner.address);
     expect(fateState[1].toString()).to.equal("148");
   });
@@ -282,6 +286,7 @@ describe("DAO staking", function () {
     //21428890
     const reducedFinalEyeBalance = 18659057500000000000n;
     await advanceTime(90000);
+
     result = await executionResult(
       dao.setEYEBasedAssetStake(
         reducedAssetBalance,
@@ -376,6 +381,6 @@ describe("DAO staking", function () {
 
     const fateAfter = await dao.fateState(owner.address);
 
-    await expect(numberClose(fateAfter[1].sub(fateBefore[1]),"16400")).to.equal(true);
+    await expect(numberClose(fateAfter[1].sub(fateBefore[1]), "16400")).to.equal(true);
   });
 });

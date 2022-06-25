@@ -49,12 +49,8 @@ describe("DAO Proposals", function () {
     const createDAIULP = await metaPairFactory(dai, this.uniswapFactory);
     daiSushiULP = await createDAIULP(sushi);
 
-    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
-    const daoFactory = await ethers.getContractFactory("LimboDAO", {
-      libraries: {
-        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
-      },
-    });
+    const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
+    const daoFactory = await ethers.getContractFactory("LimboDAO", {});
 
     dao = await daoFactory.deploy();
 
@@ -135,23 +131,29 @@ describe("DAO Proposals", function () {
     const UpdateProposalConfigProposalFactory = await ethers.getContractFactory("UpdateProposalConfigProposal");
     updateProposalConfigProposal = await UpdateProposalConfigProposalFactory.deploy(dao.address, "UPDATE_CONFIG");
 
-    let result = await executionResult(
-      toggleWhiteList(updateProposalConfigProposal.address, this.whiteListingProposal)
-    );
-    expect(result.success).to.equal(true, result.error);
+    await toggleWhiteList(updateProposalConfigProposal.address, this.whiteListingProposal);
   });
 
   const toggleWhiteList = async (contractToToggle, whiteListingProposal) => {
     let result = await executionResult(whiteListingProposal.parameterize(proposalFactory.address, contractToToggle));
     expect(result.success).to.equal(true, result.error);
-    const requiredFateToLodge = (await dao.proposalConfig())[1];
+    let query = await queryChain(await dao.proposalConfig());
+    expect(query.success).to.equal(true, query.error);
+    const requiredFateToLodge = query.result[1];
 
-    await eye.mint(requiredFateToLodge);
-    await eye.approve(dao.address, requiredFateToLodge.mul(2));
-    await dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false);
+    result = await executionResult(eye.mint(requiredFateToLodge));
+    expect(result.success).to.equal(true, result.error);
+
+    result = await executionResult(eye.approve(dao.address, requiredFateToLodge.mul(2)));
+    expect(result.success).to.equal(true, result.error);
+
+    result = await executionResult(dao.burnAsset(eye.address, requiredFateToLodge.div(5).add(10), false));
+    expect(result.success).to.equal(true, result.error);
+
     await expect(proposalFactory.lodgeProposal(whiteListingProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
-      .withArgs(whiteListingProposal.address, true);
+      .withArgs(whiteListingProposal.address, "SUCCESS");
+
     result = await executionResult(dao.vote(whiteListingProposal.address, "100"));
     expect(result.success).to.equal(true, result.error);
     await advanceTime(100000000);
@@ -258,7 +260,7 @@ describe("DAO Proposals", function () {
 
     await expect(proposalFactory.lodgeProposal(updateProposalConfigProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
-      .withArgs(updateProposalConfigProposal.address, false);
+      .withArgs(updateProposalConfigProposal.address, "FAILED");
 
     query = await queryChain(updateProposalConfigProposal.locked());
     expect(query.success).to.equal(true, query.error);
@@ -309,11 +311,7 @@ describe("DAO Proposals", function () {
     let setAssetApprovalProposal = await SetAssetApprovalProposalFactory.deploy(dao.address, "ASSET");
 
     await setAssetApprovalProposal.parameterize(sushiEYEULP.address, false, false, 1);
-    let result = await executionResult(toggleWhiteList(setAssetApprovalProposal.address, this.whiteListingProposal));
-    expect(result.success).to.equal(false);
-    console.log("actual error");
-    console.log(result.error);
-    expect(result.error.toString().substring(0, 44)).to.equal("AssertionError: expected false to equal true");
+    toggleWhiteList(setAssetApprovalProposal.address, this.whiteListingProposal);
   });
 
   it("t5. success returns half of required fate", async function () {
@@ -474,12 +472,8 @@ describe("DAO Proposals", function () {
   });
 
   it("t9. killDAO, only callable by owner, transfers ownership to new DAO", async function () {
-    this.TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
-    const daoFactory = await ethers.getContractFactory("LimboDAO", {
-      libraries: {
-        NetTransferHelper: (await this.TransferHelperFactory.deploy()).address,
-      },
-    });
+    this.SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
+    const daoFactory = await ethers.getContractFactory("LimboDAO", {});
 
     this.newDAO = await daoFactory.deploy();
 
@@ -516,7 +510,7 @@ describe("DAO Proposals", function () {
   });
 
   it("t12. trying to convert fate to flan without a rate mints zero flan", async function () {
-    await expect(dao.convertFateToFlan(1000)).to.be.revertedWith("LimboDAO: Fate conversion to Flan disabled.");
+    await expect(dao.convertFateToFlan(1000)).to.be.revertedWith("FateToFlanConversionDisabled()");
   });
 
   it("t13. setting fateToFlan to positive number mints flan, depletes fate", async function () {
@@ -575,7 +569,7 @@ describe("DAO Proposals", function () {
 
     await expect(proposalFactory.lodgeProposal(bogusProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
-      .withArgs(bogusProposal.address, true);
+      .withArgs(bogusProposal.address, 'SUCCESS');
 
     locked = await bogusProposal.locked();
     expect(locked).to.be.true;
@@ -590,10 +584,8 @@ describe("DAO Proposals", function () {
     expect(result.success).to.equal(true, result.error);
 
     await advanceTime(100000000);
-    expect(dao.executeCurrentProposal())
-    .to.emit(dao,"proposalExecuted")
-    .withArgs(bogusProposal.address,false)
-  
+    expect(dao.executeCurrentProposal()).to.emit(dao, "proposalExecuted").withArgs(bogusProposal.address, false);
+
     locked = await bogusProposal.locked();
     expect(locked).to.be.false;
 
@@ -606,18 +598,15 @@ describe("DAO Proposals", function () {
 
     await expect(proposalFactory.lodgeProposal(bogusProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
-      .withArgs(bogusProposal.address, true);
+      .withArgs(bogusProposal.address, 'SUCCESS');
 
     result = await executionResult(dao.vote(bogusProposal.address, "100"));
     expect(result.success).to.equal(true, result.error);
 
     await advanceTime(100000000);
-    expect(dao.executeCurrentProposal())
-    .to.emit(dao,"proposalExecuted")
-    .withArgs(bogusProposal.address,true)
-    
+    expect(dao.executeCurrentProposal()).to.emit(dao, "proposalExecuted").withArgs(bogusProposal.address, true);
+
     locked = await bogusProposal.locked();
     expect(locked).to.be.false;
   });
-
 });

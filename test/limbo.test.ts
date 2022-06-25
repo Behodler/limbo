@@ -1,4 +1,5 @@
-import { executionResult, numberClose, queryChain } from "./helpers";
+import { ContractReceipt } from "ethers";
+import { assertLog, executionResult, numberClose, queryChain } from "./helpers";
 
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
@@ -59,10 +60,10 @@ describe.only("Limbo", function () {
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
     this.SCX = this.mockBehodler;
-    const TransferHelperFactory = await ethers.getContractFactory("NetTransferHelper");
+    const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {
       libraries: {
-        NetTransferHelper: (await TransferHelperFactory.deploy()).address,
+        //  SafeERC20: (await SafeERC20Factory.deploy()).address,
       },
     });
 
@@ -1299,7 +1300,6 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
     await this.uniswapHelper.setDAI(this.dai.address);
 
-    //TODO trade
     result = await executionResult(
       this.uniswapHelper.configure(
         this.limbo.address,
@@ -1806,7 +1806,7 @@ describe.only("Limbo", function () {
     );
     await updateMultiSoulConfigProposal.parameterize(sushi.address, 0, 2, 0, 0, 2600, "5000000000000000000000000");
     await updateMultiSoulConfigProposal.parameterize(pool.address, 123456, 1, 0, 0, 1300, "10000000000000000000000000");
-    await updateMultiSoulConfigProposal.lockDown()
+    await updateMultiSoulConfigProposal.lockDown();
 
     //lodge
     const proposalConfig = await this.limboDAO.proposalConfig();
@@ -2719,6 +2719,165 @@ describe.only("Limbo", function () {
     await expect(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001)).to.be.revertedWith(
       "LIMBO: EP"
     );
+  });
+
+  it("t-36. flash governance on same contract by same user after judgment period has elapsed deducts zero", async function () {
+    //configure soul
+    await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
+
+    await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
+
+    //set flash loan params
+    await this.flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      604800, //lock duration = 1 week,
+      true // asset is burnable
+    );
+    let result = await executionResult(this.limbo.endConfiguration());
+    expect(result.success).to.equal(true, result.error);
+
+    //stake requisite tokens, try again and succeed.
+    await this.eye.approve(this.flashGovernance.address, 42000000);
+    const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(this.flashGovernance.address);
+    console.log("eyeBalanceBeforeEveryThing", eyeBalanceBeforeEveryThing.toString());
+    const userBalanceBeforeFirstCall = await this.eye.balanceOf(owner.address);
+    await this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001);
+    const userBalanceAfterFirstCall = await this.eye.balanceOf(owner.address);
+    expect(userBalanceAfterFirstCall.toString()).to.equal(userBalanceBeforeFirstCall.sub(21000000).toString());
+
+    await advanceTime(605800); // more than enough time.
+    const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+
+    result = await executionResult(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001));
+    expect(result.success).to.equal(true, result.error);
+
+    const userBalanceAfterSecondCall = await this.eye.balanceOf(owner.address);
+    const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+
+    expect(userBalanceAfterSecondCall.toString()).to.equal(userBalanceAfterFirstCall.toString());
+
+    expect(eyeBalanceAfterSecondJudgment).to.equal(eyeBalanceBeforeSecondJudgment.toString());
+  });
+
+  [0, 1000, -1000].forEach((offset) => {
+    it("t-37. flash governance on same contract by same user after judgment period has elapsed correct amount", async function () {
+      console.log("running offset " + offset);
+      const initialStakeAmount = 21000000;
+      const newDepositRequirement: number = initialStakeAmount + offset;
+      const requireFate = (await this.limboDAO.proposalConfig())[1];
+      await this.eye.mint(requireFate.mul("1000000000000"));
+      await this.eye.approve(
+        this.limboDAO.address,
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      );
+
+      let contextString: string = "remains same";
+      if (newDepositRequirement < initialStakeAmount) contextString = "decreases";
+      else if (newDepositRequirement > initialStakeAmount) contextString = "increases";
+
+      console.log("DEPOSIT REQUIREMENT BETWEEN FLASH LOANS " + contextString);
+
+      //configure soul
+      let result = await executionResult(this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000));
+      expect(result.success).to.equal(true, result.error);
+
+      result = await executionResult(
+        this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000)
+      );
+      expect(result.success).to.equal(true, result.error);
+
+      //set flash loan params
+      result = await executionResult(
+        this.flashGovernance.configureFlashGovernance(
+          this.eye.address,
+          21000000, //amount to stake
+          604800, //lock duration = 1 week,
+          true // asset is burnable
+        )
+      );
+      expect(result.success).to.equal(true, result.error);
+
+      result = await executionResult(this.limbo.endConfiguration());
+      expect(result.success).to.equal(true, result.error);
+
+      //stake requisite tokens, try again and succeed.
+      await this.eye.approve(
+        this.flashGovernance.address,
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      );
+      const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(this.flashGovernance.address);
+      console.log("eyeBalanceBeforeEveryThing", eyeBalanceBeforeEveryThing.toString());
+      const userBalanceBeforeFirstCall = await this.eye.balanceOf(owner.address);
+      await this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001);
+      const userBalanceAfterFirstCall = await this.eye.balanceOf(owner.address);
+      expect(userBalanceAfterFirstCall.toString()).to.equal(userBalanceBeforeFirstCall.sub(21000000).toString());
+
+      await advanceTime(605800); // more than enough time.
+
+      const ConfigureFlashGovernanceProposalFactory = await ethers.getContractFactory(
+        "ConfigureFlashGovernanceProposal"
+      );
+      const configureFlashGovernanceProposal = await ConfigureFlashGovernanceProposalFactory.deploy(
+        this.limboDAO.address,
+        "flashGovProposal"
+      );
+
+      await this.eye.mint(requireFate.mul(10000000));
+      await this.eye.approve(
+        this.limboDAO.address,
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      );
+      await this.limboDAO.burnAsset(this.eye.address, requireFate, false);
+
+      await configureFlashGovernanceProposal.parameterize(
+        this.eye.address,
+        newDepositRequirement, //amount to stake
+        604800, //lock duration = 1 week,
+        true // asset is burnable
+      );
+
+      await toggleWhiteList(configureFlashGovernanceProposal.address);
+
+      let fateBalance = await this.limboDAO.fateState(owner.address);
+      console.log("Fate before burn (JS) " + fateBalance[1]);
+
+      fateBalance = await this.limboDAO.fateState(owner.address);
+      console.log("Fate before proposal (JS) " + fateBalance[1]);
+      let expectedArgs = [];
+      expectedArgs["proposal"] = configureFlashGovernanceProposal.address;
+      expectedArgs["status"] = "SUCCESS";
+
+      let proposalTX = await this.proposalFactory.lodgeProposal(configureFlashGovernanceProposal.address);
+      let receipt: ContractReceipt = await proposalTX.wait();
+
+      let eventAssertionResult = await assertLog(receipt.events, "LodgingStatus", expectedArgs);
+
+      expect(eventAssertionResult.reason).to.equal("", eventAssertionResult.details);
+
+      result = await executionResult(this.limboDAO.vote(configureFlashGovernanceProposal.address, "100"));
+      expect(result.success).to.equal(true, result.error);
+
+      await advanceTime(100000000);
+      await this.limboDAO.executeCurrentProposal();
+
+      const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+      const userBalanceBeforeSecondCall = await this.eye.balanceOf(owner.address);
+      console.log("JS: userBalanceBeforeSecondCall ", userBalanceBeforeSecondCall.toString());
+      console.log("JS: contractBalanceBeforeSecondCall ", eyeBalanceBeforeSecondJudgment.toString());
+      result = await executionResult(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001));
+      expect(result.success).to.equal(true, result.error);
+
+      const userBalanceAfterSecondCall = await this.eye.balanceOf(owner.address);
+      const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+
+      const netAmount = newDepositRequirement - initialStakeAmount;
+      console.log("netAmount " + netAmount);
+      console.log("change :" + userBalanceAfterSecondCall.sub(userBalanceBeforeSecondCall).toString());
+      expect(userBalanceBeforeSecondCall.sub(userBalanceAfterSecondCall).toString()).to.equal(netAmount.toString());
+
+      expect(eyeBalanceAfterSecondJudgment.sub(eyeBalanceBeforeSecondJudgment)).to.equal(netAmount.toString());
+    });
   });
   //TESTS END
 });

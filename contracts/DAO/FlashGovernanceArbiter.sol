@@ -2,6 +2,9 @@
 pragma solidity 0.8.13;
 import "./Governable.sol";
 import "../facades/Burnable.sol";
+import "../openzeppelin/SafeERC20.sol";
+import "../openzeppelin/IERC20.sol";
+// import "hardhat/console.sol";
 
 ///@author Justin Goro
 /**@notice When assessing whether flash governance rules must apply, the configured status of the calling contract must be inspected
@@ -19,6 +22,8 @@ abstract contract Configurable {
  * By default, the asset is EYE.
  */
 contract FlashGovernanceArbiter is Governable {
+  using SafeERC20 for IERC20;
+
   /**
    * @param actor user making flash governance decision
    * @param deposit_asset is the asset type put up as decision collateral. Must be burnable.
@@ -34,7 +39,7 @@ contract FlashGovernanceArbiter is Governable {
   struct FlashGovernanceConfig {
     uint256 amount;
     uint256 unlockTime;
-    address asset;
+    IERC20 asset;
     bool assetBurnable;
   }
 
@@ -49,7 +54,6 @@ contract FlashGovernanceArbiter is Governable {
   //the current parameters determining the rules of flash governance
   FlashGovernanceConfig public flashGovernanceConfig;
   SecurityParameters public security;
-
 
   /**@notice contracts with flash governance enabled
    */
@@ -66,7 +70,7 @@ contract FlashGovernanceArbiter is Governable {
     }
   }
 
-  modifier flashEnabled(){
+  modifier flashEnabled() {
     require(msg.sender == DAO || governed[msg.sender], "LIMBO: EP");
     _;
   }
@@ -88,22 +92,32 @@ contract FlashGovernanceArbiter is Governable {
     address sender,
     address target,
     bool emergency
-  ) public flashEnabled{
-    if (
-      IERC20(flashGovernanceConfig.asset).transferFrom(sender, address(this), flashGovernanceConfig.amount) &&
-      pendingFlashDecision[target][sender].unlockTime < block.timestamp
-    ) {
+  ) public flashEnabled {
+    FlashGovernanceConfig memory current = pendingFlashDecision[target][sender];
+
+    if (current.unlockTime < block.timestamp) {
       require(
         emergency || (block.timestamp - security.lastFlashGovernanceAct > security.epochSize),
         "LIMBO: flash governance disabled for rest of epoch"
       );
-      pendingFlashDecision[target][sender] = flashGovernanceConfig;
-      pendingFlashDecision[target][sender].unlockTime += block.timestamp;
+      //if user has previously made a flashGovernanceDecision on this contract and the requisite time for judgment has passed
+      //but the user has failed to withdraw their deposit then this will simply transfer the net amount required.
+      //if the requisite amount has fallen since the first decision, the user will be reimbursed the difference.
+      //if the amount has increased, the user's deposit in this contract will be increased
+
+      int256 netTransferAmount = int256(flashGovernanceConfig.amount) - int256(current.amount);
+
+     flashGovernanceConfig.asset.approve(address(this), type(uint).max);
+      flashGovernanceConfig.asset.safeNetTransferFrom(sender, address(this), netTransferAmount);
+
+      current = flashGovernanceConfig;
+      current.unlockTime += block.timestamp;
+      pendingFlashDecision[target][sender] = current;
 
       security.lastFlashGovernanceAct = block.timestamp;
-      emit flashDecision(sender, flashGovernanceConfig.asset, flashGovernanceConfig.amount, target);
+      emit flashDecision(sender, address(flashGovernanceConfig.asset), flashGovernanceConfig.amount, target);
     } else {
-      revert("LIMBO: governance decision rejected.");
+      revert ExistingFlashGovernanceDecisionUnderReview(sender, target);
     }
   }
 
@@ -119,7 +133,7 @@ contract FlashGovernanceArbiter is Governable {
     uint256 unlockTime,
     bool assetBurnable
   ) public virtual onlySuccessfulProposal {
-    flashGovernanceConfig.asset = asset;
+    flashGovernanceConfig.asset = IERC20(asset);
     flashGovernanceConfig.amount = amount;
     flashGovernanceConfig.unlockTime = unlockTime;
     flashGovernanceConfig.assetBurnable = assetBurnable;
@@ -168,7 +182,7 @@ contract FlashGovernanceArbiter is Governable {
    */
   function withdrawGovernanceAsset(address targetContract, address asset) public virtual {
     require(
-      pendingFlashDecision[targetContract][msg.sender].asset == asset &&
+      address(pendingFlashDecision[targetContract][msg.sender].asset) == asset &&
         pendingFlashDecision[targetContract][msg.sender].amount > 0 &&
         pendingFlashDecision[targetContract][msg.sender].unlockTime < block.timestamp,
       "Limbo: Flashgovernance decision pending."

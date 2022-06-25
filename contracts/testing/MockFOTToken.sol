@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "../ERC677/ERC20Burnable.sol";
+import "../openzeppelin/ERC20Burnable.sol";
 
 contract MockFOTToken is Context, IERC20, IERC20Metadata {
 
