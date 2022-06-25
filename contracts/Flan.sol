@@ -82,12 +82,6 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
         }
     }
 
-    function safeTransfer(address _to, uint256 _amount) external {
-        uint256 flanBal = balanceOf(address(this));
-        uint256 flanToTransfer = _amount > flanBal ? flanBal : _amount;
-        _transfer(_msgSender(), _to, flanToTransfer);
-    }
-
     function _transfer(
         address sender,
         address recipient,
