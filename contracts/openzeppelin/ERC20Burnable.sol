@@ -6,7 +6,7 @@
 
 pragma solidity 0.8.13;
 import "./IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
 // import "hardhat/console.sol";
 
 // import "hardhat/console.sol";
@@ -66,7 +66,7 @@ interface IERC20Metadata is IERC20 {
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is Context, IERC20, IERC20Metadata {
+contract ERC20 is IERC20, IERC20Metadata {
   mapping(address => uint256) internal _balances;
 
   mapping(address => mapping(address => uint256)) internal _allowances;
@@ -145,7 +145,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
    * - the caller must have a balance of at least `amount`.
    */
   function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-    _transfer(_msgSender(), recipient, amount);
+    _transfer(msg.sender, recipient, amount);
     return true;
   }
 
@@ -164,7 +164,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
    * - `spender` cannot be the zero address.
    */
   function approve(address spender, uint256 amount) public virtual override returns (bool) {
-    _approve(_msgSender(), spender, amount);
+    _approve(msg.sender, spender, amount);
     return true;
   }
 
@@ -187,10 +187,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     uint256 amount
   ) public virtual override returns (bool) {
     _transfer(sender, recipient, amount);
-    uint256 currentAllowance = _allowances[sender][_msgSender()];
+    uint256 currentAllowance = _allowances[sender][msg.sender];
  
     require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
-    _approve(sender, _msgSender(), currentAllowance - amount);
+    _approve(sender, msg.sender, currentAllowance - amount);
     return true;
   }
 
@@ -207,7 +207,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
    * - `spender` cannot be the zero address.
    */
   function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-    _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
+    _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
     return true;
   }
 
@@ -226,9 +226,9 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
    * `subtractedValue`.
    */
   function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-    uint256 currentAllowance = _allowances[_msgSender()][spender];
+    uint256 currentAllowance = _allowances[msg.sender][spender];
     require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+    _approve(msg.sender, spender, currentAllowance - subtractedValue);
 
     return true;
   }
@@ -336,14 +336,14 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
  * tokens and those that they have an allowance for, in a way that can be
  * recognized off-chain (via event analysis).
  */
-abstract contract ERC20Burnable is Context, ERC20 {
+abstract contract ERC20Burnable is ERC20 {
   /**
    * @dev Destroys `amount` tokens from the caller.
    *
    * See {ERC20-_burn}.
    */
   function burn(uint256 amount) public virtual returns (bool) {
-    _burn(_msgSender(), amount);
+    _burn(msg.sender, amount);
     return true;
   }
 
@@ -359,9 +359,9 @@ abstract contract ERC20Burnable is Context, ERC20 {
    * `amount`.
    */
   function burnFrom(address account, uint256 amount) public virtual {
-    uint256 currentAllowance = allowance(account, _msgSender());
+    uint256 currentAllowance = allowance(account, msg.sender);
     require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-    _approve(account, _msgSender(), currentAllowance - amount);
+    _approve(account, msg.sender, currentAllowance - amount);
     _burn(account, amount);
   }
 }
