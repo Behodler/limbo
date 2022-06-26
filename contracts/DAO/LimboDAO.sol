@@ -151,6 +151,7 @@ contract LimboDAO is Ownable {
         if (currentProposalState.fate > 0) {
           currentProposalState.decision = ProposalDecision.approved;
           (success, ) = address(currentProposalState.proposal).call(abi.encodeWithSignature("orchestrateExecute()"));
+          //deposit returned to propser
           fateState[currentProposalState.proposer].fateBalance += proposalConfig.requiredFateStake;
           if (!success) currentProposalState.decision = ProposalDecision.failed;
         } else {
@@ -200,7 +201,8 @@ contract LimboDAO is Ownable {
   ) public onlyOwner {
     _seed(limbo, flan, eye, sushiOracle, uniOracle);
     proposalConfig.votingDuration = 2 days;
-    proposalConfig.requiredFateStake = 223 * ONE; //50000 EYE for 24 hours
+
+    proposalConfig.requiredFateStake = 223 * ONE; //defaulted to 50000 EYE for 24 hours
     proposalConfig.proposalFactory = proposalFactory;
     address sushiFactory = address(LimboOracleLike(sushiOracle).factory());
     address uniFactory = address(LimboOracleLike(uniOracle).factory());
@@ -249,6 +251,9 @@ contract LimboDAO is Ownable {
       revert LodgeFailActiveProposal(address(currentProposalState.proposal), proposal);
     }
 
+    //The *2 refers to 100% deposit in fate taken from the proposer.
+    // If the vote succeeds, the deposit is returned, if it fails, it isn't. This makes proposals
+    // that are likely to fail more costly and ties up fate of proposers, reducing incentives to over propose.
     fateState[proposer].fateBalance = fateState[proposer].fateBalance - proposalConfig.requiredFateStake * 2;
     currentProposalState.proposal = Proposal(proposal);
     currentProposalState.decision = ProposalDecision.voting;
@@ -330,6 +335,7 @@ contract LimboDAO is Ownable {
 
   /** @notice handles staking logic for EYE and EYE based assets so that correct rate
    of fate is earned. Because of invariant checking, FOT tokens not supported.
+  * @dev the 1e9 factor compensates for the square root of 1e18 factor
   * @param finalAssetBalance after staking, what is the final user balance on LimboDAO of the asset in question
   * @param finalEYEBalance if EYE is being staked, this value is the same as finalAssetBalance but for LPs it's about half
   * @param rootEYE offload high gas arithmetic to the client. Cheap to verify. Square root in fixed point requires Babylonian algorithm
@@ -358,6 +364,7 @@ contract LimboDAO is Ownable {
     AssetClout storage clout = stakedUserAssetWeight[sender][asset];
     fateState[sender].fatePerDay -= clout.fateWeight;
     rootInvariant.initialBalance = clout.balance;
+
     //EYE
     if (strategy == FateGrowthStrategy.directRoot) {
       if (finalAssetBalance != finalEYEBalance) {
@@ -367,11 +374,11 @@ contract LimboDAO is Ownable {
 
       clout.fateWeight = rootEYE;
       clout.balance = finalAssetBalance;
-      fateState[sender].fatePerDay += rootEYE;
+      fateState[sender].fatePerDay += rootEYE * 1e9;
     } else if (strategy == FateGrowthStrategy.indirectTwoRootEye) {
       //LP
 
-      clout.fateWeight = 2 * rootEYE;
+      clout.fateWeight = (2 * rootEYE) * 1e9;
       fateState[sender].fatePerDay += clout.fateWeight;
       rootInvariant.eyeEquivalent = EYEEquivalentOfLP(asset, uniswap, finalAssetBalance);
 
@@ -394,7 +401,8 @@ contract LimboDAO is Ownable {
 
   /**
    *@notice Acquiring enough fate to either influence a decision or to lodge a proposal can take very long.
-   * If a very important decision has to be acted on via a proposal, the option exists to buy large quantities for fate instantly by burning an EYE based asset
+   * If a very important decision has to be acted on via a proposal, the option exists to buy large quantities of fate
+   * instantly by burning an EYE based asset.
    * This may be necessary if a vote is nearly complete but the looming outcome is considered unacceptable.
    * While Fate accumulation is quadratic for staking, burning is linear and amplified by a factor of 10.
    * This gives whales effective veto power but at the cost of a permanent loss of EYE.
