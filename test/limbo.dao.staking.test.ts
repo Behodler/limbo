@@ -33,6 +33,7 @@ describe("DAO staking", function () {
     link = await TokenFactory.deploy("LINK", "LINK");
     sushi = await TokenFactory.deploy("SUSHI", "SUSHI");
     eye = await TokenFactory.deploy("EYE", "EYE");
+
     const createSLP = await metaPairFactory(eye, sushiSwapFactory, false);
     daiEYESLP = await createSLP(dai);
     linkEYESLP = await createSLP(link);
@@ -113,6 +114,7 @@ describe("DAO staking", function () {
         "115792089237316195423570985008687907853269984665640564039457584007913129639935"
       );
     }
+    await eye.mint("1000000000000000000000000");
   });
 
   const advanceTime = async (seconds) => {
@@ -221,6 +223,7 @@ describe("DAO staking", function () {
   });
 
   it("4. Staking Eye and wait increases fate correctly", async function () {
+    const ONE = 1000000000000000000n;
     await dao.makeLive();
 
     let result = await executionResult(dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false));
@@ -232,9 +235,9 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     let fateState = await dao.fateState(owner.address);
-    expect(fateState[1].toString()).to.equal("25");
+    expect(fateState[1].toString()).to.equal("25001157407");
 
-    result = await executionResult(dao.setEYEBasedAssetStake(400, 400, 20, eye.address, false));
+    result = await executionResult(dao.setEYEBasedAssetStake(400n * ONE, 400n * ONE, 20000000000n, eye.address, false));
     expect(result.success).to.equal(true, result.error);
 
     await advanceTime(172800); //2 days
@@ -242,10 +245,12 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     fateState = await dao.fateState(owner.address);
-    expect(fateState[0].toString()).to.equal("20");
-    expect(fateState[1].toString()).to.equal("65");
+    expect(fateState[0].toString()).to.equal("20000000099999999900");
+    expect(fateState[1].toString()).to.equal("40000231706484953502");
 
-    result = await executionResult(dao.setEYEBasedAssetStake(62500, 62500, 250, eye.address, false));
+    result = await executionResult(
+      dao.setEYEBasedAssetStake(62500n * ONE, 62500n * ONE, 250000000000n, eye.address, false)
+    );
     expect(result.success).to.equal(true, result.error);
 
     await advanceTime(28800); //8 hours
@@ -254,7 +259,7 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     fateState = await dao.fateState(owner.address);
-    expect(fateState[1].toString()).to.equal("148");
+    expect(fateState[1].toString()).to.equal("130003588214635184949");
   });
 
   it("5. Staking LP set growth to 2 root eye balance", async function () {
@@ -273,7 +278,7 @@ describe("DAO staking", function () {
     expect(lpBalanceBefore.sub(lpBalanceAfter).toString()).to.equal(finalAssetBalance.toString());
 
     let fateState = await dao.fateState(owner.address);
-    expect(fateState[0].toString()).to.equal((5477225575n * 2n).toString());
+    expect(fateState[0].toString()).to.equal((5477225575000000000n * 2n).toString());
 
     await this.sushiTrade(dai);
 
@@ -329,8 +334,8 @@ describe("DAO staking", function () {
     expect(eyeBalanceBeforeStake.sub(eyeBalanceAfterStake).toString()).to.equal("100");
 
     let fateState = await dao.fateState(owner.address);
-    let expectedFateWeight = 10n + rootEYEOfLP * 2n;
-    expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
+    let expectedFateWeight = 10n + rootEYEOfLP * 2n * 1000000000n;
+    expect(numberClose(fateState[0], expectedFateWeight)).to.be.true;
 
     await dao.setEYEBasedAssetStake(81, 81, 9, eye.address, false);
 
@@ -339,7 +344,7 @@ describe("DAO staking", function () {
 
     fateState = await dao.fateState(owner.address);
     expectedFateWeight -= 1n;
-    expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
+    expect(numberClose(fateState[0], expectedFateWeight)).to.equal(true);
 
     finalEyeBalance = 21428571428000000000n;
     finalAssetBalance = 3571428571435555566n;
@@ -357,7 +362,7 @@ describe("DAO staking", function () {
     const difference = BigInt(daiEYESLPBalanceAfterReducedStake.sub(balanceOfDaiEYESLPAftertake).toString());
     expect(difference >= 2075527328640318845352n).to.be.true;
 
-    expectedFateWeight = rootEYEOfLP * 2n;
+    expectedFateWeight = rootEYEOfLP * 2n * 1000000000n;
     fateState = await dao.stakedUserAssetWeight(owner.address, daiEYESLP.address);
     expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
   });
