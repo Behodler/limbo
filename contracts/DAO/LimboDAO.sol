@@ -292,7 +292,7 @@ contract LimboDAO is Ownable {
         fate * currentFate < 0 && //sign different
         (fate**2) > currentFate**2 //absolute value of vote is greater than current vote
       ) {
-        //extend voting duration when vote flips decision. Suggestion made by community member
+        //extend voting duration when vote flips decision. Suggestion made by Womble of Discord
         currentProposalState.start = currentProposalState.start + 2 hours;
       }
     }
