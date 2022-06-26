@@ -61,7 +61,7 @@ contract FlanBackstop is Governable {
     address pyroFlanLP,
     uint256 acceptableHighestPrice,
     uint8 decimalPlaces
-  ) external onlySuccessfulProposal {
+  ) external governanceApproved(false)  {
     config.flanLPs[stablecoin] = flanLP;
     config.pyroFlanLPs[stablecoin] = pyroFlanLP;
     config.acceptableHighestPrice[stablecoin] = acceptableHighestPrice;
