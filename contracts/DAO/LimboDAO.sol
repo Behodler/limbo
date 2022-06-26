@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../openzeppelin/Ownable.sol";
 import "../openzeppelin/ERC677.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
@@ -141,7 +141,7 @@ contract LimboDAO is Ownable {
   }
 
   modifier updateCurrentProposal() {
-    incrementFateFor(_msgSender());
+    incrementFateFor(msg.sender);
     if (address(currentProposalState.proposal) != address(0)) {
       uint256 durationSinceStart = block.timestamp - currentProposalState.start;
       bool success;
@@ -166,7 +166,7 @@ contract LimboDAO is Ownable {
   }
 
   modifier incrementFate() {
-    incrementFateFor(_msgSender());
+    incrementFateFor(msg.sender);
     _;
   }
 
@@ -218,8 +218,13 @@ contract LimboDAO is Ownable {
     }
   }
 
-  // ///@notice allows Limbo to be governed by a new DAO
-  // ///@dev functions marked by onlyOwner are governed by MorgothDAO
+   ///@notice call this on all governables before calling killDAO
+  function transferToNewDAO(address governed, address newDAO) public onlyOwner {
+    Governable(governed).setDAO(newDAO);
+  }
+
+  ///@notice allows Limbo to be governed by a new DAO
+  ///@dev functions marked by onlyOwner are governed by MorgothDAO
   function killDAO(address newOwner) public onlyOwner isLive {
     domainConfig.live = false;
     Governable(domainConfig.flan).setDAO(newOwner);
@@ -245,7 +250,7 @@ contract LimboDAO is Ownable {
    *  @dev not for external calling. Use the proposalFactory to lodge a proposal instead.
    */
   function makeProposal(address proposal, address proposer) public updateCurrentProposal {
-    address sender = _msgSender();
+    address sender = msg.sender;
     if (sender != proposalConfig.proposalFactory) revert OnlyProposalFactory(sender, proposalConfig.proposalFactory);
     if (address(currentProposalState.proposal) != address(0)) {
       revert LodgeFailActiveProposal(address(currentProposalState.proposal), proposal);
@@ -292,10 +297,10 @@ contract LimboDAO is Ownable {
       }
     }
     uint256 cost = fate > 0 ? uint256(fate) : uint256(-fate);
-    fateState[_msgSender()].fateBalance = fateState[_msgSender()].fateBalance - cost;
+    fateState[msg.sender].fateBalance = fateState[msg.sender].fateBalance - cost;
 
     currentProposalState.fate += fate;
-    emit voteCast(_msgSender(), proposal, fate);
+    emit voteCast(msg.sender, proposal, fate);
   }
 
   ///@notice pushes the decision to execute a successful proposal. For convenience only
@@ -349,7 +354,7 @@ contract LimboDAO is Ownable {
     bool uniswap
   ) public isLive incrementFate updateOracle(asset, uniswap) {
     if (!assetApproved[asset]) revert AssetNotApproved(asset);
-    address sender = _msgSender();
+    address sender = msg.sender;
     FateGrowthStrategy strategy = fateGrowthStrategy[asset];
 
     SquareChecker memory rootInvariant = SquareChecker(rootEYE * rootEYE, (rootEYE + 1) * (rootEYE + 1), 0, 0);
@@ -415,9 +420,9 @@ contract LimboDAO is Ownable {
     bool uniswap
   ) public isLive incrementFate updateOracle(asset, uniswap) {
     if (!assetApproved[asset]) revert AssetNotApproved(asset);
-    address sender = _msgSender();
+    address sender = msg.sender;
     IERC20(asset).safeTransferFrom(sender, address(this), amount);
-    uint256 fateCreated = fateState[_msgSender()].fateBalance;
+    uint256 fateCreated = fateState[msg.sender].fateBalance;
     if (asset == domainConfig.eye) {
       fateCreated = amount * 10;
       ERC677(domainConfig.eye).burn(amount);
@@ -425,8 +430,8 @@ contract LimboDAO is Ownable {
       uint256 impliedEye = EYEEquivalentOfLP(asset, uniswap, amount);
       fateCreated = impliedEye * 20;
     }
-    fateState[_msgSender()].fateBalance += fateCreated;
-    emit assetBurnt(_msgSender(), asset, fateCreated);
+    fateState[msg.sender].fateBalance += fateCreated;
+    emit assetBurnt(msg.sender, asset, fateCreated);
   }
 
   ///@notice grants unlimited Flan minting power to an address.

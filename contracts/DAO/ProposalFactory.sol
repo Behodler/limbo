@@ -2,7 +2,7 @@
 pragma solidity 0.8.13;
 import "../facades/LimboDAOLike.sol";
 import "./Governable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../openzeppelin/Ownable.sol";
 
 // import "hardhat/console.sol";
 

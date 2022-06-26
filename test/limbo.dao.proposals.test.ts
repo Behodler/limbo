@@ -424,58 +424,60 @@ describe("DAO Proposals", function () {
   });
 
   it("t8. vote that flips decision in last hour extends voting for 2 hours, invalid votes revert", async function () {
-        //lodge, parameterize and assert
-        const requiredFate = (await dao.proposalConfig())[1];
-        const eyeToBurn = requiredFate.mul(2).div(10).add(1);
-        await dao.burnAsset(eye.address, eyeToBurn, false);
-    
-        //fate before
-        const fateBeforeLodge = (await dao.fateState(owner.address))[1];
-        await updateProposalConfigProposal.parameterize(100, "123", proposalFactory.address);
-        await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
-        //fate after lodge
-        const fateAfterLodge = (await dao.fateState(owner.address))[1];
-        //end lodge
-    
-        expect(fateBeforeLodge.sub(fateAfterLodge).toString()).to.equal("446000000000000000000");
-    
-        //second person acquires fate and votes NO on current proposal
-        await eye.transfer(secondPerson.address, "1000000000");
-        await eye.connect(secondPerson).approve(dao.address, "1000000000");
-        await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
-        await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-100");
-    
-        //fast forward to after proposal finished
-        //47*60*60+60  =169260
-        await advanceTime(169260);
-    
-        const timeRemainingBeforeSwingVote = (await dao.timeRemainingOnProposal()).toNumber();
-        expect(timeRemainingBeforeSwingVote).to.be.greaterThan(3534);
-        expect(timeRemainingBeforeSwingVote).to.be.lessThan(3537);
-    
-        await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "0"))
-        .to.be.revertedWith("InvalidVoteCast(0, -100)");
-    
-        await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100"))
-        .to.be.revertedWith("InvalidVoteCast(100, -100)");
-    
-        await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-10"); //same direction shouldn't change duration
-        const timeRemainingAfterSameDirectionVote = await dao.timeRemainingOnProposal();
-        expect(numberClose(timeRemainingAfterSameDirectionVote,'3535')).to.be.true;
-    
-        await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "200");
-        const timeRemainingAfterSwingVote = await dao.timeRemainingOnProposal();
-        expect(numberClose(timeRemainingAfterSwingVote,'10734')).to.be.true;
-        await advanceTime(10000);
-    
-        await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100"); //same direction shouldn't change duration
-        const timeRemainingAfterSameDirectionVote2 = await dao.timeRemainingOnProposal();
-        expect(numberClose(timeRemainingAfterSameDirectionVote2,'733')).to.be.true;
-    
-        await advanceTime(parseInt(timeRemainingAfterSameDirectionVote2.toString()));
-        await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100")).to.be.revertedWith(
-          "VotingPeriodOver"
-        );
+    //lodge, parameterize and assert
+    const requiredFate = (await dao.proposalConfig())[1];
+    const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
+
+    //fate before
+    const fateBeforeLodge = (await dao.fateState(owner.address))[1];
+    await updateProposalConfigProposal.parameterize(100, "123", proposalFactory.address);
+    await proposalFactory.lodgeProposal(updateProposalConfigProposal.address);
+    //fate after lodge
+    const fateAfterLodge = (await dao.fateState(owner.address))[1];
+    //end lodge
+
+    expect(fateBeforeLodge.sub(fateAfterLodge).toString()).to.equal("446000000000000000000");
+
+    //second person acquires fate and votes NO on current proposal
+    await eye.transfer(secondPerson.address, "1000000000");
+    await eye.connect(secondPerson).approve(dao.address, "1000000000");
+    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
+    await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-100");
+
+    //fast forward to after proposal finished
+    //47*60*60+60  =169260
+    await advanceTime(169260);
+
+    const timeRemainingBeforeSwingVote = (await dao.timeRemainingOnProposal()).toNumber();
+    expect(timeRemainingBeforeSwingVote).to.be.greaterThan(3534);
+    expect(timeRemainingBeforeSwingVote).to.be.lessThan(3537);
+
+    await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "0")).to.be.revertedWith(
+      "InvalidVoteCast(0, -100)"
+    );
+
+    await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100")).to.be.revertedWith(
+      "InvalidVoteCast(100, -100)"
+    );
+
+    await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-10"); //same direction shouldn't change duration
+    const timeRemainingAfterSameDirectionVote = await dao.timeRemainingOnProposal();
+    expect(numberClose(timeRemainingAfterSameDirectionVote, "3535")).to.be.true;
+
+    await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "200");
+    const timeRemainingAfterSwingVote = await dao.timeRemainingOnProposal();
+    expect(numberClose(timeRemainingAfterSwingVote, "10734")).to.be.true;
+    await advanceTime(10000);
+
+    await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100"); //same direction shouldn't change duration
+    const timeRemainingAfterSameDirectionVote2 = await dao.timeRemainingOnProposal();
+    expect(numberClose(timeRemainingAfterSameDirectionVote2, "733")).to.be.true;
+
+    await advanceTime(parseInt(timeRemainingAfterSameDirectionVote2.toString()));
+    await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100")).to.be.revertedWith(
+      "VotingPeriodOver"
+    );
   });
 
   it("t9. killDAO, only callable by owner, transfers ownership to new DAO", async function () {
@@ -490,9 +492,16 @@ describe("DAO Proposals", function () {
     const flanDAObefore = await this.flan.DAO();
     expect(flanDAObefore).to.equal(dao.address);
 
-    await expect(dao.connect(secondPerson).killDAO(this.newDAO.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    const uniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
+    const uniswapHelper = await uniswapHelperFactory.deploy(this.limbo.address, limboDAObefore);
+
+    await expect(dao.connect(secondPerson).killDAO(this.newDAO.address)).to.be.revertedWith("OnlyOwner");
+
+    //transfer uniswap helper to new DAO
+    await dao.transferToNewDAO(uniswapHelper.address, this.newDAO.address);
+    const uniswapHelperDAOAfter = await uniswapHelper.DAO();
+    expect(uniswapHelperDAOAfter).to.equal(this.newDAO.address);
+
     await dao.killDAO(this.newDAO.address);
 
     const limboDAOafter = await this.limbo.DAO();
@@ -576,7 +585,7 @@ describe("DAO Proposals", function () {
 
     await expect(proposalFactory.lodgeProposal(bogusProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
-      .withArgs(bogusProposal.address, 'SUCCESS');
+      .withArgs(bogusProposal.address, "SUCCESS");
 
     locked = await bogusProposal.locked();
     expect(locked).to.be.true;
@@ -605,7 +614,7 @@ describe("DAO Proposals", function () {
 
     await expect(proposalFactory.lodgeProposal(bogusProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
-      .withArgs(bogusProposal.address, 'SUCCESS');
+      .withArgs(bogusProposal.address, "SUCCESS");
 
     result = await executionResult(dao.vote(bogusProposal.address, "100"));
     expect(result.success).to.equal(true, result.error);
