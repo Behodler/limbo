@@ -270,13 +270,17 @@ contract LimboDAO is Ownable {
 
     if (block.timestamp - currentProposalState.start > proposalConfig.votingDuration - 1 hours) {
       int256 currentFate = currentProposalState.fate;
+      //tied votes and empty votes are meaningless
+      if (fate + currentFate == 0 || fate == 0) {
+        revert InvalidVoteCast(fate, currentFate);
+      }
       //check if voting has ended
       if (block.timestamp - currentProposalState.start > proposalConfig.votingDuration) {
-        revert("LimboDAO: voting for current proposal has ended.");
+        revert VotingPeriodOver(block.timestamp, currentProposalState.start, proposalConfig.votingDuration);
       } else if (
         //The following if statement checks if the vote is flipped by fate
         fate * currentFate < 0 && //sign different
-        (fate + currentFate) * fate > 0 //fate flipped current fate onto the same side of zero as fate
+        (fate**2) > currentFate**2 //absolute value of vote is greater than current vote
       ) {
         //extend voting duration when vote flips decision. Suggestion made by community member
         currentProposalState.start = currentProposalState.start + 2 hours;

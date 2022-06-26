@@ -29,3 +29,5 @@ error ProposalMismatch(address proposal, address currrentProposal);
 error OnlyProposalFactory(address msg_sender, address factory);
 error FateToFlanConversionDisabled();
 error UniswapV2FactoryMismatch (address pairFactory,address trueFactory);
+error InvalidVoteCast(int fateCast, int currentProposalFate);
+error VotingPeriodOver (uint blockTime,uint proposalStartTime,uint votingDuration);
