@@ -5,7 +5,6 @@ import "../facades/LimboDAOLike.sol";
 import "../facades/FlashGovernanceArbiterLike.sol";
 import "../facades/ProposalFactoryLike.sol";
 
-
 ///@title Governable
 ///@author Justin Goro
 /**@dev Contracts that implement this can be governed by LimboDAO.
@@ -16,15 +15,27 @@ import "../facades/ProposalFactoryLike.sol";
 abstract contract Governable {
   FlashGovernanceArbiterLike public governer;
 
-  bool public configured;
+  address public temporaryConfigurationLord;
   address public DAO;
 
-  /**@notice during initial setup, requiring strict multiday proposals for calibration would unecessarily delay release. 
-    As long as configured is false, the contract has no governance enforcement. Calling endConfiguration is a one way operation 
-    to ensure governance mechanisms kicks in. As a user, do not interact with these contracts if configured is false.
-    */
-  function endConfiguration() public {
-    configured = true;
+  /**@notice during initial setup, requiring strict multiday proposals for calibration would unecessarily delay release.
+   * As long as configured is false, the contract has no governance enforcement. Calling endConfiguration is a one way operation
+   * to ensure governance mechanisms kicks in. As a user, do not interact with these contracts if configured is false.
+   * Only the original contract deployer can call endConfiguration. This is to protect against backrunning.
+   * If other variables were sneakily changed, the DAO can always correct those through traditional tedious means. Then
+   * backrunning becomes a mere inconvenience
+   */
+  function endConfiguration(address expectedDAO) public {
+    if (msg.sender != temporaryConfigurationLord) {
+      revert AccessDenied(temporaryConfigurationLord, msg.sender);
+    }
+    if (expectedDAO != DAO) revert BackrunDetected(expectedDAO, DAO);
+
+    temporaryConfigurationLord = address(0);
+  }
+
+  function configured() internal view returns (bool) {
+    return temporaryConfigurationLord == address(0);
   }
 
   modifier onlySuccessfulProposal() {
@@ -40,7 +51,7 @@ abstract contract Governable {
 
   function assertSoulUpdateProposal(address sender) internal view {
     (, , address proposalFactory) = LimboDAOLike(DAO).proposalConfig();
-    require(!configured || sender == ProposalFactoryLike(proposalFactory).soulUpdateProposal(), "EJ");
+    require(!configured() || sender == ProposalFactoryLike(proposalFactory).soulUpdateProposal(), "EJ");
     assertSuccessfulProposal(sender);
   }
 
@@ -48,7 +59,7 @@ abstract contract Governable {
     bool successfulProposal = LimboDAOLike(DAO).successfulProposal(msg.sender);
     if (successfulProposal) {
       governer.setEnforcement(false);
-    } else if (configured) {
+    } else if (configured()) {
       governer.setEnforcement(true);
       governer.assertGovernanceApproved(msg.sender, address(this), emergency);
     }
@@ -60,11 +71,12 @@ abstract contract Governable {
   }
 
   function assertSuccessfulProposal(address sender) internal view {
-    require(!configured || LimboDAOLike(DAO).successfulProposal(sender), "EJ");
+    require(!configured() || LimboDAOLike(DAO).successfulProposal(sender), "EJ");
   }
 
   constructor(address dao) {
     setDAO(dao);
+    temporaryConfigurationLord = msg.sender;
   }
 
   //singleton pattern to resolve circularity of dependency without impacting gas significantly
@@ -75,7 +87,7 @@ abstract contract Governable {
 
   ///@param dao The LimboDAO contract address
   function setDAO(address dao) public {
-    require(DAO == address(0) || msg.sender == DAO || !configured, "EK");
+    require(DAO == address(0) || msg.sender == DAO || !configured(), "EK");
     DAO = dao;
     delete governer;
   }

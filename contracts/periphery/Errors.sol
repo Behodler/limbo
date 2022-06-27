@@ -31,6 +31,8 @@ error FateToFlanConversionDisabled();
 error UniswapV2FactoryMismatch (address pairFactory,address trueFactory);
 error InvalidVoteCast(int fateCast, int currentProposalFate);
 error VotingPeriodOver (uint blockTime,uint proposalStartTime,uint votingDuration);
+error AccessDenied(address configurationLord, address msg_sender);
+error BackrunDetected (address expectedDAO, address actualDAO);
 
 //OWNABLE
 error OnlyOwner(address caller, address owner);

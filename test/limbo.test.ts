@@ -26,7 +26,6 @@ describe.only("Limbo", function () {
     const RouterFactory = await ethers.getContractFactory("UniswapV2Router02");
     const sushiRouter = await RouterFactory.deploy(this.sushiSwapFactory.address, owner.address);
     const uniRouter = await RouterFactory.deploy(this.uniswapFactory.address, owner.address);
-
     this.TokenFactory = await ethers.getContractFactory("SimpleMockTokenToken");
     this.dai = await this.TokenFactory.deploy("DAI", "DAI");
 
@@ -61,19 +60,17 @@ describe.only("Limbo", function () {
     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
     this.SCX = this.mockBehodler;
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
-    const daoFactory = await ethers.getContractFactory("LimboDAO", {
-      libraries: {
-        //  SafeERC20: (await SafeERC20Factory.deploy()).address,
-      },
-    });
+    const daoFactory = await ethers.getContractFactory("LimboDAO");
 
     this.limboDAO = await daoFactory.deploy();
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
     this.flashGovernance = await flashGovernanceFactory.deploy(this.limboDAO.address);
 
     await this.limboDAO.setFlashGoverner(this.flashGovernance.address);
+    const tempConfigLord = await this.flashGovernance.temporaryConfigurationLord();
 
     await this.flashGovernance.configureSecurityParameters(10, 100, 30);
+
     // await this.eye.approve(this.limbo.address, 2000);
     await this.flashGovernance.configureFlashGovernance(this.eye.address, 1000, 10, true);
 
@@ -124,7 +121,7 @@ describe.only("Limbo", function () {
 
     await this.flan.whiteListMinting(this.limbo.address, true);
     await this.flan.whiteListMinting(owner.address, true);
-    // await this.flan.endConfiguration();
+    // await this.flan.endConfiguration(this.limboDAO.address);
 
     await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
 
@@ -445,7 +442,7 @@ describe.only("Limbo", function () {
 
     await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     await expect(this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)).to.be.revertedWith("EJ");
     await this.aave.transfer(this.limbo.address, 1000);
@@ -483,7 +480,7 @@ describe.only("Limbo", function () {
   it("t-2. old souls can be claimed from", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
 
@@ -518,7 +515,7 @@ describe.only("Limbo", function () {
 
     await this.limbo.configureCrossingParameters(this.aave.address, 21000000, 0, true, 10000000);
 
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
 
@@ -552,7 +549,7 @@ describe.only("Limbo", function () {
 
     await this.limbo.configureCrossingParameters(this.aave.address, 21000000, 10000000, true, 10000000);
 
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
     //stake tokens
@@ -581,7 +578,7 @@ describe.only("Limbo", function () {
 
     await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
 
@@ -615,7 +612,7 @@ describe.only("Limbo", function () {
 
     await this.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000001");
@@ -637,9 +634,9 @@ describe.only("Limbo", function () {
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    await this.flashGovernance.endConfiguration();
+    await this.flashGovernance.endConfiguration(this.limboDAO.address);
     //end configuration
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //try to adjust soul and fail
     await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith(
@@ -666,9 +663,9 @@ describe.only("Limbo", function () {
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    await this.flashGovernance.endConfiguration();
+    await this.flashGovernance.endConfiguration(this.limboDAO.address);
     //end configuration
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
     await this.eye.approve(this.flashGovernance.address, 21000000);
     await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
@@ -693,9 +690,9 @@ describe.only("Limbo", function () {
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    await this.flashGovernance.endConfiguration();
+    await this.flashGovernance.endConfiguration(this.limboDAO.address);
     //end configuration
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //make flashgovernance decision.
     await this.eye.approve(this.flashGovernance.address, 21000000);
@@ -800,7 +797,7 @@ describe.only("Limbo", function () {
       0,
       10000000
     );
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -839,7 +836,7 @@ describe.only("Limbo", function () {
       0,
       10000000
     );
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -876,7 +873,7 @@ describe.only("Limbo", function () {
       0,
       2500000
     );
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -1043,7 +1040,7 @@ describe.only("Limbo", function () {
       0,
       10000000
     );
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -1061,7 +1058,7 @@ describe.only("Limbo", function () {
       0,
       10000000
     );
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -2138,7 +2135,7 @@ describe.only("Limbo", function () {
 
     //no longer explicit quote generation
 
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     // this should fail
     //flash govern set APY
@@ -2182,7 +2179,7 @@ describe.only("Limbo", function () {
       0,
       10000000
     );
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
@@ -2710,9 +2707,9 @@ describe.only("Limbo", function () {
     );
 
     await this.flashGovernance.setGoverned([this.limbo.address], [false]);
-    await this.flashGovernance.endConfiguration();
+    await this.flashGovernance.endConfiguration(this.limboDAO.address);
     //end configuration
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
@@ -2734,7 +2731,7 @@ describe.only("Limbo", function () {
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    let result = await executionResult(this.limbo.endConfiguration());
+    let result = await executionResult(this.limbo.endConfiguration(this.limboDAO.address));
     expect(result.success).to.equal(true, result.error);
 
     //stake requisite tokens, try again and succeed.
@@ -2798,7 +2795,7 @@ describe.only("Limbo", function () {
       );
       expect(result.success).to.equal(true, result.error);
 
-      result = await executionResult(this.limbo.endConfiguration());
+      result = await executionResult(this.limbo.endConfiguration(this.limboDAO.address));
       expect(result.success).to.equal(true, result.error);
 
       //stake requisite tokens, try again and succeed.
@@ -2883,7 +2880,7 @@ describe.only("Limbo", function () {
   it("t-38. User with pending rewards gets rewards when staking zero tokens", async function () {
     //make a threshold pool.
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     const flanBalanceBefore = await this.flan.balanceOf(owner.address);
 
@@ -2901,5 +2898,26 @@ describe.only("Limbo", function () {
     const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
     expect(numberClose(flanBalanceChangeAgterSecondStake, "900000000000")).to.be.true;
   });
+
+  it("t-39. Ending configuration with wrong DAO or by wrong user fails. Correct user passes and ends configuration user", async function () {
+    const daoFactory = await ethers.getContractFactory("LimboDAO");
+
+    const wrongDAO = await daoFactory.deploy();
+
+    await expect(this.limbo.endConfiguration(wrongDAO.address)).to.be.revertedWith(
+      `BackrunDetected("${wrongDAO.address}", "${this.limboDAO.address}")`
+    );
+
+    await expect(this.limbo.connect(secondPerson).endConfiguration(this.limboDAO.address)).to.be.revertedWith(
+      `AccessDenied("${owner.address}", "${secondPerson.address}")`
+    );
+
+    const result = await executionResult(this.limbo.endConfiguration(this.limboDAO.address));
+    expect(result.success).to.equal(true, result.error);
+
+    const configLord = await this.limbo.temporaryConfigurationLord()
+    expect(configLord.substring(0,8)).to.equal("0x000000");
+  });
+
   //TESTS END
 });

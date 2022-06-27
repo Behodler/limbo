@@ -205,7 +205,7 @@ contract FlashGovernanceArbiter is Governable {
 
   ///@dev for negative values, relative comparisons need to be calculated correctly.
   function enforceToleranceInt(int256 v1, int256 v2) public view {
-    if (!configured) return;
+    if (!configured()) return;
     uint256 uv1 = uint256(v1 > 0 ? v1 : -1 * v1);
     uint256 uv2 = uint256(v2 > 0 ? v2 : -1 * v2);
     enforceTolerance(uv1, uv2);
