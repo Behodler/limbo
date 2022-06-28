@@ -273,7 +273,7 @@ contract Limbo is Governable {
   mapping(address => mapping(uint256 => CrossingParameters)) public tokenCrossingParameters;
 
   ///@dev soul->owner->unstaker->amount
-  mapping(address => mapping(address => mapping(address => uint256))) unstakeApproval;
+  mapping(address => mapping(address => mapping(address => uint256))) public unstakeApproval;
   FlanLike Flan;
 
   modifier enabled() {
