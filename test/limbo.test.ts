@@ -694,6 +694,7 @@ describe.only("Limbo", function () {
     //end configuration
     await this.limbo.endConfiguration(this.limboDAO.address);
 
+
     //make flashgovernance decision.
     await this.eye.approve(this.flashGovernance.address, 21000000);
 
@@ -702,6 +703,7 @@ describe.only("Limbo", function () {
     this.eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await this.eye.approve(this.limboDAO.address, this.eyeToBurn.mul(100));
     await this.limboDAO.burnAsset(this.eye.address, this.eyeToBurn, false);
+      
 
     //configure and lodge proposal
     const burnFlashStakeProposalFactory = await ethers.getContractFactory("BurnFlashStakeDeposit");
@@ -784,7 +786,6 @@ describe.only("Limbo", function () {
     expect(pendingFlashDecisionAfter[1]).to.equal("0");
     expect(pendingFlashDecisionAfter[2]).to.equal("0x0000000000000000000000000000000000000000");
     expect(pendingFlashDecisionAfter[3]).to.equal(false);
-    //assert pendingFlashDecision after
   });
 
   it("t-10. unstaking rewards user correctly and sets unclaimed to zero", async function () {

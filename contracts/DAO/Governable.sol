@@ -34,7 +34,7 @@ abstract contract Governable {
     temporaryConfigurationLord = address(0);
   }
 
-  function configured() internal view returns (bool) {
+  function configured() public view returns (bool) {
     return temporaryConfigurationLord == address(0);
   }
 
