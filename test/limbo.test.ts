@@ -448,7 +448,7 @@ describe.only("Limbo", function () {
     await this.aave.transfer(this.limbo.address, 1000);
     // enableProtocol
 
-    await expect(this.limbo.enableProtocol()).to.be.revertedWith("EJ");
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith("ProtocolDisabled");
     // governanceShutdown
     // configureCrossingConfig
     await expect(

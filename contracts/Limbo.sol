@@ -107,34 +107,6 @@ enum SoulType {
   perpetual //the type of staking pool most people are familiar with.
 }
 
-/*
-Error string legend:
-token not recognized as valid soul.	           E1
-invalid state	                                 E2
-unstaking locked	                             E3
-balance exceeded	                             E4
-bonus already claimed.	                       E5
-crossing bonus arithmetic invariant.	         E6
-token accounted for.	                         E7
-burning excess SCX failed.	                   E8
-Invocation reward failed.	                     E9
-only threshold souls can be migrated           EB
-not enough time between crossing and migration EC
-bonus must be positive                         ED
-Unauthorized call                              EE
-Protocol disabled                              EF
-Reserve divergence tolerance exceeded          EG
-not enough time between reserve stamps         EH
-Minimum APY only applicable to threshold souls EI
-Governance action failed.                      EJ
-Access Denied                                  EK
-ERC20 Transfer Failed                          EL
-Incorrect SCX transfer to AMMHelper            EM
-Legacy Attack Vector Removed                   EN
-Oracle LPs zeroed                              EO   
-Flash Governance Disabled                      EP
-*/
-
 struct Soul {
   uint256 lastRewardTimestamp;
   uint256 accumulatedFlanPerShare;
@@ -222,7 +194,15 @@ library MigrationLib {
     IERC20(crossingConfig.behodler).safeTransfer(crossingConfig.ammHelper, scxBalance);
     uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(scxBalance);
     //reward caller and update soul state
-    require(flan.mint(msg.sender, crossingConfig.migrationInvocationReward), "E9");
+
+    (bool noException, bytes memory result) = address(flan).call(
+      abi.encodeWithSignature("mint(address,uint)", msg.sender, crossingConfig.migrationInvocationReward)
+    );
+    bool success = abi.decode(result, (bool));
+    if (!noException || !success) {
+      revert InvocationRewardFailed(msg.sender);
+    }
+
     soul.state = SoulState.crossedOver;
     return (tokenBalance, lpMinted);
   }
@@ -277,7 +257,9 @@ contract Limbo is Governable {
   FlanLike Flan;
 
   modifier enabled() {
-    require(protocolEnabled, "EF");
+    if(!protocolEnabled){
+      revert ProtocolDisabled();
+    }
     _;
   }
 
@@ -291,7 +273,9 @@ contract Limbo is Governable {
     uint256 daiThreshold
   ) public governanceApproved(false) {
     Soul storage soul = currentSoul(token);
-    require(soul.soulType == SoulType.threshold, "EI");
+    if(soul.soulType != SoulType.threshold){
+      revert InvalidSoulType(token, uint(soul.soulType), uint(SoulType.threshold));
+    }
     uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(desiredAPY, daiThreshold);
     flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
     soul.flanPerSecond = fps;
@@ -304,7 +288,10 @@ contract Limbo is Governable {
   }
 
   function updateSoul(address token, Soul storage soul) internal {
-    require(soul.soulType != SoulType.uninitialized, "E1");
+    if (soul.soulType == SoulType.uninitialized) {
+      revert InvalidSoul(token);
+    }
+
     uint256 finalTimeStamp = block.timestamp;
     if (soul.state != SoulState.staking) {
       finalTimeStamp = tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp;
@@ -435,7 +422,8 @@ contract Limbo is Governable {
    */
   function stake(address token, uint256 amount) public enabled {
     Soul storage soul = currentSoul(token);
-    require(soul.state == SoulState.staking, "E2");
+    if (soul.state != SoulState.staking) revert InvalidSoulState(token, uint256(soul.state));
+
     updateSoul(token, soul);
     uint256 currentIndex = latestIndex[token];
     User storage user = userInfo[token][msg.sender][currentIndex];
@@ -488,10 +476,14 @@ contract Limbo is Governable {
       unstakeApproval[token][holder][unstaker] -= amount;
     }
     Soul storage soul = currentSoul(token);
-    require(soul.state == SoulState.calibration || soul.state == SoulState.staking, "E2");
+    if (soul.state != SoulState.calibration && soul.state != SoulState.staking) {
+      revert InvalidSoulState(token, uint256(soul.state));
+    }
     updateSoul(token, soul);
     User storage user = userInfo[token][holder][latestIndex[token]];
-    require(user.stakedAmount >= amount, "E4");
+    if (user.stakedAmount < amount) {
+      revert ExcessiveWithdrawalRequest(token, amount, user.stakedAmount);
+    }
 
     uint256 pending = getPending(user, soul);
     if (pending > 0 && amount > 0) {
@@ -525,24 +517,32 @@ contract Limbo is Governable {
   function claimBonus(address token, uint256 index) public enabled {
     Soul storage soul = souls[token][index];
     CrossingParameters storage crossing = tokenCrossingParameters[token][index];
-    require(soul.state == SoulState.crossedOver || soul.state == SoulState.waitingToCross, "E2");
-
+    if (soul.state != SoulState.crossedOver && soul.state != SoulState.waitingToCross) {
+      revert InvalidSoulState(token, uint256(soul.state));
+    }
     User storage user = userInfo[token][msg.sender][index];
-    require(!user.bonusPaid, "E5");
+    if (user.bonusPaid) {
+      revert BonusClaimed(token, index);
+    }
     user.bonusPaid = true;
     int256 accumulatedFlanPerTeraToken = crossing.crossingBonusDelta *
       int256(crossing.stakingEndsTimestamp - crossing.stakingBeginsTimestamp);
 
     //assert signs are the same
-    require(accumulatedFlanPerTeraToken * crossing.crossingBonusDelta >= 0, "E6");
+    if (accumulatedFlanPerTeraToken * crossing.crossingBonusDelta < 0) {
+      revert CrossingBonusInvariant(accumulatedFlanPerTeraToken, crossing.crossingBonusDelta);
+    }
 
     int256 finalFlanPerTeraToken = int256(crossing.initialCrossingBonus) + accumulatedFlanPerTeraToken;
 
     uint256 flanBonus = 0;
-    require(finalFlanPerTeraToken > 0, "ED");
 
-    flanBonus = uint256((int256(user.stakedAmount) * finalFlanPerTeraToken)) / TERA;
-    Flan.mint(msg.sender, flanBonus);
+    if (finalFlanPerTeraToken > 0) {
+      flanBonus = uint256((int256(user.stakedAmount) * finalFlanPerTeraToken)) / TERA;
+      Flan.mint(msg.sender, flanBonus);
+    } else {
+      revert FlanBonusMustBePositive(token, index, user.stakedAmount, finalFlanPerTeraToken);
+    }
 
     emit BonusPaid(token, index, msg.sender, flanBonus);
   }
@@ -554,7 +554,9 @@ contract Limbo is Governable {
   */
   function claimSecondaryRewards(address token) public {
     SoulState state = currentSoul(token).state;
-    require(state == SoulState.calibration || state == SoulState.crossedOver, "E7");
+    if (state != SoulState.calibration && state != SoulState.crossedOver) {
+      revert TokenAccountedFor(token);
+    }
     uint256 balance = IERC20(token).balanceOf(address(this));
     IERC20(token).safeTransfer(crossingConfig.ammHelper, balance);
     AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(token, balance, msg.sender);
@@ -567,13 +569,19 @@ contract Limbo is Governable {
    */
   function migrate(address token) public enabled {
     Soul storage soul = currentSoul(token);
-    require(soul.soulType == SoulType.threshold, "EB");
-    require(soul.state == SoulState.waitingToCross, "E2");
-    require(
-      block.timestamp - tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp >
-        crossingConfig.crossingMigrationDelay,
-      "EC"
-    );
+    if (soul.soulType != SoulType.threshold) {
+      revert InvalidSoulType(token, uint256(soul.soulType), uint256(SoulType.threshold));
+    }
+    if (soul.state != SoulState.waitingToCross) {
+      revert InvalidSoulState(token, uint256(soul.state));
+    }
+
+    if (
+      block.timestamp - tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp <
+      crossingConfig.crossingMigrationDelay
+    ) {
+      revert MigrationCoolDownActive(token, latestIndex[token], crossingConfig.crossingMigrationDelay);
+    }
 
     (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
       LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),

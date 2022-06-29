@@ -4,11 +4,12 @@ import "../ProposalFactory.sol";
 import "../../facades/LimboLike.sol";
 import "../../facades/AMMHelper.sol";
 import "../../facades/MorgothTokenApproverLike.sol";
+import "../../periphery/Errors.sol";
 
 /**
-* @author Justin Goro
-* @notice For adding a list of new souls to Limbo for staking 
-*/
+ * @author Justin Goro
+ * @notice For adding a list of new souls to Limbo for staking
+ */
 contract UpdateMultipleSoulConfigProposal is Proposal {
   struct Parameters {
     address token;
@@ -46,7 +47,9 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     uint256 targetAPY,
     uint256 daiThreshold
   ) public {
-    require(morgothApprover.approved(token), "MORGOTH: token not approved for listing on Behodler");
+    if (!morgothApprover.approved(token)) {
+      revert TokenNotApproved(token);
+    }
     params.push(
       Parameters({
         token: token,
@@ -61,7 +64,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
   }
 
   //for safe lodging
-  function lockDown() public lockUntilComplete{}
+  function lockDown() public lockUntilComplete {}
 
   function execute() internal override returns (bool) {
     for (uint256 i = 0; i < params.length; i++) {
@@ -75,7 +78,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
         fps
       );
     }
-  //TODO: add configure crossing config
+    //TODO: add configure crossing config
     return true;
   }
 }

@@ -53,7 +53,9 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
   ///@param amount amount of flan to be minted
   function mint(address recipient, uint256 amount) public returns (bool) {
     uint256 allowance = msg.sender == owner() || msg.sender == DAO ? type(uint256).max : mintAllowance[msg.sender];
-    require(allowance >= amount, "Flan: Mint allowance exceeded");
+    if (allowance < amount) {
+      revert MintAllowanceExceeded(msg.sender, allowance, amount);
+    }
     approvedMint(recipient, amount, msg.sender, allowance);
     return true;
   }
@@ -73,16 +75,18 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     address recipient,
     uint256 amount
   ) internal override {
-    require(sender != address(0), "ERC20: transfer from the zero address");
-    require(recipient != address(0), "ERC20: transfer to the zero address");
-
     uint256 fee = (burnOnTransferFee * amount) / 100;
 
     _totalSupply = _totalSupply - fee;
     uint256 senderBalance = _balances[sender];
-    require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-    _balances[sender] = senderBalance - amount;
-    _balances[recipient] += amount - fee;
+
+    if (senderBalance < amount || amount < fee) {
+      revert TransferUnderflow(senderBalance, amount, fee);
+    }
+    unchecked {
+      _balances[sender] = senderBalance - amount;
+      _balances[recipient] += amount - fee;
+    }
 
     emit Transfer(sender, recipient, amount);
   }

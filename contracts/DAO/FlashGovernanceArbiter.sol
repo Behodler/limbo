@@ -4,6 +4,7 @@ import "./Governable.sol";
 import "../facades/Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../openzeppelin/IERC20.sol";
+
 // import "hardhat/console.sol";
 
 ///@author Justin Goro
@@ -64,15 +65,12 @@ contract FlashGovernanceArbiter is Governable {
    *@param isGoverned flags whether contract is governanble FlashGovernance Arbtier
    */
   function setGoverned(address[] calldata governables, bool[] calldata isGoverned) external onlySuccessfulProposal {
-    require(governables.length == isGoverned.length, "LIMBO: length mismatch");
+    if (governables.length != isGoverned.length) {
+      revert ArrayLengthMismatch(governables.length, isGoverned.length);
+    }
     for (uint256 i = 0; i < governables.length; i++) {
       governed[governables[i]] = isGoverned[i];
     }
-  }
-
-  modifier flashEnabled() {
-    require(msg.sender == DAO || governed[msg.sender], "LIMBO: EP");
-    _;
   }
 
   /*For every decision, we record the config at the time of the decision. This allows governance to change the rules
@@ -92,14 +90,16 @@ contract FlashGovernanceArbiter is Governable {
     address sender,
     address target,
     bool emergency
-  ) public flashEnabled {
+  ) public {
+    if (msg.sender != DAO && !governed[msg.sender]) {
+      revert FlashGovernanceDisabled(msg.sender);
+    }
     FlashGovernanceConfig memory current = pendingFlashDecision[target][sender];
 
     if (current.unlockTime < block.timestamp) {
-      require(
-        emergency || (block.timestamp - security.lastFlashGovernanceAct > security.epochSize),
-        "LIMBO: flash governance disabled for rest of epoch"
-      );
+      if (!emergency && (block.timestamp - security.lastFlashGovernanceAct < security.epochSize)) {
+        revert FlashGovernanceEpochFull(security.epochSize, security.lastFlashGovernanceAct);
+      }
       //if user has previously made a flashGovernanceDecision on this contract and the requisite time for judgment has passed
       //but the user has failed to withdraw their deposit then this will simply transfer the net amount required.
       //if the requisite amount has fallen since the first decision, the user will be reimbursed the difference.
@@ -107,7 +107,7 @@ contract FlashGovernanceArbiter is Governable {
 
       int256 netTransferAmount = int256(flashGovernanceConfig.amount) - int256(current.amount);
 
-     flashGovernanceConfig.asset.approve(address(this), type(uint).max);
+      flashGovernanceConfig.asset.approve(address(this), type(uint256).max);
       flashGovernanceConfig.asset.safeNetTransferFrom(sender, address(this), netTransferAmount);
 
       current = flashGovernanceConfig;
@@ -151,7 +151,9 @@ contract FlashGovernanceArbiter is Governable {
   ) public virtual onlySuccessfulProposal {
     security.maxGovernanceChangePerEpoch = maxGovernanceChangePerEpoch;
     security.epochSize = epochSize;
-    require(security.changeTolerance < 100, "Limbo: % between 0 and 100");
+    if (changeTolerance > 100) {
+      revert InvalidChangeTolerance(changeTolerance);
+    }
     security.changeTolerance = changeTolerance;
   }
 
@@ -181,12 +183,14 @@ contract FlashGovernanceArbiter is Governable {
    *@param asset is the collateral asset to be withdrawn
    */
   function withdrawGovernanceAsset(address targetContract, address asset) public virtual {
-    require(
-      address(pendingFlashDecision[targetContract][msg.sender].asset) == asset &&
-        pendingFlashDecision[targetContract][msg.sender].amount > 0 &&
-        pendingFlashDecision[targetContract][msg.sender].unlockTime < block.timestamp,
-      "Limbo: Flashgovernance decision pending."
-    );
+    bool ready = address(pendingFlashDecision[targetContract][msg.sender].asset) == asset &&
+      pendingFlashDecision[targetContract][msg.sender].amount > 0 &&
+      pendingFlashDecision[targetContract][msg.sender].unlockTime < block.timestamp;
+
+    if (!ready) {
+      revert FlashDecisionPending(targetContract, msg.sender);
+    }
+
     IERC20(pendingFlashDecision[targetContract][msg.sender].asset).transfer(
       msg.sender,
       pendingFlashDecision[targetContract][msg.sender].amount
@@ -217,11 +221,13 @@ contract FlashGovernanceArbiter is Governable {
     if (!enforceLimitsActive[msg.sender] || !Configurable(msg.sender).configured()) return;
     //bonus points for readability
     if (v1 > v2) {
-      if (v2 == 0) require(v1 <= 1, "FE1");
-      else require(((v1 - v2) * 100) < security.changeTolerance * v1, "FE1");
+      if ((v2 == 0 && v1 > 1) || (v1 - v2) * 100 >= security.changeTolerance * v1) {
+        revert FlashToleranceViolated(v1,v2);
+      }
     } else {
-      if (v1 == 0) require(v2 <= 1, "FE1");
-      else require(((v2 - v1) * 100) < security.changeTolerance * v1, "FE1");
+      if ((v1 == 0 && v2 > 1) || ((v2 - v1) * 100) >= security.changeTolerance * v1) {
+            revert FlashToleranceViolated(v1,v2);
+      }
     }
   }
 }

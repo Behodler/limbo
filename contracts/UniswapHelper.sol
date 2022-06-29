@@ -8,9 +8,12 @@ import "./periphery/UniswapV2/interfaces/IUniswapV2Factory.sol";
 import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./facades/AMMHelper.sol";
 import "./facades/LimboOracleLike.sol";
+
 // import "hardhat/console.sol";
 
-contract BlackHole {}
+contract BlackHole {
+
+}
 
 ///@Title Uniswap V2 helper for managing Flan liquidity on Uniswap V2, Sushiswap and any other compatible AMM
 ///@author Justin Goro
@@ -55,11 +58,6 @@ contract UniswapHelper is Governable, AMMHelper {
   //needs to be updated for future Martian, Lunar and Venusian blockchains although I suspect Lunar colonies will be very Terracentric because of low time lag.
   uint256 constant year = (1 days * 365);
 
-  modifier onlyLimbo() {
-    require(msg.sender == limbo);
-    _;
-  }
-
   constructor(address _limbo, address limboDAO) Governable(limboDAO) {
     limbo = _limbo;
     VARS.blackHole = address(new BlackHole());
@@ -74,7 +72,9 @@ contract UniswapHelper is Governable, AMMHelper {
 
   ///@dev Only for testing: On mainnet Dai has a fixed address.
   function setDAI(address dai) public {
-    require(block.chainid != 1, "DAI hardcoded on mainnet");
+    if (block.chainid == 1) {
+      revert NotOnMainnet();
+    }
     VARS.DAI = dai;
   }
 
@@ -98,10 +98,15 @@ contract UniswapHelper is Governable, AMMHelper {
     limbo = _limbo;
     VARS.behodler = behodler;
     VARS.flan = flan;
-    require(divergenceTolerance >= 100, "Divergence of 100 is parity");
+    if (divergenceTolerance < 100) {
+      revert DivergenceToleranceTooLow(divergenceTolerance);
+    }
     VARS.divergenceTolerance = divergenceTolerance;
     VARS.precision = precision == 0 ? precision : precision;
-    require(priceBoostOvershoot < 100, "Set overshoot to number between 0 and 99.");
+    if(priceBoostOvershoot > 99) {
+      revert PriceOvershootTooHigh(priceBoostOvershoot);
+    }
+
     VARS.priceBoostOvershoot = priceBoostOvershoot;
     LimboOracleLike limboOracle = LimboOracleLike(oracle);
     VARS.factory = limboOracle.factory();
@@ -116,8 +121,9 @@ contract UniswapHelper is Governable, AMMHelper {
 
     address zero = address(0);
 
-    require(!(fln_scx == zero || dai_scx == zero || scx__fln_scx == zero), "EO");
-
+    if (fln_scx == zero || dai_scx == zero || scx__fln_scx == zero) {
+      revert OracleLPsNotSet(fln_scx, dai_scx, scx__fln_scx);
+    }
     VARS.oracleSet = OracleSet({
       oracle: limboOracle,
       fln_scx: IUniswapV2Pair(fln_scx),
@@ -153,7 +159,12 @@ contract UniswapHelper is Governable, AMMHelper {
 
   ///@notice When tokens are migrated to Behodler, SCX is generated. This SCX is used to boost Flan liquidity and nudge the price of Flan back to parity with Dai
   ///@dev makes use of price tilting. Be sure to understand the concept of price tilting before trying to understand the final if statement.
-  function stabilizeFlan(uint256 mintedSCX) public override onlyLimbo updateQuotes returns (uint256 lpMinted) {
+  function stabilizeFlan(uint256 mintedSCX) public override returns (uint256 lpMinted) {
+    if (msg.sender != limbo) {
+      revert OnlyLimbo(msg.sender, limbo);
+    }
+    generateFLNQuote();
+
     PriceTiltVARS memory priceTilting = getPriceTiltVARS();
     uint256 transferredSCX = (mintedSCX * 98) / 100;
     uint256 finalSCXBalanceOnLP = (transferredSCX) + priceTilting.currentSCXInFLN_SCX;
@@ -197,11 +208,6 @@ contract UniswapHelper is Governable, AMMHelper {
     set.oracle.update(VARS.behodler, address(set.fln_scx));
   }
 
-  modifier updateQuotes() {
-    generateFLNQuote();
-    _;
-  }
-
   ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
   ///@param minAPY Here APY refers to the dollar value of flan relative to the dollar value of the threshold
   ///@param daiThreshold The DAI value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
@@ -209,7 +215,9 @@ contract UniswapHelper is Governable, AMMHelper {
     uint256 minAPY, //divide by 10000 to get percentage
     uint256 daiThreshold
   ) public pure override returns (uint256 fps) {
-    require(daiThreshold > 0, "EN");
+    if (daiThreshold == 0) {
+      revert DaiThresholdMustBePositive();
+    }
     uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
     fps = returnOnThreshold / (year);
   }

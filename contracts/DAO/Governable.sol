@@ -51,7 +51,10 @@ abstract contract Governable {
 
   function assertSoulUpdateProposal(address sender) internal view {
     (, , address proposalFactory) = LimboDAOLike(DAO).proposalConfig();
-    require(!configured() || sender == ProposalFactoryLike(proposalFactory).soulUpdateProposal(), "EJ");
+    //TODO: is this if statement logic complete?
+    if (configured() && sender != ProposalFactoryLike(proposalFactory).soulUpdateProposal()) {
+      revert GovernanceActionFailed(configured(), sender);
+    }
     assertSuccessfulProposal(sender);
   }
 
@@ -71,7 +74,9 @@ abstract contract Governable {
   }
 
   function assertSuccessfulProposal(address sender) internal view {
-    require(!configured() || LimboDAOLike(DAO).successfulProposal(sender), "EJ");
+    if (configured() && !LimboDAOLike(DAO).successfulProposal(sender)) {
+      revert GovernanceActionFailed(configured(), sender);
+    }
   }
 
   constructor(address dao) {
@@ -87,7 +92,9 @@ abstract contract Governable {
 
   ///@param dao The LimboDAO contract address
   function setDAO(address dao) public {
-    require(DAO == address(0) || msg.sender == DAO || !configured(), "EK");
+    if (DAO != address(0) && msg.sender != DAO && configured()) {
+      revert AccessDenied(temporaryConfigurationLord, msg.sender);
+    }
     DAO = dao;
     delete governer;
   }

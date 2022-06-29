@@ -3,6 +3,7 @@ pragma solidity 0.8.13;
 import "../facades/LimboDAOLike.sol";
 import "./Governable.sol";
 import "../openzeppelin/Ownable.sol";
+import "../periphery/Errors.sol";
 
 // import "hardhat/console.sol";
 
@@ -21,14 +22,17 @@ abstract contract Proposal {
 
   modifier onlyProposalFactoryOrDAO() {
     address dao = address(DAO);
-    require(dao != address(0), "PROPOSAL: DAO not set");
     (, , address proposalFactory) = DAO.proposalConfig();
-    require(msg.sender == dao || msg.sender == proposalFactory, "PROPOSAL: access denied");
+    if(msg.sender!=dao && msg.sender!=proposalFactory){
+      revert OnlyFactoryOrDAO(dao, proposalFactory);
+    }
     _;
   }
 
   modifier lockUntilComplete() {
-    require(!locked, "PROPOSAL: locked");
+    if(locked){
+      revert ProposalLocked(address(this));
+    }
     _;
     locked = true;
   }
@@ -38,7 +42,9 @@ abstract contract Proposal {
   }
 
   function orchestrateExecute() public onlyProposalFactoryOrDAO {
-    require(execute(), "LimboDAO: execution of proposal failed");
+    if(!execute()){
+      revert ExecutionFailed();
+    }
   }
 
   //override this function with all proposal logic. Only instructions included in this function will be executed if the proposal is a success.
@@ -88,7 +94,9 @@ contract ProposalFactory is Governable, Ownable {
     string memory status = "SUCCESS";
     bool success;
     if (whitelistedProposalContracts[proposal]) {
-      require(Proposal(proposal).locked(), "PROPOSAL: must be locked.");
+      if(!Proposal(proposal).locked()){
+        revert ProposalNotLocked(proposal);
+      }
       (success, ) = DAO.call(abi.encodeWithSignature("makeProposal(address,address)", proposal, msg.sender));
       if (!success) {
         status = "FAILED";
