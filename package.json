@@ -8,6 +8,7 @@
     "test": "npx hardhat test test/limbo.dao.*.test.ts && npx hardhat test test/limbo.test.ts",
     "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "test:wargames": "npx hardhat test test/wargames/*",
+    "test:freshABI":"sudo touch private/results.txt && rm -rf artifacts/* cache/* typechain/* && yarn build && sudo chmod -R 777 artifacts/ && sudo chmod -R 777 cache/ && sudo chmod -R 777 typechain/ && yarn test",
     "build:debug": "sudo rm -rf build/ && truffle build && yarn typechain",
     "build": "docker-compose up build",
     "docker:install": "rm -rf node_modules/* && touch yarn.lock && rm yarn.lock && docker-compose up install",
@@ -68,7 +69,6 @@
     "typescript": "^4.6.2"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.6.0",
     "hardhat": "^2.9.9",
     "hardhat-deploy": "^0.10.5",
     "mocha": "^10.0.0",
