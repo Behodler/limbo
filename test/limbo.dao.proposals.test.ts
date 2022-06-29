@@ -294,7 +294,7 @@ describe("DAO Proposals", function () {
     expect(currentProposalAfter.toString()).to.equal(updateProposalConfigProposal.address);
 
     await expect(updateProposalConfigProposal.parameterize(110, 220, proposalFactory.address)).to.be.revertedWith(
-      "PROPOSAL: locked"
+      `ProposalLocked("${updateProposalConfigProposal.address}")`
     );
   });
 
@@ -518,7 +518,7 @@ describe("DAO Proposals", function () {
     await dao.burnAsset(eye.address, eyeToBurn, false);
 
     await expect(this.soulUpdateProposal.parameterize(sushiEYEULP.address, "100", 1, 1, 1, 1)).to.be.revertedWith(
-      "MORGOTH: token not approved for listing on Behodler"
+      `TokenNotApproved("${sushiEYEULP.address}")`
     );
 
     await this.morgothTokenApprover.addToken(sushiEYEULP.address);

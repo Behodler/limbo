@@ -8,6 +8,8 @@ import "./UniswapV2/lib/FixedPoint.sol";
 
 import "./UniswapV2/libraries/UniswapV2OracleLibrary.sol";
 import "./UniswapV2/libraries/UniswapV2Library.sol";
+import "../periphery/Errors.sol";
+
 // import "hardhat/console.sol";
 
 /**
@@ -32,15 +34,16 @@ contract LimboOracle is Governable {
   }
   mapping(address => PairMeasurement) public pairMeasurements;
 
-  function getLastUpdate(address token0,address token1) public view returns (uint32, uint){
-     address pair = factory.getPair(token0, token1);
+  function getLastUpdate(address token0, address token1) public view returns (uint32, uint256) {
+    address pair = factory.getPair(token0, token1);
     PairMeasurement memory measurement = pairMeasurements[pair];
-    return (measurement.blockTimestampLast,measurement.period);
-
+    return (measurement.blockTimestampLast, measurement.period);
   }
 
   modifier validPair(address token0, address token1) {
-    require(isPair(token0, token1), "ORACLE: PAIR_NOT_FOUND");
+    if (!isPair(token0, token1)) {
+      revert InvalidPair(token0, token1);
+    }
     _;
   }
 
@@ -60,7 +63,9 @@ contract LimboOracle is Governable {
     uint112 reserve1;
     uint32 blockTimestampLast;
     (reserve0, reserve1, blockTimestampLast) = pair.getReserves();
-    require(reserve0 != 0 && reserve1 != 0, "ORACLE: NO_RESERVES"); // ensure that there's liquidity in the pair
+    if (reserve0 == 0 || reserve1 == 0) {
+      revert ReservesEmpty(pairAddress, reserve0, reserve1);
+    }
     pairMeasurements[pairAddress] = PairMeasurement({
       price0CumulativeLast: price0CumulativeLast,
       price1CumulativeLast: price1CumulativeLast,
@@ -96,30 +101,23 @@ contract LimboOracle is Governable {
     address tokenOut,
     uint256 amountIn
   ) external view validPair(tokenIn, tokenOut) returns (uint256 amountOut) {
+    console.log("correct oracle");
     IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenIn, tokenOut));
     PairMeasurement memory measurement = pairMeasurements[address(pair)];
 
-    //console.log("pricedToken %s", pricedToken);
-
-/*
-    // note this will always return 0 before update has been called successfully for the first time.
-    function consult(address token, uint amountIn) external view returns (uint amountOut) {
-        if (token == token0) {
-            amountOut = price0Average.mul(amountIn).decode144();
-        } else {
-            require(token == token1, 'ExampleOracleSimple: INVALID_TOKEN');
-            amountOut = price1Average.mul(amountIn).decode144();
-        }
-    }
-*/
     if (tokenIn == pair.token0()) {
       amountOut = (measurement.price0Average.mul(amountIn)).decode144();
     } else {
-      require(tokenIn == pair.token1(), "ORACLE: INVALID_TOKEN");
+      if (tokenIn != pair.token1()) {
+        revert InvalidToken(address(pair), tokenIn);
+      }
       amountOut = (measurement.price1Average.mul(amountIn)).decode144();
     }
 
-    require(amountOut > 0, "ORACLE: UPDATE FIRST");
+    console.log("In oracle amountOut %s", amountOut);
+    if (amountOut == 0) {
+      revert UpdateOracle(tokenIn, tokenOut, amountIn);
+    }
   }
 
   function _update(address _pair) private {
@@ -128,7 +126,10 @@ contract LimboOracle is Governable {
     PairMeasurement memory measurement = pairMeasurements[_pair];
     // //console.log("ORACLE: price0Cumulative %s, price1Cumulative", price0Cumulative, price1Cumulative);
 
-    require(measurement.period > 0, "ORACLE: Asset not registered");
+    if (measurement.period == 0) {
+      revert AssetNotRegistered(_pair);
+    }
+
     uint32 timeElapsed;
     unchecked {
       timeElapsed = blockTimestamp - measurement.blockTimestampLast; // overflow is desired
@@ -136,25 +137,13 @@ contract LimboOracle is Governable {
 
     //console.log("period %s, timeElapsed %s", measurement.period, timeElapsed);
     // ensure that at least one full period has passed since the last update
-    require(timeElapsed >= measurement.period, "ORACLE: WAIT PERIOD TOO SMALL");
-
-    //console.log(
-    //   "price0Cumulative %s, measurement.price0CumulativeLast %s, difference %s",
-    //   price0Cumulative,
-    //   measurement.price0CumulativeLast,
-    //   price0Cumulative - measurement.price0CumulativeLast
-    // );
+    if (timeElapsed < measurement.period) {
+      revert WaitPeriodTooSmall(timeElapsed, measurement.period);
+    }
 
     measurement.price0Average = FixedPoint.uq112x112(
       uint224((price0Cumulative - measurement.price0CumulativeLast) / timeElapsed)
     );
-
-    //console.log(
-    //   "price1Cumulative %s, measurement.price1CumulativeLast %s, difference %s",
-    //   price1Cumulative,
-    //   measurement.price1CumulativeLast,
-    //   price1Cumulative - measurement.price1CumulativeLast
-    // );
 
     measurement.price1Average = FixedPoint.uq112x112(
       uint224((price1Cumulative - measurement.price1CumulativeLast) / timeElapsed)

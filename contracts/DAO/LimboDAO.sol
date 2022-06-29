@@ -9,7 +9,7 @@ import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "../facades/LimboOracleLike.sol";
 import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./Governable.sol";
-// import "hardhat/console.sol";
+//  import "hardhat/console.sol";
 import "../periphery/Errors.sol";
 import "../openzeppelin/SafeERC20.sol";
 
@@ -218,7 +218,7 @@ contract LimboDAO is Ownable {
     }
   }
 
-   ///@notice call this on all governables before calling killDAO
+  ///@notice call this on all governables before calling killDAO
   function transferToNewDAO(address governed, address newDAO) public onlyOwner {
     Governable(governed).setDAO(newDAO);
   }

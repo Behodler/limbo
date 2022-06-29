@@ -235,7 +235,7 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     let fateState = await dao.fateState(owner.address);
-    expect(fateState[1].toString()).to.equal("25001157407");
+    expect(numberClose(fateState[1],"25001157407")).to.equal(true);
 
     result = await executionResult(dao.setEYEBasedAssetStake(400n * ONE, 400n * ONE, 20000000000n, eye.address, false));
     expect(result.success).to.equal(true, result.error);
@@ -269,6 +269,7 @@ describe("DAO staking", function () {
     const lpBalanceBefore = await daiEYESLP.balanceOf(owner.address);
     advanceTime(10000);
 
+    console.log("js finalEYE balance" + finalEyeBalance.toString());
     let result = await executionResult(
       dao.setEYEBasedAssetStake(finalAssetBalance, finalEyeBalance.toString(), "5477225575", daiEYESLP.address, false)
     );

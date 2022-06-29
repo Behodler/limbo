@@ -7,6 +7,8 @@
 pragma solidity 0.8.13;
 import "./IERC20.sol";
 import "./Ownable.sol";
+import "../periphery/Errors.sol";
+
 // import "hardhat/console.sol";
 
 // import "hardhat/console.sol";
@@ -188,8 +190,10 @@ contract ERC20 is IERC20, IERC20Metadata {
   ) public virtual override returns (bool) {
     _transfer(sender, recipient, amount);
     uint256 currentAllowance = _allowances[sender][msg.sender];
- 
-    require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+
+    if (amount > currentAllowance) {
+      revert AllowanceExceeded(currentAllowance, amount);
+    }
     _approve(sender, msg.sender, currentAllowance - amount);
     return true;
   }
@@ -227,8 +231,12 @@ contract ERC20 is IERC20, IERC20Metadata {
    */
   function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
     uint256 currentAllowance = _allowances[msg.sender][spender];
-    require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    _approve(msg.sender, spender, currentAllowance - subtractedValue);
+    if (currentAllowance < subtractedValue) {
+      revert AllowanceUnderflow(currentAllowance, subtractedValue);
+    }
+    unchecked {
+      _approve(msg.sender, spender, currentAllowance - subtractedValue);
+    }
 
     return true;
   }
@@ -252,14 +260,14 @@ contract ERC20 is IERC20, IERC20Metadata {
     address recipient,
     uint256 amount
   ) internal virtual {
-    require(sender != address(0), "ERC20: transfer from the zero address");
-    require(recipient != address(0), "ERC20: transfer to the zero address");
-
     uint256 senderBalance = _balances[sender];
-    require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-  
-    _balances[sender] = senderBalance - amount;
-    _balances[recipient] += amount;
+    if (senderBalance < amount) {
+      revert TransferUnderflow(senderBalance, 0, amount);
+    }
+    unchecked {
+      _balances[sender] = senderBalance - amount;
+      _balances[recipient] += amount;
+    }
 
     emit Transfer(sender, recipient, amount);
   }
@@ -274,8 +282,6 @@ contract ERC20 is IERC20, IERC20Metadata {
    * - `to` cannot be the zero address.
    */
   function _mint(address account, uint256 amount) internal virtual {
-    require(account != address(0), "ERC20: mint to the zero address");
-
     _totalSupply += amount;
     _balances[account] += amount;
     emit Transfer(address(0), account, amount);
@@ -293,12 +299,14 @@ contract ERC20 is IERC20, IERC20Metadata {
    * - `account` must have at least `amount` tokens.
    */
   function _burn(address account, uint256 amount) internal virtual {
-    require(account != address(0), "ERC20: burn from the zero address");
-
     uint256 accountBalance = _balances[account];
-    require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-    _balances[account] = accountBalance - amount;
-    _totalSupply -= amount;
+    if (accountBalance < amount) {
+      revert BurnUnderflow(accountBalance, amount);
+    }
+    unchecked {
+      _balances[account] = accountBalance - amount;
+      _totalSupply -= amount;
+    }
 
     emit Transfer(account, address(0), amount);
   }
@@ -321,9 +329,6 @@ contract ERC20 is IERC20, IERC20Metadata {
     address spender,
     uint256 amount
   ) internal virtual {
-    require(owner != address(0), "ERC20: approve from the zero address");
-    require(spender != address(0), "ERC20: approve to the zero address");
-
     _allowances[owner][spender] = amount;
     emit Approval(owner, spender, amount);
   }
@@ -360,7 +365,10 @@ abstract contract ERC20Burnable is ERC20 {
    */
   function burnFrom(address account, uint256 amount) public virtual {
     uint256 currentAllowance = allowance(account, msg.sender);
-    require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+
+    if (currentAllowance < amount) {
+      revert AllowanceExceeded(currentAllowance, amount);
+    }
     _approve(account, msg.sender, currentAllowance - amount);
     _burn(account, amount);
   }

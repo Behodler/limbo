@@ -62,11 +62,13 @@ library Address {
    */
   function sendValue(address payable recipient, uint256 amount) internal {
     if (address(this).balance < amount) {
-      revert ERC20_InsufficinetFunds(address(this).balance, amount);
+      revert InsufficinetFunds(address(this).balance, amount);
     }
 
     (bool success, ) = recipient.call{value: amount}("");
-    require(success, "Address: unable to send value, recipient may have reverted");
+    if (!success) {
+      revert InvocationFailure(recipient);
+    }
   }
 
   /**
@@ -136,7 +138,7 @@ library Address {
     uint256 value,
     string memory errorMessage
   ) internal returns (bytes memory) {
-    if (address(this).balance < value) revert ERC20_InsufficinetFunds(address(this).balance, value);
+    if (address(this).balance < value) revert InsufficinetFunds(address(this).balance, value);
 
     if (!isContract(target)) {
       revert NotAContract(target);
@@ -294,7 +296,7 @@ library SafeERC20 {
     // or when resetting it to zero. To increase and decrease it, use
     // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
     if (value > 0 && token.allowance(address(this), spender) > 0) {
-      revert ERC20_ApproveToNonZero(address(token), spender, value);
+      revert ApproveToNonZero(address(token), spender, value);
     }
     _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
   }
@@ -322,7 +324,10 @@ library SafeERC20 {
     bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
     if (returndata.length > 0) {
       // Return data is optional
-      require(abi.decode(returndata, (bool)), "SafeERC20: ERC20 operation did not succeed");
+      if(!abi.decode(returndata, (bool))){
+        revert OperationFailure();
+      }
+     
     }
   }
 }
