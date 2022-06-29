@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./openzeppelin/Ownable.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";

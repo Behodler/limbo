@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 import "../facades/TokenProxyLike.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../openzeppelin/ERC20Burnable.sol";
+import "../openzeppelin/SafeERC20.sol";
 
 ///@title Rebase Proxy
 ///@author Justin Goro
@@ -10,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  */
 ///@dev TokenProxyRegistry contract maps this token to a base token.
 contract RebaseProxy is ERC20, TokenProxyLike {
+  using SafeERC20 for IERC20;
+
   constructor(
     address _baseToken,
     string memory name_,
@@ -29,7 +32,7 @@ contract RebaseProxy is ERC20, TokenProxyLike {
    */
   function mint(address to, uint256 amount) public override returns (uint256) {
     uint256 _redeemRate = redeemRate();
-    require(IERC20(baseToken).transferFrom(msg.sender, address(this), amount));
+    IERC20(baseToken).safeTransferFrom(msg.sender, address(this), amount);
     uint256 proxy = (amount * ONE) / _redeemRate;
     _mint(to, proxy);
     return proxy;
@@ -42,7 +45,7 @@ contract RebaseProxy is ERC20, TokenProxyLike {
   function redeem(address to, uint256 amount) public override returns (uint256) {
     uint256 baseTokens = (redeemRate() * amount) / ONE;
     _burn(msg.sender, amount);
-    IERC20(baseToken).transfer(to, baseTokens);
+    IERC20(baseToken).safeTransfer(to, baseTokens);
     return baseTokens;
   }
 }
