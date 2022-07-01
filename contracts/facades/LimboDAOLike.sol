@@ -58,5 +58,5 @@ abstract contract LimboDAOLike {
       address
     );
 
-  function setFateToFlan(uint256 rate) public virtual;
+  function setFlanPerFate(uint256 rate) public virtual;
 }

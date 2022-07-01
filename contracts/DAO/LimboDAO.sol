@@ -103,8 +103,8 @@ contract LimboDAO is Ownable {
 
   ProposalState public currentProposalState;
 
-  // Since staking EYE precludes it from earning Flan on Limbo, fateToFlan can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
-  uint256 public fateToFlan;
+  // Since staking EYE precludes it from earning Flan on Limbo, flanPerFate can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
+  uint256 public flanPerFate;
 
   modifier isLive() {
     if (!domainConfig.live) {
@@ -231,15 +231,15 @@ contract LimboDAO is Ownable {
   }
 
   // ///@notice optional conversion rate of Fate to Flan
-  function setFateToFlan(uint256 rate) public onlySuccessfulProposal {
-    fateToFlan = rate;
+  function setFlanPerFate(uint256 rate) public onlySuccessfulProposal {
+    flanPerFate = rate;
   }
 
   // ///@notice caller spends their Fate to earn Flan
-  function convertFateToFlan(uint256 fate) public returns (uint256 flan) {
-    if (fateToFlan == 0) revert FateToFlanConversionDisabled();
+  function convertFlanPerFate(uint256 fate) public returns (uint256 flan) {
+    if (flanPerFate == 0) revert FlanPerFateConversionDisabled();
     fateState[msg.sender].fateBalance -= fate;
-    flan = (fateToFlan * fate) / ONE;
+    flan = (flanPerFate * fate) / ONE;
     Flan(domainConfig.flan).mint(msg.sender, flan);
   }
 

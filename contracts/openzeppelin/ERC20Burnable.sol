@@ -191,7 +191,7 @@ contract ERC20 is IERC20, IERC20Metadata {
     _transfer(sender, recipient, amount);
     uint256 currentAllowance = _allowances[sender][msg.sender];
 
-    if (amount > currentAllowance) {
+    if (currentAllowance != type(uint).max && amount > currentAllowance) {
       revert AllowanceExceeded(currentAllowance, amount);
     }
     _approve(sender, msg.sender, currentAllowance - amount);

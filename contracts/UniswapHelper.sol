@@ -56,7 +56,7 @@ contract UniswapHelper is Governable, AMMHelper {
   uint256 constant EXA = 1e18;
 
   //needs to be updated for future Martian, Lunar and Venusian blockchains although I suspect Lunar colonies will be very Terracentric because of low time lag.
-  uint256 constant year = (1 days * 365);
+  uint256 constant year = 31536000; // seconds in 365 day year
 
   constructor(address _limbo, address limboDAO) Governable(limboDAO) {
     limbo = _limbo;
