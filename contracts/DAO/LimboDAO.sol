@@ -102,7 +102,6 @@ contract LimboDAO is Ownable {
   mapping(address => mapping(address => AssetClout)) public stakedUserAssetWeight; //user->asset->weight
 
   ProposalState public currentProposalState;
-  ProposalState public previousProposalState;
 
   // Since staking EYE precludes it from earning Flan on Limbo, fateToFlan can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
   uint256 public fateToFlan;
@@ -120,7 +119,6 @@ contract LimboDAO is Ownable {
   }
 
   function nextProposal() internal {
-    previousProposalState = currentProposalState;
     currentProposalState.proposal.setLocked(false);
     currentProposalState.proposal = Proposal(address(0));
     currentProposalState.fate = 0;
@@ -271,7 +269,7 @@ contract LimboDAO is Ownable {
   ///@notice handles proposal voting logic.
   ///@param proposal contract to be voted on
   ///@param fate positive is YES, negative is NO. Absolute value is deducted from caller.
-  function vote(address proposal, int256 fate) public incrementFate isLive {
+  function vote(address proposal, int256 fate) public isLive incrementFate{
     //this is just to protect users with out of sync UIs
     if (proposal != address(currentProposalState.proposal))
       revert ProposalMismatch(proposal, address(currentProposalState.proposal));
