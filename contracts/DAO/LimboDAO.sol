@@ -211,7 +211,7 @@ contract LimboDAO is Ownable {
     }
     for (uint256 i = 0; i < uniMetaLPs.length; i++) {
       if (IUniswapV2Pair(uniMetaLPs[i]).factory() != uniFactory)
-        revert UniswapV2FactoryMismatch(IUniswapV2Pair(uniMetaLPs[i]).factory(), sushiFactory);
+        revert UniswapV2FactoryMismatch(IUniswapV2Pair(uniMetaLPs[i]).factory(), uniFactory);
       _setApprovedAsset(uniMetaLPs[i], true, true, 0);
     }
   }

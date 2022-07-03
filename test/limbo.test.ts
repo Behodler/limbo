@@ -444,11 +444,11 @@ describe.only("Limbo", function () {
 
     await this.limbo.endConfiguration(this.limboDAO.address);
 
-    await expect(this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)).to.be.revertedWith("EJ");
+    await expect(this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)).to.be.revertedWith("GovernanceActionFailed");
     await this.aave.transfer(this.limbo.address, 1000);
     // enableProtocol
 
-    await expect(this.limbo.enableProtocol()).to.be.revertedWith("ProtocolDisabled");
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith("GovernanceActionFailed");
     // governanceShutdown
     // configureCrossingConfig
     await expect(
@@ -460,20 +460,20 @@ describe.only("Limbo", function () {
         10000000,
         10000
       )
-    ).to.be.revertedWith("EJ");
+    ).to.be.revertedWith("GovernanceActionFailed");
 
     //governanceApproved:
     //disableProtocol
-    await expect(this.limbo.disableProtocol()).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
-    await expect(this.limbo.enableProtocol()).to.be.revertedWith("EJ");
+    await expect(this.limbo.disableProtocol()).to.be.revertedWith("unrecognized custom error");
+    await expect(this.limbo.enableProtocol()).to.be.revertedWith("GovernanceActionFailed");
     //adjustSoul
     await expect(this.limbo.adjustSoul(this.aave.address, 1, 0, 10)).to.be.revertedWith(
-      "ERC20: transfer amount exceeds allowance"
+      "unrecognized custom error"
     );
     //configureCrossingParameters
 
     await expect(this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010)).to.be.revertedWith(
-      "ERC20: transfer amount exceeds allowance"
+      "unrecognized custom error"
     );
   });
 
@@ -640,7 +640,7 @@ describe.only("Limbo", function () {
 
     //try to adjust soul and fail
     await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith(
-      "ERC20: transfer amount exceeds allowance"
+      "unrecognized custom error"
     );
 
     //stake requisite tokens, try again and succeed.
@@ -670,7 +670,7 @@ describe.only("Limbo", function () {
     await this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
     await expect(this.flashGovernance.withdrawGovernanceAsset(this.limbo.address, this.eye.address)).to.be.revertedWith(
-      "Limbo: Flashgovernance decision pending."
+      "FlashDecisionPending"
     );
 
     await advanceTime(604801);
@@ -758,7 +758,7 @@ describe.only("Limbo", function () {
 
     //try to withdraw flash gov asset and fail. Assert money still there
     await expect(this.flashGovernance.withdrawGovernanceAsset(this.limbo.address, this.eye.address)).to.be.revertedWith(
-      "Limbo: Flashgovernance decision pending."
+      "FlashDecisionPending"
     );
 
     //execute burn proposal
@@ -955,8 +955,8 @@ describe.only("Limbo", function () {
     const soulStats = await soulReader.SoulStats(this.aave.address, this.limbo.address);
     expect(soulStats[0].toNumber()).to.equal(2);
 
-    await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("E2");
-    await expect(this.limbo.unstake(this.aave.address, "10000")).to.be.revertedWith("E2");
+    await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("InvalidSoulState");
+    await expect(this.limbo.unstake(this.aave.address, "10000")).to.be.revertedWith("InvalidSoulState");
 
     await updateSoulConfigProposal.parameterize(
       this.aave.address, //token
@@ -1010,7 +1010,7 @@ describe.only("Limbo", function () {
     await advanceTime(6048010);
     await this.limboDAO.executeCurrentProposal();
 
-    await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("E2");
+    await expect(this.limbo.stake(this.aave.address, "10000")).to.be.revertedWith("InvalidSoulState");
     const aaveBalance = await this.aave.balanceOf(this.limbo.address);
     await balanceCheck();
     await this.limbo.unstake(this.aave.address, "500");
@@ -1029,10 +1029,10 @@ describe.only("Limbo", function () {
       0,
       10000000
     );
-    await expect(this.limbo.stake(this.titan.address, "10000")).to.be.revertedWith("E1");
+    await expect(this.limbo.stake(this.titan.address, "10000")).to.be.revertedWith("InvalidSoul");
   });
 
-  it("t-15. unstaking amount larger than balance reverts with E4", async function () {
+  it("t-15. unstaking amount larger than balance reverts with ExcessiveWithdrawalRequest", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1047,10 +1047,10 @@ describe.only("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
+    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("ExcessiveWithdrawalRequest");
   });
 
-  it("t-16. unstaking amount larger than balance reverts with E4", async function () {
+  it("t-16. unstaking amount larger than balance reverts with ExcessiveWithdrawalRequest", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
       10000000, //crossingThreshold
@@ -1065,7 +1065,7 @@ describe.only("Limbo", function () {
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
 
-    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("E4");
+    await expect(this.limbo.unstake(this.aave.address, "10001")).to.be.revertedWith("ExcessiveWithdrawalRequest");
   });
 
   it("t-17. claiming staked reward resets unclaimed to zero", async function () {
@@ -1107,7 +1107,7 @@ describe.only("Limbo", function () {
     await this.limbo.stake(this.aave.address, "10000");
 
     await advanceTime(1000);
-    await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("E2");
+    await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("InvalidSoulState");
   });
 
   it("t-19. claiming negative bonus fails", async function () {
@@ -1129,7 +1129,7 @@ describe.only("Limbo", function () {
     await advanceTime(1000);
     await this.limbo.stake(this.aave.address, "2");
 
-    await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("ED");
+    await expect(this.limbo.claimBonus(this.aave.address, 0)).to.be.revertedWith("FlanBonusMustBePositive");
   });
 
   it("t-20. migration fails on not waitingToCross", async function () {
@@ -1144,7 +1144,7 @@ describe.only("Limbo", function () {
     //stake tokens
     await this.aave.approve(this.limbo.address, "10000001");
     await this.limbo.stake(this.aave.address, "10000");
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("E2");
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("InvalidSoulState");
   });
 
   it("t-21. only threshold souls can migrate", async function () {
@@ -1195,7 +1195,7 @@ describe.only("Limbo", function () {
 
     await advanceTime(minQuoteWaitDuration + 1);
     //no longer explicit quote generation
-    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("EB");
+    await expect(this.limbo.migrate(this.aave.address)).to.be.revertedWith("InvalidSoulType");
   });
 
   it("t-22. multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
@@ -1479,7 +1479,7 @@ describe.only("Limbo", function () {
   it("t-23. any whitelisted contract can mint flan", async function () {
     //assert secondPerson can't mint flan
     await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
-      "Flan: Mint allowance exceeded"
+      "MintAllowanceExceeded"
     );
 
     //whitelist secondPerson
@@ -1495,7 +1495,7 @@ describe.only("Limbo", function () {
 
     //assert secondPerson can't mint flan
     await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
-      "Flan: Mint allowance exceeded"
+      "MintAllowanceExceeded"
     );
   });
 
@@ -1650,7 +1650,7 @@ describe.only("Limbo", function () {
         1300, // 13%
         0 //let helper figure this out
       )
-    ).to.be.revertedWith("EI");
+    ).to.be.revertedWith("InvalidSoulType");
   });
 
   it("t-26. attemptToTargetAPY sets fps correctly, use to test multiple token migrations", async function () {
@@ -1887,7 +1887,7 @@ describe.only("Limbo", function () {
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
 
-    await expect(this.limbo.claimSecondaryRewards(sushi.address)).to.be.revertedWith("E7");
+    await expect(this.limbo.claimSecondaryRewards(sushi.address)).to.be.revertedWith("TokenAccountedFor");
   });
 
   it("t-28. flash governance tolerance enforced for flash loan but not successful proposals or unconfigured", async function () {
@@ -2146,7 +2146,7 @@ describe.only("Limbo", function () {
         2000, // 13%
         10000
       )
-    ).to.be.revertedWith("FE1");
+    ).to.be.revertedWith("FlashToleranceViolated");
   });
 
   it("t-30. FOT token accounting handled correctly", async function () {
@@ -2715,7 +2715,7 @@ describe.only("Limbo", function () {
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
     await expect(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001)).to.be.revertedWith(
-      "LIMBO: EP"
+      "FlashGovernanceDisabled"
     );
   });
 
@@ -2774,7 +2774,7 @@ describe.only("Limbo", function () {
       if (newDepositRequirement < initialStakeAmount) contextString = "decreases";
       else if (newDepositRequirement > initialStakeAmount) contextString = "increases";
 
-      console.log("DEPOSIT REQUIREMENT BETWEEN FLASH LOANS " + contextString);
+      console.log("DFlashGovernanceDisabledOSIT REQUIREMENT BETWEEN FLASH LOANS " + contextString);
 
       //configure soul
       let result = await executionResult(this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000));

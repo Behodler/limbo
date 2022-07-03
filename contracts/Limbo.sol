@@ -194,11 +194,11 @@ library MigrationLib {
     uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(scxBalance);
     //reward caller and update soul state
 
-    (bool noException, bytes memory result) = address(flan).call(
-      abi.encodeWithSignature("mint(address,uint)", msg.sender, crossingConfig.migrationInvocationReward)
-    );
-    bool success = abi.decode(result, (bool));
-    if (!noException || !success) {
+    uint256 flanOfCallerBefore = flan.balanceOf(msg.sender);
+    uint256 reward = crossingConfig.migrationInvocationReward;
+    flan.mint(msg.sender, reward);
+    uint256 change = flan.balanceOf(msg.sender) - flanOfCallerBefore;
+    if (change != reward) {
       revert InvocationRewardFailed(msg.sender);
     }
 
@@ -256,7 +256,7 @@ contract Limbo is Governable {
   FlanLike Flan;
 
   modifier enabled() {
-    if(!protocolEnabled){
+    if (!protocolEnabled) {
       revert ProtocolDisabled();
     }
     _;
@@ -272,8 +272,8 @@ contract Limbo is Governable {
     uint256 daiThreshold
   ) public governanceApproved(false) {
     Soul storage soul = currentSoul(token);
-    if(soul.soulType != SoulType.threshold){
-      revert InvalidSoulType(token, uint(soul.soulType), uint(SoulType.threshold));
+    if (soul.soulType != SoulType.threshold) {
+      revert InvalidSoulType(token, uint256(soul.soulType), uint256(SoulType.threshold));
     }
     uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(desiredAPY, daiThreshold);
     flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
