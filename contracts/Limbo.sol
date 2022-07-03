@@ -479,7 +479,8 @@ contract Limbo is Governable {
       revert InvalidSoulState(token, uint256(soul.state));
     }
     updateSoul(token, soul);
-    User storage user = userInfo[token][holder][latestIndex[token]];
+    uint index = latestIndex[token];
+    User storage user = userInfo[token][holder][index];
     if (user.stakedAmount < amount) {
       revert ExcessiveWithdrawalRequest(token, amount, user.stakedAmount);
     }
@@ -489,6 +490,7 @@ contract Limbo is Governable {
       user.stakedAmount = user.stakedAmount - amount;
       IERC20(token).safeTransfer(address(unstaker), amount);
       rewardAdjustDebt(unstaker, pending, soul.accumulatedFlanPerShare, user);
+      emit ClaimedReward(unstaker, token, index, pending);
       emit Unstaked(unstaker, token, amount);
     }
   }
