@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract Ownable {
   address private _owner;
@@ -599,10 +599,6 @@ contract WETH10 is IWETH10 {
 
       uint256 allowed = allowance[from][msg.sender];
       if (allowed != type(uint256).max) {
-        if (allowed < value) {
-          console.log("FROM: %s TO: %s", from, to);
-          console.log("allowed: %s value: %s", allowed, value);
-        }
         require(allowed >= value, "WETH: request exceeds allowance");
         uint256 reduced = allowed - value;
         allowance[from][msg.sender] = reduced;

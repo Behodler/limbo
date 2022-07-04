@@ -114,10 +114,6 @@ contract UniswapHelper is Governable, AMMHelper {
     address fln_scx = VARS.factory.getPair(flan, behodler);
     address dai_scx = VARS.factory.getPair(VARS.DAI, behodler);
     address scx__fln_scx = VARS.factory.getPair(behodler, fln_scx);
-    // console.log("dai %s", VARS.DAI);
-    // console.log("fln_scx %s", fln_scx);
-    // console.log("dai_scx %s", dai_scx);
-    // console.log("scx__fln_scx %s", scx__fln_scx);
 
     address zero = address(0);
 
@@ -168,18 +164,9 @@ contract UniswapHelper is Governable, AMMHelper {
     PriceTiltVARS memory priceTilting = getPriceTiltVARS();
     uint256 transferredSCX = (mintedSCX * 98) / 100;
     uint256 finalSCXBalanceOnLP = (transferredSCX) + priceTilting.currentSCXInFLN_SCX;
-    // console.log(
-    //   "finalSCXBalanceOnLP %s, currentSCXInFLN_SCX %s",
-    //   finalSCXBalanceOnLP,
-    //   priceTilting.currentSCXInFLN_SCX
-    // );
-    // console.log(
-    //   "actual balance of SCX in FLN_SCX %s",
-    //   IERC20(VARS.behodler).balanceOf(address(VARS.oracleSet.fln_scx))
-    // );
+  
     uint256 DesiredFinalFlanOnLP = (finalSCXBalanceOnLP * priceTilting.FlanPerSCX) / SPOT;
-    // console.log("FlanPerSCX %s ", priceTilting.FlanPerSCX);
-    // console.log("desiredFlanOnLP %s", DesiredFinalFlanOnLP);
+
     address pair = address(VARS.oracleSet.fln_scx);
 
     if (priceTilting.currentFLNInFLN_SCX < DesiredFinalFlanOnLP) {
@@ -187,7 +174,6 @@ contract UniswapHelper is Governable, AMMHelper {
         (100 - VARS.priceBoostOvershoot)) / 100;
       flanToMint = flanToMint == 0 ? DesiredFinalFlanOnLP - priceTilting.currentFLNInFLN_SCX : flanToMint;
       FlanLike(VARS.flan).mint(pair, flanToMint);
-      // console.log("MINTED SCX %s, scx balance %s", transferredSCX, IERC20(VARS.behodler).balanceOf(address(this)));
 
       IERC20(VARS.behodler).transfer(pair, transferredSCX);
       {

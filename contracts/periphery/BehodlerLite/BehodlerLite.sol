@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "./CommonIERC20.sol";
 
 abstract contract Burnable {
@@ -356,7 +356,6 @@ contract BehodlerLite is ScarcityLite {
   }
 
   modifier onlyValidToken(address token) {
-    if (!validTokens[token]) console.log("BEHODLER LITE: invalid token %s", token);
     require(lachesis == address(0) || validTokens[token], "BehodlerLite: tokenInvalid");
     _;
   }
