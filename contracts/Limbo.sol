@@ -217,14 +217,14 @@ contract Limbo is Governable {
   using MigrationLib for address;
   using CrossingLib for CrossingParameters;
 
-  event SoulUpdated(address soul, uint256 fps);
-  event Staked(address staker, address soul, uint256 amount);
-  event Unstaked(address staker, address soul, uint256 amount);
-  event TokenListed(address token, uint256 amount, uint256 scxfln_LP_minted);
+  event SoulUpdated(address indexed soul, uint256 fps);
+  event Staked(address indexed staker, address indexed soul, uint256 amount);
+  event Unstaked(address indexed staker, address indexed soul, uint256 amount);
+  event TokenListed(address indexed token, uint256 amount, uint256 scxfln_LP_minted);
 
-  event ClaimedReward(address staker, address soul, uint256 index, uint256 amount);
+  event ClaimedReward(address indexed staker, address indexed soul, uint256 index, uint256 amount);
 
-  event BonusPaid(address token, uint256 index, address recipient, uint256 bonus);
+  event BonusPaid(address indexed token, uint256 index, address indexed recipient, uint256 bonus);
 
   struct User {
     uint256 stakedAmount;
@@ -253,7 +253,7 @@ contract Limbo is Governable {
 
   ///@dev soul->owner->unstaker->amount
   mapping(address => mapping(address => mapping(address => uint256))) public unstakeApproval;
-  FlanLike Flan;
+  FlanLike immutable Flan;
 
   modifier enabled() {
     if (!protocolEnabled) {
@@ -479,7 +479,7 @@ contract Limbo is Governable {
       revert InvalidSoulState(token, uint256(soul.state));
     }
     updateSoul(token, soul);
-    uint index = latestIndex[token];
+    uint256 index = latestIndex[token];
     User storage user = userInfo[token][holder][index];
     if (user.stakedAmount < amount) {
       revert ExcessiveWithdrawalRequest(token, amount, user.stakedAmount);

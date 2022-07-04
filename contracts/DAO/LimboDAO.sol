@@ -80,11 +80,11 @@ struct AssetClout {
 contract LimboDAO is Ownable {
   using SafeERC20 for IERC20;
   event daoKilled(address newOwner);
-  event proposalLodged(address proposal, address proposer);
-  event voteCast(address voter, address proposal, int256 fateCast);
+  event proposalLodged(address indexed proposal, address indexed proposer);
+  event voteCast(address indexed voter, address indexed proposal, int256 fateCast);
   event assetApproval(address asset, bool appoved);
-  event proposalExecuted(address proposal, bool status);
-  event assetBurnt(address burner, address asset, uint256 fateCreated);
+  event proposalExecuted(address indexed proposal, bool status);
+  event assetBurnt(address indexed burner, address indexed asset, uint256 fateCreated);
 
   uint256 constant ONE = 1 ether;
 
