@@ -80,11 +80,11 @@ struct AssetClout {
 contract LimboDAO is Ownable {
   using SafeERC20 for IERC20;
   event daoKilled(address newOwner);
-  event proposalLodged(address proposal, address proposer);
-  event voteCast(address voter, address proposal, int256 fateCast);
+  event proposalLodged(address indexed proposal, address indexed proposer);
+  event voteCast(address indexed voter, address indexed proposal, int256 fateCast);
   event assetApproval(address asset, bool appoved);
-  event proposalExecuted(address proposal, bool status);
-  event assetBurnt(address burner, address asset, uint256 fateCreated);
+  event proposalExecuted(address indexed proposal, bool status);
+  event assetBurnt(address indexed burner, address indexed asset, uint256 fateCreated);
 
   uint256 constant ONE = 1 ether;
 
@@ -102,10 +102,9 @@ contract LimboDAO is Ownable {
   mapping(address => mapping(address => AssetClout)) public stakedUserAssetWeight; //user->asset->weight
 
   ProposalState public currentProposalState;
-  ProposalState public previousProposalState;
 
-  // Since staking EYE precludes it from earning Flan on Limbo, fateToFlan can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
-  uint256 public fateToFlan;
+  // Since staking EYE precludes it from earning Flan on Limbo, flanPerFate can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
+  uint256 public flanPerFate;
 
   modifier isLive() {
     if (!domainConfig.live) {
@@ -120,7 +119,6 @@ contract LimboDAO is Ownable {
   }
 
   function nextProposal() internal {
-    previousProposalState = currentProposalState;
     currentProposalState.proposal.setLocked(false);
     currentProposalState.proposal = Proposal(address(0));
     currentProposalState.fate = 0;
@@ -213,7 +211,7 @@ contract LimboDAO is Ownable {
     }
     for (uint256 i = 0; i < uniMetaLPs.length; i++) {
       if (IUniswapV2Pair(uniMetaLPs[i]).factory() != uniFactory)
-        revert UniswapV2FactoryMismatch(IUniswapV2Pair(uniMetaLPs[i]).factory(), sushiFactory);
+        revert UniswapV2FactoryMismatch(IUniswapV2Pair(uniMetaLPs[i]).factory(), uniFactory);
       _setApprovedAsset(uniMetaLPs[i], true, true, 0);
     }
   }
@@ -233,15 +231,15 @@ contract LimboDAO is Ownable {
   }
 
   // ///@notice optional conversion rate of Fate to Flan
-  function setFateToFlan(uint256 rate) public onlySuccessfulProposal {
-    fateToFlan = rate;
+  function setFlanPerFate(uint256 rate) public onlySuccessfulProposal {
+    flanPerFate = rate;
   }
 
   // ///@notice caller spends their Fate to earn Flan
-  function convertFateToFlan(uint256 fate) public returns (uint256 flan) {
-    if (fateToFlan == 0) revert FateToFlanConversionDisabled();
+  function convertFlanPerFate(uint256 fate) public returns (uint256 flan) {
+    if (flanPerFate == 0) revert FlanPerFateConversionDisabled();
     fateState[msg.sender].fateBalance -= fate;
-    flan = (fateToFlan * fate) / ONE;
+    flan = (flanPerFate * fate) / ONE;
     Flan(domainConfig.flan).mint(msg.sender, flan);
   }
 
@@ -271,7 +269,7 @@ contract LimboDAO is Ownable {
   ///@notice handles proposal voting logic.
   ///@param proposal contract to be voted on
   ///@param fate positive is YES, negative is NO. Absolute value is deducted from caller.
-  function vote(address proposal, int256 fate) public incrementFate isLive {
+  function vote(address proposal, int256 fate) public isLive incrementFate{
     //this is just to protect users with out of sync UIs
     if (proposal != address(currentProposalState.proposal))
       revert ProposalMismatch(proposal, address(currentProposalState.proposal));

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 abstract contract TokenProxyLike {
-    address internal baseToken;
+    address internal immutable baseToken;
     uint constant internal ONE = 1 ether;
     constructor (address _baseToken) {
         baseToken=_baseToken;

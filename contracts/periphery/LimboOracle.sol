@@ -101,7 +101,6 @@ contract LimboOracle is Governable {
     address tokenOut,
     uint256 amountIn
   ) external view validPair(tokenIn, tokenOut) returns (uint256 amountOut) {
-    console.log("correct oracle");
     IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenIn, tokenOut));
     PairMeasurement memory measurement = pairMeasurements[address(pair)];
 
@@ -114,7 +113,6 @@ contract LimboOracle is Governable {
       amountOut = (measurement.price1Average.mul(amountIn)).decode144();
     }
 
-    console.log("In oracle amountOut %s", amountOut);
     if (amountOut == 0) {
       revert UpdateOracle(tokenIn, tokenOut, amountIn);
     }

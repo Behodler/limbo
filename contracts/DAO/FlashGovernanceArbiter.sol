@@ -31,7 +31,7 @@ contract FlashGovernanceArbiter is Governable {
    * @param amount is the amount of the deposit_asset to be put up as decision collateral.
    * @param target is the contract that will be affected by the flash governance decision.
    */
-  event flashDecision(address actor, address deposit_asset, uint256 amount, address target);
+  event flashDecision(address indexed actor, address indexed deposit_asset, uint256 amount, address indexed target);
 
   mapping(address => bool) enforceLimitsActive;
 

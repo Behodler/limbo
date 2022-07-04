@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "./openzeppelin/Ownable.sol";
 import "./facades/LimboDAOLike.sol";
 import "./facades/Burnable.sol";
 import "./facades/BehodlerLike.sol";
@@ -195,11 +194,11 @@ library MigrationLib {
     uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(scxBalance);
     //reward caller and update soul state
 
-    (bool noException, bytes memory result) = address(flan).call(
-      abi.encodeWithSignature("mint(address,uint)", msg.sender, crossingConfig.migrationInvocationReward)
-    );
-    bool success = abi.decode(result, (bool));
-    if (!noException || !success) {
+    uint256 flanOfCallerBefore = flan.balanceOf(msg.sender);
+    uint256 reward = crossingConfig.migrationInvocationReward;
+    flan.mint(msg.sender, reward);
+    uint256 change = flan.balanceOf(msg.sender) - flanOfCallerBefore;
+    if (change != reward) {
       revert InvocationRewardFailed(msg.sender);
     }
 
@@ -218,14 +217,14 @@ contract Limbo is Governable {
   using MigrationLib for address;
   using CrossingLib for CrossingParameters;
 
-  event SoulUpdated(address soul, uint256 fps);
-  event Staked(address staker, address soul, uint256 amount);
-  event Unstaked(address staker, address soul, uint256 amount);
-  event TokenListed(address token, uint256 amount, uint256 scxfln_LP_minted);
+  event SoulUpdated(address indexed soul, uint256 fps);
+  event Staked(address indexed staker, address indexed soul, uint256 amount);
+  event Unstaked(address indexed staker, address indexed soul, uint256 amount);
+  event TokenListed(address indexed token, uint256 amount, uint256 scxfln_LP_minted);
 
-  event ClaimedReward(address staker, address soul, uint256 index, uint256 amount);
+  event ClaimedReward(address indexed staker, address indexed soul, uint256 index, uint256 amount);
 
-  event BonusPaid(address token, uint256 index, address recipient, uint256 bonus);
+  event BonusPaid(address indexed token, uint256 index, address indexed recipient, uint256 bonus);
 
   struct User {
     uint256 stakedAmount;
@@ -254,10 +253,10 @@ contract Limbo is Governable {
 
   ///@dev soul->owner->unstaker->amount
   mapping(address => mapping(address => mapping(address => uint256))) public unstakeApproval;
-  FlanLike Flan;
+  FlanLike immutable Flan;
 
   modifier enabled() {
-    if(!protocolEnabled){
+    if (!protocolEnabled) {
       revert ProtocolDisabled();
     }
     _;
@@ -273,8 +272,8 @@ contract Limbo is Governable {
     uint256 daiThreshold
   ) public governanceApproved(false) {
     Soul storage soul = currentSoul(token);
-    if(soul.soulType != SoulType.threshold){
-      revert InvalidSoulType(token, uint(soul.soulType), uint(SoulType.threshold));
+    if (soul.soulType != SoulType.threshold) {
+      revert InvalidSoulType(token, uint256(soul.soulType), uint256(SoulType.threshold));
     }
     uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(desiredAPY, daiThreshold);
     flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
@@ -480,7 +479,8 @@ contract Limbo is Governable {
       revert InvalidSoulState(token, uint256(soul.state));
     }
     updateSoul(token, soul);
-    User storage user = userInfo[token][holder][latestIndex[token]];
+    uint256 index = latestIndex[token];
+    User storage user = userInfo[token][holder][index];
     if (user.stakedAmount < amount) {
       revert ExcessiveWithdrawalRequest(token, amount, user.stakedAmount);
     }
@@ -490,6 +490,7 @@ contract Limbo is Governable {
       user.stakedAmount = user.stakedAmount - amount;
       IERC20(token).safeTransfer(address(unstaker), amount);
       rewardAdjustDebt(unstaker, pending, soul.accumulatedFlanPerShare, user);
+      emit ClaimedReward(unstaker, token, index, pending);
       emit Unstaked(unstaker, token, amount);
     }
   }

@@ -20,7 +20,7 @@ contract TurnOnFateMintingProposal is Proposal {
     }
 
     function execute() internal override returns (bool) {
-        DAO.setFateToFlan(rate);
+        DAO.setFlanPerFate(rate);
         return true;
     }
 }

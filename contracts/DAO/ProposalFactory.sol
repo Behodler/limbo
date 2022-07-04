@@ -13,7 +13,7 @@ import "../periphery/Errors.sol";
 abstract contract Proposal {
   string public description;
   bool public locked;
-  LimboDAOLike DAO;
+  LimboDAOLike immutable DAO;
 
   constructor(address dao, string memory _description) {
     DAO = LimboDAOLike(dao);

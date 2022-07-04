@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 enum FeeExemption {
   NO_EXEMPTIONS,
@@ -490,7 +490,6 @@ contract PyroToken is ERC20, ReentrancyGuard {
     //fee on transfer tokens
     uint256 trueTransfer = config.baseToken.balanceOf(address(this)) - initialBalance;
     uint256 pyro = ( ONE* trueTransfer) / _redeemRate;
-    console.log("minted pyro %s, baseTokenAmount %s", pyro, trueTransfer);
     _mint(recipient, pyro);
     emit Transfer(address(0), recipient, uint128(pyro), 0);
     return pyro;
@@ -818,7 +817,6 @@ contract LiquidityReceiver is Ownable {
   }
 
   constructor(address _lachesis) {
-    console.log('lachesis  %s',_lachesis);
     config.lachesis = LachesisLike(_lachesis);
   }
 
