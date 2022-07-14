@@ -1499,42 +1499,6 @@ describe.only("Limbo", function () {
     );
   });
 
-  it("t-24. flan burn fee on transfer proposal", async function () {
-    const feechangeProposalFactory = await ethers.getContractFactory("AdjustFlanFeeOnTransferProposal");
-    const feechangeProposal = await feechangeProposalFactory.deploy(this.limboDAO.address, "changer");
-
-    await feechangeProposal.parameterize(this.flan.address, 3);
-
-    await this.flan.mint(owner.address, 100);
-
-    //transfer flan to second and assert 100 arrives
-    await this.flan.transfer(secondPerson.address, 100);
-    expect(await this.flan.balanceOf(secondPerson.address)).to.equal(100);
-
-    //execute proposal
-    await this.eye.mint("100000000000000000000");
-    await this.eye.approve(this.limboDAO.address, "100000000000000000000");
-    await this.limboDAO.burnAsset(this.eye.address, "100000000000000000000", false);
-    await toggleWhiteList(feechangeProposal.address);
-
-    await this.proposalFactory.lodgeProposal(feechangeProposal.address);
-    await this.limboDAO.vote(feechangeProposal.address, 1000);
-
-    await advanceTime(1000000000);
-
-    await this.limboDAO.executeCurrentProposal();
-    //transfer flan back to owner and assert only 97 arrive
-    const totalSupplyBefore = await this.flan.totalSupply();
-    const ownerFlanBeforeReturn = await this.flan.balanceOf(owner.address);
-    await this.flan.connect(secondPerson).transfer(owner.address, 100);
-    const ownerFlanAfterReturn = await this.flan.balanceOf(owner.address);
-    expect(ownerFlanAfterReturn.sub(ownerFlanBeforeReturn).toString()).to.equal("97");
-
-    //assert flan supply fallen by 3
-    const totalSupplyAfter = await this.flan.totalSupply();
-    expect(totalSupplyBefore.sub(totalSupplyAfter)).to.equal(3);
-  });
-
   it("t-25. attemptToTargetAPY for non threshold soul fails", async function () {
     await this.limbo.configureSoul(this.aave.address, 10000000, 2, 1, 0, 10000000);
 
