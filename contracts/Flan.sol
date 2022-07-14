@@ -16,26 +16,6 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
 
   constructor(address dao) Governable(dao) {}
 
-  /**
-   * @param fee - % between 1 and 100, recipient pays
-   */
-  function setBurnOnTransferFee(uint8 fee) public onlySuccessfulProposal {
-    _setBurnOnTransferFee(fee);
-  }
-
-  ///@notice flash governance technique for FOT change.
-  function incrementBurnOnTransferFee(int8 change) public governanceApproved(false) {
-    uint8 newFee = uint8(int8(burnOnTransferFee) + change);
-    flashGoverner().enforceTolerance(newFee, burnOnTransferFee);
-    _setBurnOnTransferFee(newFee);
-  }
-
-  function _setBurnOnTransferFee(uint8 fee) internal {
-    uint8 priorFee = burnOnTransferFee;
-    burnOnTransferFee = fee > 100 ? 100 : fee;
-    emit burnOnTransferFeeAdjusted(priorFee, burnOnTransferFee);
-  }
-
   ///@notice grants unlimited minting power to a contract
   ///@param minter contract to be given unlimited minting power
   ///@param enabled minting power enabled or disabled
@@ -75,17 +55,14 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     address recipient,
     uint256 amount
   ) internal override {
-    uint256 fee = (burnOnTransferFee * amount) / 100;
-
-    _totalSupply = _totalSupply - fee;
     uint256 senderBalance = _balances[sender];
 
-    if (senderBalance < amount || amount < fee) {
-      revert TransferUnderflow(senderBalance, amount, fee);
+    if (senderBalance < amount) {
+      revert TransferUnderflow(senderBalance,0, amount);
     }
     unchecked {
       _balances[sender] = senderBalance - amount;
-      _balances[recipient] += amount - fee;
+      _balances[recipient] += amount;
     }
 
     emit Transfer(sender, recipient, amount);
