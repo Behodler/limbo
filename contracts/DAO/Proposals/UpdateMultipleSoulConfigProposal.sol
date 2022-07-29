@@ -47,7 +47,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     uint256 targetAPY,
     uint256 daiThreshold
   ) public {
-    if (!morgothApprover.approved(token)) {
+    if (!morgothApprover.approved(token) && soulType < 2) {
       revert TokenNotApproved(token);
     }
     params.push(

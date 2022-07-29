@@ -509,7 +509,7 @@ describe("DAO Proposals", function () {
     expect(flanDAOafter).to.equal(this.newDAO.address);
   });
 
-  it("t10. lisitng unapproved token fails", async function () {
+  it("t10.1. lisitng unapproved token fails for threshold", async function () {
     //get enough fate to lodge proposal
     const requiredFate = (await dao.proposalConfig())[1];
     const eyeToBurn = requiredFate.mul(2).div(10).add(1);
@@ -521,6 +521,19 @@ describe("DAO Proposals", function () {
 
     await this.morgothTokenApprover.addToken(sushiEYEULP.address);
     await this.soulUpdateProposal.parameterize(sushiEYEULP.address, "100", 1, 1, 1, 1);
+  });
+
+  it("t10.2. lisitng unapproved token succeeds for perpetual", async function () {
+    //get enough fate to lodge proposal
+    const requiredFate = (await dao.proposalConfig())[1];
+    const eyeToBurn = requiredFate.mul(2).div(10).add(1);
+    await dao.burnAsset(eye.address, eyeToBurn, false);
+
+    await expect(this.soulUpdateProposal.parameterize(sushiEYEULP.address, "100", 1, 1, 1, 1)).to.be.revertedWith(
+      `TokenNotApproved("${sushiEYEULP.address}")`
+    );
+
+    await this.soulUpdateProposal.parameterize(sushiEYESLP.address, "100", 2, 1, 1, 1);
   });
 
   it("t12. trying to convert fate to flan without a rate mints zero flan", async function () {
