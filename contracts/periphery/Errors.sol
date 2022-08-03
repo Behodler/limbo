@@ -59,7 +59,6 @@ error AssetMustBeEYE(address eye, address invalidAsset);
 error FlashGovernerNotSet();
 error ProposalMismatch(address proposal, address currrentProposal);
 error OnlyProposalFactory(address msg_sender, address factory);
-error FlanPerFateConversionDisabled();
 error UniswapV2FactoryMismatch(address pairFactory, address trueFactory);
 error InvalidVoteCast(int256 fateCast, int256 currentProposalFate);
 error VotingPeriodOver(uint256 blockTime, uint256 proposalStartTime, uint256 votingDuration);
@@ -71,6 +70,7 @@ error FlashGovernanceEpochFull(uint256 epochSize, uint256 lastAct);
 error InvalidChangeTolerance(uint8 tolerance);
 error FlashDecisionPending(address target, address msgSender);
 error FlashToleranceViolated(uint256 v1, uint256 v2);
+error OnlyFateSpender(address msgSender);
 
 //PROPOSALS
 error OnlyFactoryOrDAO(address dao, address factory);
@@ -78,6 +78,7 @@ error ProposalLocked(address proposal);
 error ProposalNotLocked(address proposal);
 error ExecutionFailed();
 error TokenNotApproved(address token);
+error GriefSafetyFactorExceeded(uint256 griefSafetyFactor, uint256 actualLength);
 
 //ORACLE
 error InvalidPair(address token0, address token1);

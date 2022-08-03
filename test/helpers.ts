@@ -1,7 +1,5 @@
 import { Result } from "@ethersproject/abi/lib/interface";
-import { expect } from "chai";
 import { Event } from "ethers";
-import { parseBytes32String } from "ethers/lib/utils";
 export async function executionResult(transaction): Promise<{ success: boolean; error: string }> {
   try {
     await transaction;

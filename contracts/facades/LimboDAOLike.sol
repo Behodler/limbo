@@ -58,5 +58,24 @@ abstract contract LimboDAOLike {
       address
     );
 
-  function setFlanPerFate(uint256 rate) public virtual;
+  function setFateSpender(address, bool) public virtual;
+
+  function fateSpenders(address) public view virtual returns (bool);
+
+  //second param is balance
+  function fateState(address)
+    public
+    view
+    virtual
+    returns (
+      uint256,
+      uint256,
+      uint256
+    );
+
+  function transferFate(
+    address holder,
+    address recipient,
+    uint256 amount
+  ) public virtual;
 }

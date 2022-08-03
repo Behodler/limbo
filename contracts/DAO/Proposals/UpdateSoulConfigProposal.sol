@@ -42,7 +42,7 @@ contract UpdateSoulConfigProposal is Proposal {
     uint256 index,
     uint256 fps
   ) public lockUntilComplete {
-    if (!morgothApprover.approved(token)) {
+    if (!morgothApprover.approved(token) && soulType < 2) {
       revert TokenNotApproved(token);
     }
     params.token = token;
