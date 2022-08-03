@@ -86,8 +86,8 @@ contract ProposalFactory is Governable, Ownable {
   /**@notice user facing function to vote on a new proposal. 
   Note that the proposal contract must first be whitelisted for usage
   Does not revert on a failed lodging because the proposal must be unlocked on failure. 
-  If you wish to revert on lodging failure, please wrap this function in a lodging contract and treat that contract
-  as the "user" who must have the necessary fate balance tp lodge. But be aware that you may leave your proposal in an invalid state.
+  This breaks convention for the sake of security. If you wrap this contract so it reverts, your 
+  proposal will be left in an invalid state if lodging reverts.
   * @param proposal whitelisted popular contract
   */
   function lodgeProposal(address proposal) public {

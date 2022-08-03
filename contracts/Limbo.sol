@@ -233,7 +233,6 @@ contract Limbo is Governable {
   }
 
   uint256 constant TERA = 1E12;
-  uint256 constant RectangleOfFairness = 30 ether; //MP = 1/t. Rect = tMP = t(1/t) = 1. 25 is the result of scaling factors on Behodler.
   bool protocolEnabled = true;
 
   ///@notice protocol settings for migrating threshold tokens to Behodler

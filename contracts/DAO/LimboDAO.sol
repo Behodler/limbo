@@ -98,13 +98,13 @@ contract LimboDAO is Ownable {
   mapping(address => bool) public assetApproved;
   mapping(address => FateState) public fateState; //lateDate
 
-  //Fate is earned per day. Keeping track of relative staked values, we can increment user balance
+  ///@notice contracts appproved to transfer or burn fate. This can be used to allow for either conversion of fate to flan or for bribe based governance of token listing
+  mapping(address => bool) public fateSpenders;
+
+  ///@notice Fate is earned per day. Keeping track of relative staked values, we can increment user balance
   mapping(address => mapping(address => AssetClout)) public stakedUserAssetWeight; //user->asset->weight
 
   ProposalState public currentProposalState;
-
-  // Since staking EYE precludes it from earning Flan on Limbo, flanPerFate can optionally be set to a non zero number to allow fat holders to spend their fate for Flan.
-  uint256 public flanPerFate;
 
   modifier isLive() {
     if (!domainConfig.live) {
@@ -128,7 +128,7 @@ contract LimboDAO is Ownable {
   }
 
   modifier onlySuccessfulProposal() {
-    if (!successfulProposal(msg.sender)) revert ProposalNotApproved(msg.sender);
+    if (domainConfig.live && !successfulProposal(msg.sender)) revert ProposalNotApproved(msg.sender);
     _;
   }
 
@@ -230,19 +230,6 @@ contract LimboDAO is Ownable {
     emit daoKilled(newOwner);
   }
 
-  // ///@notice optional conversion rate of Fate to Flan
-  function setFlanPerFate(uint256 rate) public onlySuccessfulProposal {
-    flanPerFate = rate;
-  }
-
-  // ///@notice caller spends their Fate to earn Flan
-  function convertFlanPerFate(uint256 fate) public returns (uint256 flan) {
-    if (flanPerFate == 0) revert FlanPerFateConversionDisabled();
-    fateState[msg.sender].fateBalance -= fate;
-    flan = (flanPerFate * fate) / ONE;
-    Flan(domainConfig.flan).mint(msg.sender, flan);
-  }
-
   /**@notice handles proposal lodging logic. A deposit of Fate is removed from the user. If the decision is a success, half the fate is returned.
    *  This is to encourage only lodging of proposals that are likely to succeed.
    *  @dev not for external calling. Use the proposalFactory to lodge a proposal instead.
@@ -269,7 +256,7 @@ contract LimboDAO is Ownable {
   ///@notice handles proposal voting logic.
   ///@param proposal contract to be voted on
   ///@param fate positive is YES, negative is NO. Absolute value is deducted from caller.
-  function vote(address proposal, int256 fate) public isLive incrementFate{
+  function vote(address proposal, int256 fate) public isLive incrementFate {
     //this is just to protect users with out of sync UIs
     if (proposal != address(currentProposalState.proposal))
       revert ProposalMismatch(proposal, address(currentProposalState.proposal));
@@ -484,6 +471,28 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
     LimboOracleLike oracle = uni ? domainConfig.uniOracle : domainConfig.sushiOracle;
     uint256 result = (oracle.consult(address(pair), domainConfig.eye, 1e6) * units) / 1e6;
     return result;
+  }
+
+  function setFateSpender(address spender, bool enabled) public onlySuccessfulProposal {
+    if (spender.code.length == 0) {
+      revert NotAContract(spender);
+    }
+    fateSpenders[spender] = enabled;
+  }
+
+  ///@param recipient zero address means burn
+  function transferFate(
+    address holder,
+    address recipient,
+    uint256 amount
+  ) public {
+    if (!fateSpenders[msg.sender]) {
+      revert OnlyFateSpender(msg.sender);
+    }
+    fateState[holder].fateBalance -= amount;
+    if (recipient != address(0)) {
+      fateState[recipient].fateBalance += amount;
+    }
   }
 
   /**@notice seed is a goro idiom for initialize that you tend to find in all the dapps I've written.

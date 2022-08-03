@@ -3,10 +3,12 @@ const { create } = require("domain");
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
 import { executionResult, numberClose, queryChain } from "./helpers";
-
+import * as TypeChainTypes from "../typechain";
+import { BigNumber } from "ethers";
 const requireCondition = (condition, message) => {
   if (!condition) throw message;
 };
+
 
 describe("DAO staking", function () {
   let owner, secondPerson, proposalFactory, feeSetter, dai, eye, link, sushi;
@@ -235,7 +237,7 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     let fateState = await dao.fateState(owner.address);
-    expect(numberClose(fateState[1],"25001157407")).to.equal(true);
+    expect(numberClose(fateState[1], "25001157407")).to.equal(true);
 
     result = await executionResult(dao.setEYEBasedAssetStake(400n * ONE, 400n * ONE, 20000000000n, eye.address, false));
     expect(result.success).to.equal(true, result.error);
@@ -388,5 +390,54 @@ describe("DAO staking", function () {
     const fateAfter = await dao.fateState(owner.address);
 
     await expect(numberClose(fateAfter[1].sub(fateBefore[1]), "16400")).to.equal(true);
+  });
+
+  it("8. Fate spender can burn or transfer fate balance", async function () {
+    //ARRANGE
+    //deploy SimpleFateSpender
+    const limboDAO: TypeChainTypes.LimboDAO = dao as TypeChainTypes.LimboDAO;
+    const simpleFactory: TypeChainTypes.SimpleFateSpender__factory = (await ethers.getContractFactory(
+      "SimpleFateSpender"
+    )) as TypeChainTypes.SimpleFateSpender__factory;
+    const simpleFateSpender: TypeChainTypes.SimpleFateSpender = (await simpleFactory.deploy(
+      limboDAO.address
+    )) as TypeChainTypes.SimpleFateSpender;
+    const EYE = eye as TypeChainTypes.ERC20Burnable;
+    await limboDAO.setFateSpender(simpleFateSpender.address, true);
+
+    await limboDAO.makeLive();
+
+    await EYE.approve(limboDAO.address, "10000000000000");
+    await limboDAO.burnAsset(EYE.address, "10000000000000", false);
+
+    const fateStateOfOwnerBeforeBurn = await limboDAO.fateState(owner.address);
+    console.log("fateStateBefore", fateStateOfOwnerBeforeBurn.fateBalance.toString());
+
+    const fateStateOfSecondPersonBeforeBurn = await limboDAO.fateState(secondPerson.address);
+    console.log("fateStateBefore", fateStateOfSecondPersonBeforeBurn.fateBalance.toString());
+
+    //ACT
+    await simpleFateSpender.reduceBalance(owner.address);
+
+    const fateStateOfOwnerAfterBurn = await limboDAO.fateState(owner.address);
+    console.log("fateStateAfter", fateStateOfOwnerAfterBurn.fateBalance.toString());
+    const fateStateOfSecondPersonAfterBurn = await limboDAO.fateState(secondPerson.address);
+    console.log("fateStateAfter", fateStateOfSecondPersonAfterBurn.fateBalance.toString());
+
+    await simpleFateSpender.transfer(owner.address, secondPerson.address, 2000);
+
+    const fateStateOfOwnerAfterTransfer = await limboDAO.fateState(owner.address);
+    console.log("fateStateAfter", fateStateOfOwnerAfterTransfer.fateBalance.toString());
+    const fateStateOfSecondPersonAfterTransfer = await limboDAO.fateState(secondPerson.address);
+    console.log("fateStateAfter", fateStateOfSecondPersonAfterTransfer.fateBalance.toString());
+
+    //ASSERT
+    const expectedPostBurnBalance = BigNumber.from(fateStateOfOwnerBeforeBurn.fateBalance.toString()).div(2);
+    expect(fateStateOfOwnerAfterBurn.fateBalance.toString()).to.equal(expectedPostBurnBalance.toString());
+
+    expect(fateStateOfSecondPersonAfterBurn.fateBalance.toNumber()).to.equal(0);
+
+    expect(fateStateOfOwnerAfterTransfer.fateBalance.toString()).to.equal(expectedPostBurnBalance.sub(2000).toString());
+    expect(fateStateOfSecondPersonAfterTransfer.fateBalance.toNumber()).to.equal(2000);
   });
 });

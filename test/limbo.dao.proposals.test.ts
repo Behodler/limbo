@@ -3,6 +3,7 @@ import { executionResult, numberClose, queryChain } from "./helpers";
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
 const web3 = require("web3");
+import * as TypeChainTypes from "../typechain";
 
 const requireCondition = (condition, message) => {
   if (!condition) throw message;
@@ -536,50 +537,20 @@ describe("DAO Proposals", function () {
     await this.soulUpdateProposal.parameterize(sushiEYESLP.address, "100", 2, 1, 1, 1);
   });
 
-  it("t12. trying to convert fate to flan without a rate mints zero flan", async function () {
-    await expect(dao.convertFlanPerFate(1000)).to.be.revertedWith("FlanPerFateConversionDisabled()");
-  });
-
-  it("t13. setting flanPerFate to positive number mints flan, depletes fate", async function () {
-    const FlanPerFateProposal = await ethers.getContractFactory("TurnOnFateMintingProposal");
-    const flanPerFateProposal = await FlanPerFateProposal.deploy(dao.address, "minting");
-    await flanPerFateProposal.parameterize("2000000000000000000");
-    const requiredFate = (await dao.proposalConfig())[1];
-
-    await dao.burnAsset(eye.address, requiredFate, false);
-
-    await toggleWhiteList(flanPerFateProposal.address, this.whiteListingProposal);
-
-    await proposalFactory.lodgeProposal(flanPerFateProposal.address);
-    const fateAfterLodge = BigInt((await dao.fateState(owner.address))[1].toString());
-    const expectedFlan = fateAfterLodge * BigInt(2);
-
-    await eye.transfer(secondPerson.address, "1000000000");
-    await eye.connect(secondPerson).approve(dao.address, "1000000000");
-    await dao.connect(secondPerson).burnAsset(eye.address, "1000000000", false);
-    await dao.connect(secondPerson).vote(flanPerFateProposal.address, "10000");
-
-    await advanceTime(259200);
-
-    await dao.executeCurrentProposal();
-
-    await dao.convertFlanPerFate(fateAfterLodge);
-    const flanBalance = (await this.flan.balanceOf(owner.address)).toString();
-
-    expect(flanBalance).to.equal(expectedFlan.toString());
-  });
-
   it("t14. proposal that isn't whitelisted is unlocked and can be lodged again", async function () {
-    const TurnOnFateMintingProposalFactory = await ethers.getContractFactory("TurnOnFateMintingProposal");
-    const turnOnFateMintingProposal = await TurnOnFateMintingProposalFactory.deploy(dao.address, "minting");
-    await turnOnFateMintingProposal.parameterize("2000000000000000000");
+    const limboDAO: TypeChainTypes.LimboDAO = dao as TypeChainTypes.LimboDAO;
+    const BurnFlashDepositProposalFactory: TypeChainTypes.BurnFlashStakeDeposit__factory =
+      (await ethers.getContractFactory("BurnFlashStakeDeposit")) as TypeChainTypes.BurnFlashStakeDeposit__factory;
+    const burnFlashStakeDepositProposal: TypeChainTypes.BurnFlashStakeDeposit =
+      await BurnFlashDepositProposalFactory.deploy(limboDAO.address, "Horse");
+    await burnFlashStakeDepositProposal.parameterize(owner.address, owner.address, 10, owner.address, owner.address);
 
-    let locked = await turnOnFateMintingProposal.locked();
+    let locked = await burnFlashStakeDepositProposal.locked();
     expect(locked).to.be.true;
 
-    await proposalFactory.lodgeProposal(turnOnFateMintingProposal.address);
+    await proposalFactory.lodgeProposal(burnFlashStakeDepositProposal.address);
 
-    locked = await turnOnFateMintingProposal.locked();
+    locked = await burnFlashStakeDepositProposal.locked();
     expect(locked).to.be.false;
   });
 
@@ -635,5 +606,54 @@ describe("DAO Proposals", function () {
 
     locked = await bogusProposal.locked();
     expect(locked).to.be.false;
+  });
+
+  it("16. Set fate spender through proposal", async function () {
+    const simpleFateSpenderFactory: TypeChainTypes.SimpleFateSpender__factory = (await ethers.getContractFactory(
+      "SimpleFateSpender"
+    )) as TypeChainTypes.SimpleFateSpender__factory;
+    const simpleFateSpender1: TypeChainTypes.SimpleFateSpender = await simpleFateSpenderFactory.deploy(dao.address);
+    const simpleFateSpender2: TypeChainTypes.SimpleFateSpender = await simpleFateSpenderFactory.deploy(dao.address);
+
+    const SetFateSpenderProposalFactory = (await ethers.getContractFactory(
+      "SetFateSpendersProposal"
+    )) as TypeChainTypes.SetFateSpendersProposal__factory;
+    const setFateSpenderProposal = (await SetFateSpenderProposalFactory.deploy(
+      dao.address,
+      "Horse"
+    )) as TypeChainTypes.SetFateSpendersProposal;
+
+    let unreasonablyLargeSet: string[] = [];
+    let unreasonablyLargeSetValues: boolean[] = [];
+
+    for (let i = 0; i < 51; i++) {
+      unreasonablyLargeSet.push(simpleFateSpender1.address);
+      unreasonablyLargeSetValues.push(true);
+    }
+
+    await expect(
+      setFateSpenderProposal.parameterize(unreasonablyLargeSet, unreasonablyLargeSetValues)
+    ).to.be.revertedWith(`GriefSafetyFactorExceeded(50, 51)`);
+
+    let reasonableSet: string[] = unreasonablyLargeSet.slice(0, 40);
+    let reasonableValues: boolean[] = unreasonablyLargeSetValues.slice(0, 40);
+
+    reasonableSet.push(simpleFateSpender2.address);
+    reasonableValues.push(true);
+
+    await setFateSpenderProposal.parameterize(reasonableSet, reasonableValues);
+
+    await toggleWhiteList(setFateSpenderProposal.address, this.whiteListingProposal);
+    const ProposalFactory: TypeChainTypes.ProposalFactory = proposalFactory as TypeChainTypes.ProposalFactory;
+
+    await expect(ProposalFactory.lodgeProposal(setFateSpenderProposal.address))
+    .to.emit(proposalFactory, "LodgingStatus")
+    .withArgs(setFateSpenderProposal.address, "SUCCESS");
+    
+
+    const limboDAO = dao as TypeChainTypes.LimboDAO;
+    const currentProposal = await limboDAO.currentProposalState();
+    expect(currentProposal.proposal).to.equal(setFateSpenderProposal.address);
+    expect(currentProposal.proposer).to.equal(owner.address);
   });
 });
