@@ -271,7 +271,7 @@ describe("DAO staking", function () {
     const lpBalanceBefore = await daiEYESLP.balanceOf(owner.address);
     advanceTime(10000);
 
-    console.log("js finalEYE balance" + finalEyeBalance.toString());
+  
     let result = await executionResult(
       dao.setEYEBasedAssetStake(finalAssetBalance, finalEyeBalance.toString(), "5477225575", daiEYESLP.address, false)
     );
@@ -411,10 +411,8 @@ describe("DAO staking", function () {
     await limboDAO.burnAsset(EYE.address, "10000000000000", false);
 
     const fateStateOfOwnerBeforeBurn = await limboDAO.fateState(owner.address);
-    console.log("fateStateBefore", fateStateOfOwnerBeforeBurn.fateBalance.toString());
 
     const fateStateOfSecondPersonBeforeBurn = await limboDAO.fateState(secondPerson.address);
-    console.log("fateStateBefore", fateStateOfSecondPersonBeforeBurn.fateBalance.toString());
 
     //ACT
     await simpleFateSpender.reduceBalance(owner.address);

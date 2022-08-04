@@ -18,6 +18,7 @@ export default {
   solidity: "0.8.13",
   networks: {
     hardhat: {
+      // allowUnlimitedContractSize: true,
       chainId: 1337,
       accounts: {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",

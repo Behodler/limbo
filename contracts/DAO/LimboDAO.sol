@@ -9,7 +9,7 @@ import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "../facades/LimboOracleLike.sol";
 import "../periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./Governable.sol";
-//  import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "../periphery/Errors.sol";
 import "../openzeppelin/SafeERC20.sol";
 
@@ -236,15 +236,22 @@ contract LimboDAO is Ownable {
    */
   function makeProposal(address proposal, address proposer) public updateCurrentProposal {
     address sender = msg.sender;
-    if (sender != proposalConfig.proposalFactory) revert OnlyProposalFactory(sender, proposalConfig.proposalFactory);
+    if (sender != proposalConfig.proposalFactory) {
+      revert OnlyProposalFactory(sender, proposalConfig.proposalFactory);
+    }
     if (address(currentProposalState.proposal) != address(0)) {
       revert LodgeFailActiveProposal(address(currentProposalState.proposal), proposal);
     }
-
     //The *2 refers to 100% deposit in fate taken from the proposer.
     // If the vote succeeds, the deposit is returned, if it fails, it isn't. This makes proposals
     // that are likely to fail more costly and ties up fate of proposers, reducing incentives to over propose.
-    fateState[proposer].fateBalance = fateState[proposer].fateBalance - proposalConfig.requiredFateStake * 2;
+    if (fateState[proposer].fateBalance < proposalConfig.requiredFateStake * 2) {
+      revert NotEnoughFateToLodge(fateState[proposer].fateBalance, proposalConfig.requiredFateStake * 2);
+    }
+    unchecked {
+      fateState[proposer].fateBalance = fateState[proposer].fateBalance - proposalConfig.requiredFateStake * 2;
+    }
+
     currentProposalState.proposal = Proposal(proposal);
     currentProposalState.decision = ProposalDecision.voting;
     currentProposalState.fate = 0;
@@ -421,7 +428,7 @@ contract LimboDAO is Ownable {
 
   ///@notice grants unlimited Flan minting power to an address.
   function approveFlanMintingPower(address minter, bool enabled) public onlySuccessfulProposal isLive {
-    Flan(domainConfig.flan).increaseMintAllowance(minter, enabled ? type(uint256).max : 0);
+    Flan(domainConfig.flan).whiteListMinting(minter, enabled);
   }
 
   ///@notice call this after initial config is complete.
