@@ -25,8 +25,9 @@ error FlanBonusMustBePositive(address token, uint256 index, uint256 staked, int2
 error ProtocolDisabled();
 
 //FLAN
-error MintAllowanceExceeded(address msgSender, uint256 allowance, uint256 amount);
+error MintingNotWhiteListed(address msgSender);
 error TransferUnderflow(uint256 senderBalance, uint256 fee, uint256 amount);
+error MaxMintPerEpochExceeded(uint256 max, uint256 aggregate);
 
 //UNISWAPHELPER
 error DaiThresholdMustBePositive();
@@ -79,7 +80,7 @@ error ProposalNotLocked(address proposal);
 error ExecutionFailed();
 error TokenNotApproved(address token);
 error GriefSafetyFactorExceeded(uint256 griefSafetyFactor, uint256 actualLength);
-
+error NotEnoughFateToLodge(uint userBalance,uint required);
 //ORACLE
 error InvalidPair(address token0, address token1);
 error ReservesEmpty(address pair, uint256 reserve1, uint256 reserve2);

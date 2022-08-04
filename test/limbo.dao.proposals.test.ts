@@ -88,6 +88,7 @@ describe("DAO Proposals", function () {
 
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(dao.address);
+    await this.flan.setMintConfig("100000000000000000000000000000000000", 0);
     this.flan.transferOwnership(dao.address);
 
     const firstProposalFactory = await ethers.getContractFactory("ToggleWhitelistProposalProposal");

@@ -4,7 +4,7 @@ import { assertLog, executionResult, numberClose, queryChain } from "./helpers";
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
 const web3 = require("web3");
-
+import * as Types from "../typechain";
 describe.only("Limbo", function () {
   let owner, secondPerson, link, sushi;
   let daieyeSLP, linkeyeSLP, sushieyeSLP, daiSushiSLP;
@@ -32,7 +32,7 @@ describe.only("Limbo", function () {
     this.aave = await this.TokenFactory.deploy("aave", "aave");
     link = await this.TokenFactory.deploy("LINK", "LINK");
     sushi = await this.TokenFactory.deploy("SUSHI", "SUSHI");
-    this.eye = await this.TokenFactory.deploy("this.eye", "this.eye");
+    this.eye = (await this.TokenFactory.deploy("this.eye", "this.eye")) as Types.ERC20Burnable;
 
     const createSLP = await metaPairFactory(this.eye, this.sushiSwapFactory, false);
     daieyeSLP = await createSLP(this.dai);
@@ -76,7 +76,7 @@ describe.only("Limbo", function () {
 
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(this.limboDAO.address);
-
+    await this.flan.setMintConfig("100000000000000000000000000000000000", 0);
     const createGov = await metaPairFactory(this.SCX, this.uniswapFactory, false);
     await this.flan.mint(owner.address, "100000000000000000000000");
     //we need Dai/SCX, FLN/SCX and SCX/(FLN/SCX)
@@ -444,7 +444,9 @@ describe.only("Limbo", function () {
 
     await this.limbo.endConfiguration(this.limboDAO.address);
 
-    await expect(this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)).to.be.revertedWith("GovernanceActionFailed");
+    await expect(this.limbo.configureSoul(this.aave.address, 10000000, 0, 0, 0, 10000000)).to.be.revertedWith(
+      "GovernanceActionFailed"
+    );
     await this.aave.transfer(this.limbo.address, 1000);
     // enableProtocol
 
@@ -467,9 +469,7 @@ describe.only("Limbo", function () {
     await expect(this.limbo.disableProtocol()).to.be.revertedWith("unrecognized custom error");
     await expect(this.limbo.enableProtocol()).to.be.revertedWith("GovernanceActionFailed");
     //adjustSoul
-    await expect(this.limbo.adjustSoul(this.aave.address, 1, 0, 10)).to.be.revertedWith(
-      "unrecognized custom error"
-    );
+    await expect(this.limbo.adjustSoul(this.aave.address, 1, 0, 10)).to.be.revertedWith("unrecognized custom error");
     //configureCrossingParameters
 
     await expect(this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010)).to.be.revertedWith(
@@ -639,9 +639,7 @@ describe.only("Limbo", function () {
     await this.limbo.endConfiguration(this.limboDAO.address);
 
     //try to adjust soul and fail
-    await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith(
-      "unrecognized custom error"
-    );
+    await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith("unrecognized custom error");
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
@@ -694,7 +692,6 @@ describe.only("Limbo", function () {
     //end configuration
     await this.limbo.endConfiguration(this.limboDAO.address);
 
-
     //make flashgovernance decision.
     await this.eye.approve(this.flashGovernance.address, 21000000);
 
@@ -703,7 +700,6 @@ describe.only("Limbo", function () {
     this.eyeToBurn = requiredFate.mul(2).div(10).add(1);
     await this.eye.approve(this.limboDAO.address, this.eyeToBurn.mul(100));
     await this.limboDAO.burnAsset(this.eye.address, this.eyeToBurn, false);
-      
 
     //configure and lodge proposal
     const burnFlashStakeProposalFactory = await ethers.getContractFactory("BurnFlashStakeDeposit");
@@ -1478,9 +1474,7 @@ describe.only("Limbo", function () {
 
   it("t-23. any whitelisted contract can mint flan", async function () {
     //assert secondPerson can't mint flan
-    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
-      "MintAllowanceExceeded"
-    );
+    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith("MintingNotWhiteListed");
 
     //whitelist secondPerson
     await this.flan.whiteListMinting(secondPerson.address, true);
@@ -1494,9 +1488,7 @@ describe.only("Limbo", function () {
     await this.flan.whiteListMinting(secondPerson.address, false);
 
     //assert secondPerson can't mint flan
-    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith(
-      "MintAllowanceExceeded"
-    );
+    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith("MintingNotWhiteListed");
   });
 
   it("t-25. attemptToTargetAPY for non threshold soul fails", async function () {
@@ -2880,9 +2872,41 @@ describe.only("Limbo", function () {
     const result = await executionResult(this.limbo.endConfiguration(this.limboDAO.address));
     expect(result.success).to.equal(true, result.error);
 
-    const configLord = await this.limbo.temporaryConfigurationLord()
-    expect(configLord.substring(0,8)).to.equal("0x000000");
+    const configLord = await this.limbo.temporaryConfigurationLord();
+    expect(configLord.substring(0, 8)).to.equal("0x000000");
   });
 
+  it("t-40. Minting more than aggregate allowance reverts", async function () {
+    const flan: Types.Flan = this.flan as Types.Flan;
+    const dao = this.limboDAO as Types.LimboDAO;
+    const eye = this.eye as Types.ERC20Burnable;
+    const proposalFactory = this.proposalFactory as Types.ProposalFactory;
+
+    const flanMinterFactory = (await ethers.getContractFactory("FlanMinter")) as Types.FlanMinter__factory;
+    const flanMinter = await flanMinterFactory.deploy(flan.address);
+
+    const requireFate = (await dao.proposalConfig()).requiredFateStake;
+    await dao.burnAsset(eye.address, requireFate, false);
+    const approveFlanMintingProposalFactory = (await ethers.getContractFactory(
+      "ApproveFlanMintingProposal"
+    )) as Types.ApproveFlanMintingProposal__factory;
+    const approveFlanMintingProposal = await approveFlanMintingProposalFactory.deploy(dao.address, "minter");
+
+    await toggleWhiteList(approveFlanMintingProposal.address);
+    await approveFlanMintingProposal.parameterize(flanMinter.address, true);
+    await expect(proposalFactory.lodgeProposal(approveFlanMintingProposal.address))
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(approveFlanMintingProposal.address, "SUCCESS");
+    await dao.vote(approveFlanMintingProposal.address,"1000000");
+    await advanceTime(1000000000000);
+
+    await dao.executeCurrentProposal()
+
+    await flan.setMintConfig("10000000000000000000", "0");
+    await flanMinter.mintAlot(10)
+    await expect(flanMinter.mintAlot(1)).to.be.revertedWith(
+      `MaxMintPerEpochExceeded(10000000000000000000, 11000000000000000000)`
+    );
+  });
   //TESTS END
 });

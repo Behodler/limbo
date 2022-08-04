@@ -9,45 +9,59 @@ import "../contracts/DAO/Governable.sol";
  *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on the price of DAI via various external incentives
  */
 contract Flan is ERC677("Flan", "FLN"), Governable {
-  event burnOnTransferFeeAdjusted(uint8 oldFee, uint8 newFee);
-  mapping(address => uint256) public mintAllowance; //type(uint).max == whitelist
+  mapping(address => bool) public mintAllowance; //type(uint).max == whitelist
 
-  uint8 public burnOnTransferFee = 0; //% between 1 and 100, recipient pays
+  struct MintParameters {
+    uint256 maxMintPerEpoch;
+    uint256 aggregateMintingThisEpoch;
+    uint128 lastEpochTimeStamp;
+    uint128 EPOCH_SIZE;
+  }
 
-  constructor(address dao) Governable(dao) {}
+  MintParameters public mintConfig;
+
+  constructor(address dao) Governable(dao) {
+    mintConfig.lastEpochTimeStamp = uint128(block.timestamp); //it's never going to overflow
+    mintConfig.EPOCH_SIZE = 86400; //one day
+  }
 
   ///@notice grants unlimited minting power to a contract
   ///@param minter contract to be given unlimited minting power
   ///@param enabled minting power enabled or disabled
   function whiteListMinting(address minter, bool enabled) public onlySuccessfulProposal {
-    mintAllowance[minter] = enabled ? type(uint256).max : 0;
+    mintAllowance[minter] = enabled;
   }
 
-  ///@notice metered minting power. Useful for once off minting
-  function increaseMintAllowance(address minter, uint256 _allowance) public onlySuccessfulProposal {
-    mintAllowance[minter] = mintAllowance[minter] + _allowance;
+  ///@notice sets minting conditions to prevent overminting
+  ///@param maxMintPerEpoch Maximum amount of flan mintable per epoch
+  ///@param epochSize number of seconds per epoch of minting, 0 is default
+  function setMintConfig(uint256 maxMintPerEpoch, uint128 epochSize) public onlySuccessfulProposal {
+    mintConfig.maxMintPerEpoch = maxMintPerEpoch;
+    mintConfig.EPOCH_SIZE = epochSize == 0 ? 86400 : epochSize;
   }
 
   ///@notice minting of flan open to approved minters and LimboDAO
   ///@param recipient address to receive flan
   ///@param amount amount of flan to be minted
   function mint(address recipient, uint256 amount) public returns (bool) {
-    uint256 allowance = msg.sender == owner() || msg.sender == DAO ? type(uint256).max : mintAllowance[msg.sender];
-    if (allowance < amount) {
-      revert MintAllowanceExceeded(msg.sender, allowance, amount);
+    bool allowed = msg.sender == owner() || msg.sender == DAO || mintAllowance[msg.sender];
+    if (!allowed) {
+      revert MintingNotWhiteListed(msg.sender);
     }
-    approvedMint(recipient, amount, msg.sender, allowance);
-    return true;
-  }
 
-  function approvedMint(
-    address recipient,
-    uint256 amount,
-    address minter,
-    uint256 allowance
-  ) internal {
+    MintParameters memory config = mintConfig;
+    if (block.timestamp - config.lastEpochTimeStamp > config.EPOCH_SIZE) {
+      config.lastEpochTimeStamp = uint128(block.timestamp); //epochs can be long to allow for dormant periods followed by busy periods
+      config.aggregateMintingThisEpoch = 0;
+    }
+
+    config.aggregateMintingThisEpoch += amount;
+    if (config.aggregateMintingThisEpoch > config.maxMintPerEpoch) {
+      revert MaxMintPerEpochExceeded(config.maxMintPerEpoch, config.aggregateMintingThisEpoch);
+    }
+    mintConfig = config;
     _mint(recipient, amount);
-    mintAllowance[minter] = allowance < type(uint256).max ? mintAllowance[minter] - amount : allowance;
+    return true;
   }
 
   function _transfer(
@@ -58,7 +72,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     uint256 senderBalance = _balances[sender];
 
     if (senderBalance < amount) {
-      revert TransferUnderflow(senderBalance,0, amount);
+      revert TransferUnderflow(senderBalance, 0, amount);
     }
     unchecked {
       _balances[sender] = senderBalance - amount;
