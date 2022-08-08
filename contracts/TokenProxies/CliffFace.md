@@ -173,7 +173,7 @@ If Behodler has only 2 tokens listed, Dai and ProxyRug and if we assume that \$0
 That's quite the impermanent loss. Of course if RugCoin continues to fall in value, Behodler eventually becomes a RugCoin wrapper.
 
 Now let's unleash the protective measures and try again.
-Seller dumps 5000 RugCoin. ProxyRug enters into red light territory. It calculates the marginal redeem rate as 15000/10000 = 1.5. So it converts 5000 RugCoin into 3333 proxy Rug. Entering the xy=x formula again, only 2499.81 Dai is released to the dumper (as opposed to 3333).
+Seller dumps 5000 RugCoin. ProxyRug enters into red light territory. It calculates the marginal redeem rate as 15000/10000 = 1.5. So it converts 5000 RugCoin into 3333 proxy Rug. Entering the xy=k formula again, only 2499.81 Dai is released to the dumper (as opposed to 3333).
 
 The redeem rate for ProxyRug has also increased. The new redeem rate is 15000/13333 = 1.125.
 
