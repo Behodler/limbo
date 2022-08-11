@@ -1,5 +1,5 @@
 import { Result } from "@ethersproject/abi/lib/interface";
-import { Event } from "ethers";
+import { Contract, ContractFactory, Event } from "ethers";
 export async function executionResult(transaction): Promise<{ success: boolean; error: string }> {
   try {
     await transaction;
@@ -80,3 +80,11 @@ export const assertLog = async (
   }
   return { reason: "" };
 };
+
+
+export async function deploy<T extends Contract>(
+  contractFactory: ContractFactory,
+  ...args: Array<any>
+): Promise<T> {
+  return (await contractFactory.deploy(...args)) as T;
+}

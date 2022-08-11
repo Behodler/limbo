@@ -88,3 +88,8 @@ error InvalidToken(address pair, address token);
 error UpdateOracle(address tokenIn, address tokenOut, uint256 amountIn);
 error AssetNotRegistered(address pair);
 error WaitPeriodTooSmall(uint256 timeElapsed, uint256 period);
+
+//Proxy
+error OnlyProxy (address sender, address proxy);
+error SlippageManipulationPrevention(uint blockNumber, uint priorBlockNumber);
+error AmplificationTooLow (uint R_amp);
