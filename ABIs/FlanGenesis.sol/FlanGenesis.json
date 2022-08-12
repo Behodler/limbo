@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "FlanGenesis",
+  "sourceName": "contracts/FlanGenesis.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220f49459ca2d2b44c0e79780376879be1a2faf2ac1354e89c902e301b0cf856b1864736f6c634300080d0033",
+  "deployedBytecode": "0x6080604052600080fdfea2646970667358221220f49459ca2d2b44c0e79780376879be1a2faf2ac1354e89c902e301b0cf856b1864736f6c634300080d0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

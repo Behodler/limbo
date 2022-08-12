@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "BlackHole",
+  "sourceName": "contracts/UniswapHelper.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea264697066735822122022234246f97bbfae62d0b0ae82086e322ab48046aebfc9e4bc9fdf2b22ebf3c864736f6c634300080d0033",
+  "deployedBytecode": "0x6080604052600080fdfea264697066735822122022234246f97bbfae62d0b0ae82086e322ab48046aebfc9e4bc9fdf2b22ebf3c864736f6c634300080d0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
