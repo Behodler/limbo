@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 import "./CommonIERC20.sol";
-import "../../facades/TokenProxyLike.sol";
+import "../../TokenProxies/TokenProxyBase.sol";
 import "../../TokenProxyRegistry.sol";
 
 abstract contract AngbandLike {
@@ -87,7 +87,7 @@ contract LimboAddTokenToBehodler is IdempotentPowerInvoker {
         address tokenToMigrate = params.soul;
         if (migrate && baseToken != address(0)) {
             tokenToMigrate = baseToken;
-            TokenProxyLike(params.soul).redeem(address(this), balanceOfToken);
+            TokenProxyBase(params.soul).redeem(address(this),address(this), balanceOfToken);
         }
 
         CommonIERC20(tokenToMigrate).approve(behodler, type(uint256).max);

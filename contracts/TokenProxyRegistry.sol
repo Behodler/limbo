@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 import "./DAO/Governable.sol";
+import "./TokenProxies/TokenProxyBase.sol";
 
 ///@author Justin Goro
 ///@title Token Proxy Registry for exotic token registration on Limbo
@@ -22,7 +23,14 @@ contract TokenProxyRegistry is Governable {
 
     }
 
-    function setProxy (address baseToken, address proxy, bool migrateBase) public onlySuccessfulProposal {
+    function setProxy (address baseToken, address proxy, bool migrateBase) public onlySuccessfulProposal returns (bool ownershipClaimed) {
         tokenProxy[proxy] = TokenConfig(baseToken, migrateBase);
+    }
+
+    function migrateProxyTokenToNewProxyWrapper (address existingProxy, address newProxyToken) public onlySuccessfulProposal{
+        TokenProxyBase(existingProxy).migrateBaseReserveToNewProxy(newProxyToken);
+        TokenConfig storage existingConfig = tokenProxy[existingProxy];
+        tokenProxy[newProxyToken] = existingConfig;
+        existingConfig.baseToken = address(0);
     }
 }
