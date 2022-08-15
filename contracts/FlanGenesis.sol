@@ -12,6 +12,7 @@ import "./facades/FlanLike.sol";
 */
 ///@dev this contract combines multiple genesis operations into one transaction to protect against entereing into an invalid state
 contract FlanGenesis{
+    //TODO: full flan genesis with no rectangle of fairness. Use SCX bounty to pump up liquidity, perhaps on both Uni and sushi?
     struct Dependencies {
         uint something;
     }    

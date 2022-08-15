@@ -2,8 +2,9 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "./CommonIERC20.sol";
+import "../../periphery/Errors.sol";
 
 abstract contract Burnable {
   function burn(uint256 amount) public virtual;
@@ -135,7 +136,7 @@ contract ScarcityLite is CommonIERC20 {
     require(recipient != address(0), "Scarcity: transfer to the zero address");
 
     uint256 feeComponent = (config.transferFee * amount) / (1000);
-   // console.log("transferFee %s, amount %s, feeComponent %s", config.transferFee, amount, feeComponent);
+    // console.log("transferFee %s, amount %s, feeComponent %s", config.transferFee, amount, feeComponent);
     uint256 burnComponent = (config.burnFee * amount) / (1000);
     _totalSupply = _totalSupply - burnComponent;
     emit Burn(burnComponent);
@@ -334,6 +335,7 @@ contract BehodlerLite is ScarcityLite {
   PrecisionFactors safetyParameters;
 
   address tokenDumper;
+
   constructor() {
     receiver = address(new StubLiquidityReceiver());
     safetyParameters.swapPrecisionFactor = 30; //approximately a billion
@@ -392,10 +394,10 @@ contract BehodlerLite is ScarcityLite {
 
     uint256 netInputAmount = inputAmount - burnToken(inputToken, inputAmount);
     uint256 initialOutputBalance = outputToken.tokenBalance();
-    require(
-      (outputAmount * 100) / initialOutputBalance <= safetyParameters.maxLiquidityExit,
-      "BEHODLER: liquidity withdrawal too large."
-    );
+    if ((outputAmount * 100) / initialOutputBalance > safetyParameters.maxLiquidityExit) {
+      revert BehodlerMaxLiquidityExit(outputAmount, initialOutputBalance, safetyParameters.maxLiquidityExit);
+    }
+
     uint256 finalInputBalance = initialInputBalance + (netInputAmount);
     uint256 finalOutputBalance = initialOutputBalance - (outputAmount);
 
@@ -404,8 +406,9 @@ contract BehodlerLite is ScarcityLite {
       //if the input balance after adding input liquidity is 1073741824 bigger than the initial balance, we revert.
       uint256 inputRatio = (initialInputBalance << safetyParameters.swapPrecisionFactor) / finalInputBalance;
       uint256 outputRatio = (finalOutputBalance << safetyParameters.swapPrecisionFactor) / initialOutputBalance;
-
-      require(inputRatio != 0 && inputRatio == outputRatio, "BEHODLER: swap invariant.");
+      if (inputRatio == 0 || inputRatio != outputRatio) {
+        revert BehodlerSwapInvariant(inputRatio, outputRatio);
+      }
     }
 
     require(finalOutputBalance >= MIN_LIQUIDITY, "BEHODLER: min liquidity.");
@@ -525,7 +528,7 @@ contract BehodlerLite is ScarcityLite {
   //just for allowing repeat limbo migrations
   function dumpTokens(address token) public {
     require(msg.sender == tokenDumper, "Only token dumper can dump tokens.");
-    uint balance = CommonIERC20(token).balanceOf(address(this));
-    CommonIERC20(token).transfer(msg.sender,balance);
+    uint256 balance = CommonIERC20(token).balanceOf(address(this));
+    CommonIERC20(token).transfer(msg.sender, balance);
   }
 }
