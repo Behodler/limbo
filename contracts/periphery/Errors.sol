@@ -80,7 +80,7 @@ error ProposalNotLocked(address proposal);
 error ExecutionFailed();
 error TokenNotApproved(address token);
 error GriefSafetyFactorExceeded(uint256 griefSafetyFactor, uint256 actualLength);
-error NotEnoughFateToLodge(uint userBalance,uint required);
+error NotEnoughFateToLodge(uint256 userBalance, uint256 required);
 //ORACLE
 error InvalidPair(address token0, address token1);
 error ReservesEmpty(address pair, uint256 reserve1, uint256 reserve2);
@@ -90,6 +90,12 @@ error AssetNotRegistered(address pair);
 error WaitPeriodTooSmall(uint256 timeElapsed, uint256 period);
 
 //Proxy
-error OnlyProxy (address sender, address proxy);
-error SlippageManipulationPrevention(uint blockNumber, uint priorBlockNumber);
-error AmplificationTooLow (uint R_amp);
+error OnlyProxy(address sender, address proxy);
+error SlippageManipulationPrevention(uint256 blockNumber, uint256 priorBlockNumber);
+error AmplificationTooLow(uint256 R_amp);
+error BehodlerSwapOutInvariantViolated(address inputToken, uint256 actualAmount, uint256 expectedAmount);
+
+//TESTING
+error BehodlerMaxLiquidityExit(uint256 outputAmount, uint256 initialOutputBalance, uint256 maxLiquidityExit);
+error BehodlerSwapInvariant(uint256 inputRatio, uint256 outputRatio);
+error BehodlerSwapInInvariantViolated(uint output, uint expectedOutput);
