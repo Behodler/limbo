@@ -70,7 +70,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     uint256 amount
   ) internal override {
     uint256 senderBalance = _balances[sender];
-
+    if (amount == 0) return;
     if (senderBalance < amount) {
       revert TransferUnderflow(senderBalance, 0, amount);
     }
