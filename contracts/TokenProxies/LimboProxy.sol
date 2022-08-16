@@ -11,14 +11,16 @@ contract LimboProxy is TokenProxyBase {
   using SafeERC20 for IERC20;
   LimboLike limbo;
   IERC20 flan;
+
   constructor(
     address _baseToken,
     string memory name_,
     string memory symbol_,
     address registry,
     address _limbo,
-    address _flan
-  ) TokenProxyBase(_baseToken, name_, symbol_, registry) {
+    address _flan,
+    uint256 initialRedeemRate
+  ) TokenProxyBase(_baseToken, name_, symbol_, registry, initialRedeemRate) {
     limbo = LimboLike(_limbo);
     flan = IERC20(_flan);
   }
@@ -28,7 +30,7 @@ contract LimboProxy is TokenProxyBase {
   }
 
   function stake(uint256 amount) public {
-    uint256 minted = mint(ONE, address(this), msg.sender, amount);
+    uint256 minted = mint(initialRedeemRate, address(this), msg.sender, amount);
     limbo.stakeFor(address(this), minted, msg.sender);
   }
 

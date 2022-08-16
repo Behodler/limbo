@@ -30,7 +30,7 @@ interface TestSet {
 
 const getBigNumber = (value: string): BigNumber => BigNumber.from(value);
 
-describe("cliffFace proxy test", function () {
+describe("limbo proxy test", function () {
   let SET = {} as TestSet;
   let daieyeSLP, linkeyeSLP, sushieyeSLP, daiSushiSLP;
   let daieyeULP, linkeyeULP, sushieyeULP, daiSushiULP;
@@ -239,7 +239,8 @@ describe("cliffFace proxy test", function () {
       "h1",
       SET.Registry.address,
       SET.Limbo.address,
-      SET.Flan.address
+      SET.Flan.address,
+      SET.ONE
     );
     await SET.LimboProxy.approveLimbo();
 
@@ -498,12 +499,12 @@ describe("cliffFace proxy test", function () {
     const flanBalanceAfterClaim = await SET.Flan.balanceOf(SET.owner.address);
     expect(flanBalanceAfterClaim.gt(flanBalanceBeforeStake)).to.be.true;
 
-    const difference = flanBalanceAfterClaim.sub(flanBalanceBeforeStake)
+    const difference = flanBalanceAfterClaim.sub(flanBalanceBeforeStake);
 
     await advanceTime(100000);
 
     await SET.Limbo.approveUnstake(SET.LimboProxy.address, SET.LimboProxy.address, SET.TWO);
-    await SET.LimboProxy.unstake(SET.ONE)
+    await SET.LimboProxy.unstake(SET.ONE);
 
     const flanBalanceAfterUnstake = await SET.Flan.balanceOf(SET.owner.address);
     expect(flanBalanceAfterUnstake.gt(flanBalanceAfterClaim)).to.be.true;
