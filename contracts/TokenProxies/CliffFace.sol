@@ -22,7 +22,6 @@ contract CliffFace is BehodlerTokenProxy {
 
   address public immutable referenceToken;
   uint256 public immutable referenceMultiple;
-
   struct Variables {
     uint256 priorRefBalance;
     uint256 blockNumber;
@@ -38,17 +37,17 @@ contract CliffFace is BehodlerTokenProxy {
     address registry,
     address _referenceToken,
     uint256 multiple,
-    address _behodler
-  ) BehodlerTokenProxy(_behodler, _baseToken, name_, symbol_, registry) {
+    address _behodler, 
+    uint _initalRedeemRate
+  ) BehodlerTokenProxy(_behodler, _baseToken, name_, symbol_, registry, _initalRedeemRate) {
     referenceToken = _referenceToken;
     referenceMultiple = multiple;
     VARS.priorRefBalance = IERC20(referenceToken).balanceOf(behodler);
-
     VARS.blockNumber = block.number;
   }
 
   function seedBehodler(uint256 initialSupply) public override {
-    uint256 amount = mint(ONE, address(this), msg.sender, initialSupply);
+    uint256 amount = mint(initialRedeemRate, address(this), msg.sender, initialSupply);
 
     _approve(address(this), behodler, type(uint256).max);
     uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), amount);
@@ -84,11 +83,11 @@ contract CliffFace is BehodlerTokenProxy {
     workingVars.currentRefBalance = IERC20(behodler).balanceOf(referenceToken);
     workingVars.currentThisBalance = IERC20(address(this)).balanceOf(behodler);
 
-    workingVars.R_AMP = ONE;
+    workingVars.R_AMP = initialRedeemRate;
 
-    if ((baseTokenAmount + localVars.thisBalance) * ONE > localVars.priorRefBalance * referenceMultiple) {
+    if ((baseTokenAmount + localVars.thisBalance) * initialRedeemRate > localVars.priorRefBalance * referenceMultiple) {
       workingVars.R_AMP =
-        ((baseTokenAmount + localVars.thisBalance) * (ONE**2)) /
+        ((baseTokenAmount + localVars.thisBalance) * (initialRedeemRate**2)) /
         (localVars.priorRefBalance * referenceMultiple);
     }
     workingVars.minted = mint(workingVars.R_AMP, address(this), msg.sender, baseTokenAmount);
@@ -131,7 +130,7 @@ contract CliffFace is BehodlerTokenProxy {
         revert BehodlerSwapOutInvariantViolated(input, scx, expectedInputAmount);
       }
     } else {
-      uint256 baseTokensToRelease = (proxyTokensToRelease * redeemRate()) / ONE;
+      uint256 baseTokensToRelease = (proxyTokensToRelease * redeemRate()) / initialRedeemRate;
       BehodlerLike(behodler).swap(input, address(this), expectedInputAmount, proxyTokensToRelease);
       uint256 actualBase = redeem(address(this), outputRecipient, proxyTokensToRelease);
       if (baseTokensToRelease >> 10 < actualBase >> 10) {

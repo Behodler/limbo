@@ -9,8 +9,9 @@ abstract contract BehodlerTokenProxy is TokenProxyBase {
     address _baseToken,
     string memory name_,
     string memory symbol_,
-    address registry
-  ) TokenProxyBase(_baseToken, name_, symbol_, registry) {
+    address registry,
+    uint initialRedeemRate
+  ) TokenProxyBase(_baseToken, name_, symbol_, registry,initialRedeemRate) {
     behodler = _behodler;
   }
 

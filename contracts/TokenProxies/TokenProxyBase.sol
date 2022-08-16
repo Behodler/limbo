@@ -9,16 +9,19 @@ contract TokenProxyBase is ERC20 {
   address public immutable proxyRegistry;
 
   address public immutable baseToken;
-  uint256 internal constant ONE = 1 ether;
+
+  uint256 public immutable initialRedeemRate;
 
   constructor(
     address _baseToken,
     string memory name_,
     string memory symbol_,
-    address registry
+    address registry,
+    uint256 _initialRedeemRate
   ) ERC20(name_, symbol_) {
     baseToken = _baseToken;
     proxyRegistry = registry;
+    initialRedeemRate = _initialRedeemRate;
   }
 
   /**
@@ -30,12 +33,12 @@ contract TokenProxyBase is ERC20 {
     address baseSource,
     uint256 amount
   ) internal returns (uint256 proxy) {
-    uint256 _redeemRate = (redeemRate() * R_amp) / ONE;
+    uint256 _redeemRate = (redeemRate() * R_amp) / initialRedeemRate;
     uint256 balanceBefore = IERC20(baseToken).balanceOf(address(this));
 
     IERC20(baseToken).safeTransferFrom(baseSource, address(this), amount);
     uint256 baseAmount = IERC20(baseToken).balanceOf(address(this)) - balanceBefore;
-    proxy = ((baseAmount * ONE) / _redeemRate);
+    proxy = ((baseAmount * initialRedeemRate) / _redeemRate);
     _mint(proxyRecipient, proxy);
   }
 
@@ -46,15 +49,15 @@ contract TokenProxyBase is ERC20 {
   ) public returns (uint256 baseAmount) {
     uint256 _redeemRate = redeemRate();
     _burn(proxySource, amount);
-    baseAmount = (amount * _redeemRate) / ONE;
+    baseAmount = (amount * _redeemRate) / initialRedeemRate;
     IERC20(baseToken).safeTransfer(baseRecipient, baseAmount);
   }
 
   function redeemRate() public view returns (uint256) {
     uint256 balanceOfBase = IERC20(baseToken).balanceOf(address(this));
-    if (totalSupply() == 0 || balanceOfBase == 0) return ONE;
+    if (totalSupply() == 0 || balanceOfBase == 0) return initialRedeemRate;
 
-    return (balanceOfBase * ONE) / totalSupply();
+    return (balanceOfBase * initialRedeemRate) / totalSupply();
   }
 
   function migrateBaseReserveToNewProxy(address newProxy) public {

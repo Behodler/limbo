@@ -11,7 +11,7 @@ contract VanillaProxy is TokenProxyBase {
     string memory name_,
     string memory symbol_,
     address registry
-  ) TokenProxyBase(_baseToken, name_, symbol_, registry) {
+  ) TokenProxyBase(_baseToken, name_, symbol_, registry, 1 ether) {
     R_amp = 1 ether;
   }
 

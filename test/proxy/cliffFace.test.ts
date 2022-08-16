@@ -100,7 +100,8 @@ describe("cliffFace proxy test", function () {
       SET.Registry.address,
       SET.ReferenceToken.address,
       SET.ONE,
-      SET.Behodler.address
+      SET.Behodler.address,
+      SET.ONE
     );
     await SET.BaseToken.approve(SET.CliffFace.address, SET.MILLION);
     await SET.ReferenceToken.approve(SET.CliffFace.address, SET.MILLION);
