@@ -469,6 +469,9 @@ contract BehodlerLite is ScarcityLite {
       uint256 difference = deltaSCX - scxBalance;
       if ((difference * 10000) / deltaSCX == 0) deltaSCX = scxBalance;
     }
+    if(deltaSCX>balances[msg.sender]){
+      revert SCXBalanceTooLow(deltaSCX, balances[msg.sender]);
+    }
     burn(msg.sender, deltaSCX);
     outputToken.transferOut(msg.sender, tokensToRelease);
   }

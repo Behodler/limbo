@@ -410,6 +410,14 @@ contract Limbo is Governable {
     params.set(flashGoverner(), soul, initialCrossingBonus, crossingBonusDelta, burnable, crossingThreshold);
   }
 
+  function stakeFor(
+    address token,
+    uint256 amount,
+    address recipient
+  ) public enabled {
+    _stake(token, amount, msg.sender, recipient);
+  }
+
   ///@notice User facing stake function for handling both types of souls
   ///@param token The soul to stake
   ///@param amount The amount of tokens to stake
@@ -419,32 +427,7 @@ contract Limbo is Governable {
    *Security enforcement of tokens listed on Limbo is offloaded to governance so that Limbo isn't required to anticipate every attack vector.
    */
   function stake(address token, uint256 amount) public enabled {
-    Soul storage soul = currentSoul(token);
-    if (soul.state != SoulState.staking) revert InvalidSoulState(token, uint256(soul.state));
-
-    updateSoul(token, soul);
-    uint256 currentIndex = latestIndex[token];
-    User storage user = userInfo[token][msg.sender][currentIndex];
-
-    //dish out accumulated rewards.
-    uint256 pending = getPending(user, soul);
-    if (pending > 0) {
-      Flan.mint(msg.sender, pending);
-    }
-    //Balance checking accounts for FOT discrepencies
-    uint256 oldBalance = IERC20(token).balanceOf(address(this));
-
-    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    uint256 newBalance = IERC20(token).balanceOf(address(this));
-
-    user.stakedAmount = user.stakedAmount + newBalance - oldBalance; //adding true difference accounts for FOT tokens
-    if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
-      soul.state = SoulState.waitingToCross;
-      tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
-    }
-
-    user.rewardDebt = (user.stakedAmount * soul.accumulatedFlanPerShare) / TERA;
-    emit Staked(msg.sender, token, user.stakedAmount);
+    _stake(token, amount, msg.sender, msg.sender);
   }
 
   ///@notice User facing unstake function for handling both types of souls. For threshold souls, can only be called during staking phase.
@@ -600,6 +583,39 @@ contract Limbo is Governable {
     uint256 amount
   ) external {
     unstakeApproval[soul][msg.sender][unstaker] = amount; //soul->owner->unstaker->amount
+  }
+
+  function _stake(
+    address token,
+    uint256 amount,
+    address payer,
+    address recipient
+  ) internal {
+    Soul storage soul = currentSoul(token);
+    if (soul.state != SoulState.staking) revert InvalidSoulState(token, uint256(soul.state));
+
+    updateSoul(token, soul);
+    uint256 currentIndex = latestIndex[token];
+    User storage user = userInfo[token][recipient][currentIndex];
+
+    //dish out accumulated rewards.
+    uint256 pending = getPending(user, soul);
+    if (pending > 0) {
+      Flan.mint(recipient, pending);
+    }
+
+   //in the case of FOT or other non traditional tokens, use the limbo proxy.
+    IERC20(token).safeTransferFrom(payer, address(this), amount);
+    uint256 newBalance = IERC20(token).balanceOf(address(this));
+
+    user.stakedAmount = user.stakedAmount + amount;
+    if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
+      soul.state = SoulState.waitingToCross;
+      tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
+    }
+
+    user.rewardDebt = (user.stakedAmount * soul.accumulatedFlanPerShare) / TERA;
+    emit Staked(recipient, token, user.stakedAmount);
   }
 
   function rewardAdjustDebt(

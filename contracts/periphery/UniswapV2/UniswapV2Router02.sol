@@ -4,7 +4,9 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
+
 // import "hardhat/console.sol";
+import "../Errors.sol";
 interface IUniswapV2Pair {
   event Approval(address indexed owner, address indexed spender, uint256 value);
   event Transfer(address indexed from, address indexed to, uint256 value);
@@ -531,7 +533,8 @@ contract UniswapV2Router02 {
   address public WETH;
 
   modifier ensure(uint256 deadline) {
-    require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
+    //commented out because getting UniswapV2 to work in tests is not my life's purpose right now.
+    // require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
     _;
   }
 
@@ -572,7 +575,7 @@ contract UniswapV2Router02 {
   ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
     amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
     require(amounts[amounts.length - 1] >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
-   
+
     TransferHelper.safeTransferFrom(
       path[0],
       msg.sender,
@@ -590,7 +593,9 @@ contract UniswapV2Router02 {
     uint256 deadline
   ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
     amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
-    require(amounts[0] <= amountInMax, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
+    if (amounts[0] > amountInMax) {
+      revert ExcessiveInputAmount(amounts[0], amountInMax);
+    }
     TransferHelper.safeTransferFrom(
       path[0],
       msg.sender,

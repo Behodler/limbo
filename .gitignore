@@ -140,3 +140,5 @@ scripts/testnet/addresses/orig*
 *delete-this*
 
 *.pdf
+gasResults/
+gasReport*

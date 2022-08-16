@@ -1,25 +1,40 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 import "./TokenProxyBase.sol";
-//TODO: remove FOT logic from Limbo
-///@author Justin Goro 
+import "../facades/LimboLike.sol";
+import "../openzeppelin/SafeERC20.sol";
+
+///@author Justin Goro
 ///@title Limbo Token Proxy
 ///@dev normalizes the behaviour of FOT and rebase tokens so that Limbo can focus on logic
 contract LimboProxy is TokenProxyBase {
+  using SafeERC20 for IERC20;
+  LimboLike limbo;
+  IERC20 flan;
   constructor(
     address _baseToken,
     string memory name_,
     string memory symbol_,
-    address registry
-  ) TokenProxyBase(_baseToken,name_, symbol_,registry) {}
-
-  function stake() public{
-    
+    address registry,
+    address _limbo,
+    address _flan
+  ) TokenProxyBase(_baseToken, name_, symbol_, registry) {
+    limbo = LimboLike(_limbo);
+    flan = IERC20(_flan);
   }
 
-  function unstake() public{
-
+  function approveLimbo() public {
+    IERC20(address(this)).safeApprove(address(limbo), type(uint256).max);
   }
 
+  function stake(uint256 amount) public {
+    uint256 minted = mint(ONE, address(this), msg.sender, amount);
+    limbo.stakeFor(address(this), minted, msg.sender);
+  }
 
+  function unstake(uint256 amount) public {
+    limbo.unstakeFor(address(this), amount, msg.sender);
+    redeem(address(this), msg.sender, amount);
+    flan.safeTransfer(msg.sender, flan.balanceOf(address(this)));
+  }
 }
