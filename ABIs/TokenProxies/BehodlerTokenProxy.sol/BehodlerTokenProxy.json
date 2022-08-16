@@ -426,11 +426,6 @@
           "internalType": "uint256",
           "name": "baseTokenAmount",
           "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "requestRefund",
-          "type": "bool"
         }
       ],
       "name": "swapAsInput",
@@ -465,11 +460,6 @@
           "internalType": "uint256",
           "name": "expectedInputAmount",
           "type": "uint256"
-        },
-        {
-          "internalType": "bool",
-          "name": "requestRefund",
-          "type": "bool"
         }
       ],
       "name": "swapAsOuput",

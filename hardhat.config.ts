@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-deploy";
 import "./tasks/index";
+import "hardhat-gas-reporter"
 import * as mnemonic from "./private/testmnemonic.json";
 
 task("accounts", "Prints the list of accounts", async (_, hre) => {
@@ -16,7 +17,13 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 
 export default {
   solidity: "0.8.13",
+  gasReporter: {
+    optimizer: true,
+    outputFile:"gasReport.json",
+    disabled:true
+  },
   networks: {
+   
     hardhat: {
       // allowUnlimitedContractSize: true,
       chainId: 1337,
@@ -29,6 +36,7 @@ export default {
           runs: 200,
         },
       },
+    
       //comment out mining block for non wargame tests
       // mining: {
       //   auto: false,

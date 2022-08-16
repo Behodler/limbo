@@ -98,4 +98,6 @@ error BehodlerSwapOutInvariantViolated(address inputToken, uint256 actualAmount,
 //TESTING
 error BehodlerMaxLiquidityExit(uint256 outputAmount, uint256 initialOutputBalance, uint256 maxLiquidityExit);
 error BehodlerSwapInvariant(uint256 inputRatio, uint256 outputRatio);
-error BehodlerSwapInInvariantViolated(uint output, uint expectedOutput);
+error BehodlerSwapInInvariantViolated(uint256 output, uint256 expectedOutput);
+error SCXBalanceTooLow(uint256 expected, uint256 actual);
+error ExcessiveInputAmount(uint256 amountsZero, uint256 amountInMax);

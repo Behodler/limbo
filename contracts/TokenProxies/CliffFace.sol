@@ -4,6 +4,7 @@ import "./BehodlerTokenProxy.sol";
 import "../openzeppelin/ERC20Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../periphery/Errors.sol";
+
 ///@title Cliff Face
 ///@author Justin Goro
 /**@notice This special proxy is designed to protect Behodler from either tokens that hyperinflate
@@ -61,6 +62,13 @@ contract CliffFace is BehodlerTokenProxy {
     IERC20(inputToken).safeApprove(behodler, type(uint256).max);
   }
 
+  struct SwapAsInputWorkingVARS {
+    uint256 currentRefBalance;
+    uint256 currentThisBalance;
+    uint256 R_AMP;
+    uint256 minted;
+  }
+
   function swapAsInput(
     address outputRecipient,
     address outputToken,
@@ -68,35 +76,38 @@ contract CliffFace is BehodlerTokenProxy {
     uint256 baseTokenAmount
   ) public override returns (bool) {
     Variables memory localVars = VARS;
+    SwapAsInputWorkingVARS memory workingVars;
     if (block.number == VARS.blockNumber) {
       revert SlippageManipulationPrevention(block.number, VARS.blockNumber);
     }
     //gather balances before swap
-    uint256 currentRefBalance = IERC20(behodler).balanceOf(referenceToken);
-    uint256 thisBalance = IERC20(address(this)).balanceOf(behodler);
+    workingVars.currentRefBalance = IERC20(behodler).balanceOf(referenceToken);
+    workingVars.currentThisBalance = IERC20(address(this)).balanceOf(behodler);
 
-    uint256 R_amp = ONE;
+    workingVars.R_AMP = ONE;
 
     if ((baseTokenAmount + localVars.thisBalance) * ONE > localVars.priorRefBalance * referenceMultiple) {
-      R_amp = ((baseTokenAmount + localVars.thisBalance) * (ONE**2)) / (localVars.priorRefBalance * referenceMultiple);
+      workingVars.R_AMP =
+        ((baseTokenAmount + localVars.thisBalance) * (ONE**2)) /
+        (localVars.priorRefBalance * referenceMultiple);
     }
-    uint256 minted = mint(R_amp, address(this), msg.sender, baseTokenAmount);
+    workingVars.minted = mint(workingVars.R_AMP, address(this), msg.sender, baseTokenAmount);
 
     if (outputToken == behodler) {
-      uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), minted);
+      uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), workingVars.minted);
       if (scx != outputAmount) {
         //scx addition susceptible to sandwich attacks without this
         revert BehodlerSwapInInvariantViolated(scx, outputAmount);
       }
       BehodlerLike(behodler).transfer(outputRecipient, scx);
     } else {
-      BehodlerLike(behodler).swap(address(this), outputToken, minted, outputAmount);
+      BehodlerLike(behodler).swap(address(this), outputToken, workingVars.minted, outputAmount);
       IERC20(baseToken).safeTransfer(outputRecipient, outputAmount);
     }
     //modifiers don't share local variables according to a compiler error :(
-    localVars.priorRefBalance = currentRefBalance;
+    localVars.priorRefBalance = workingVars.currentRefBalance;
     localVars.blockNumber = block.number;
-    localVars.thisBalance = thisBalance;
+    localVars.thisBalance = workingVars.currentThisBalance;
     VARS = localVars;
     return true;
   }
@@ -116,14 +127,14 @@ contract CliffFace is BehodlerTokenProxy {
       uint256 scx = BehodlerLike(behodler).withdrawLiquidity(address(this), (proxyTokensToRelease));
       //withdrawing SCX with cliffFace proxy protects against sandwich attacks
       //drop 10 bits to account for discrepencies between EVM and front end
-      if (scx > 1024 && scx >> 10 != expectedInputAmount >> 10) {
+      if (scx > 1024 && scx >> 10 > expectedInputAmount >> 10) {
         revert BehodlerSwapOutInvariantViolated(input, scx, expectedInputAmount);
       }
     } else {
       uint256 baseTokensToRelease = (proxyTokensToRelease * redeemRate()) / ONE;
       BehodlerLike(behodler).swap(input, address(this), expectedInputAmount, proxyTokensToRelease);
       uint256 actualBase = redeem(address(this), outputRecipient, proxyTokensToRelease);
-      if (baseTokensToRelease >> 10 != actualBase >> 10) {
+      if (baseTokensToRelease >> 10 < actualBase >> 10) {
         revert BehodlerSwapOutInvariantViolated(input, baseTokensToRelease, actualBase);
       }
     }
