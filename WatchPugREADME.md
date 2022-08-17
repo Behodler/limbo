@@ -30,28 +30,29 @@ In the above image, V represents the average value of TVL. That is, the TVL divi
 
 ### Risks inherent to Scarcity
 
-A consequence of the curvature of SCX is that the first droplets of liquidity added to Behodler yields a disproportionate quantity of Scarcity minted. Consider that adding 1 unit of a new token generates about 600 SCX whereas adding another 9000 generates about 200 SCX. Suppose this 1 token is DAI. If a new token is listed on Behodler for trading with zero liquidity and 10000 units of the token is added over time, we could get a situation where one person generates 600 SCX from adding 1 unit fo the token and consequently waits for the remaining liquidity to arrive before redeeming 9000 units for 200 SCX. This would in effect be a massive redistributional transfer of value between users which is not ideal...
+A consequence of the curvature of SCX is that the first droplets of liquidity added to Behodler yields a disproportionate quantity of Scarcity minted. Consider that adding 1 unit of a new token generates about 600 SCX whereas adding another 9000 generates about 200 SCX. Suppose this 1 token is DAI. If a new token is listed on Behodler for trading with zero liquidity and 10000 units of Dai is added over time, we could get a situation where one person generates 600 SCX from adding 1 Dai and consequently waits for the remaining liquidity to arrive before redeeming 9000 Dai for 200 SCX. This would in effect be a massive redistributional transfer of value between users which is not ideal...
 
 In the Behodler community, this result has been coined the Early Bird Attack.
 
 Another risk concerns the nature of single pool liquidity. Suppose a token is listed on Behodler that gives the creator of the token contract admin minting rights. The creator can now mint enough Scarcity to redeem all the liquidity of all the other tokens. For this reason, open listing such as in Uniswap is not an option on Behodler.
 
-What this means is that Behodler is at risk from sudden bursts of new liquidity (vertical liquidity risk) and from inherent threats of new tokens. In light of these risks, Limbo was proposed to address both of these constraints.
-Essentially, by nullyfying both the vertical and horizontal risks inherent in Behodler, Limbo allows for a rapid incentivized expansion of Behodler. In the process, a buffet of positive externalities is made possible, including the initially unintentional creation of a stablecoin, Flan and a price floor mechanism for putting the breaks on impermanent loss without relying on unsustainable minting.
+What this means is that Behodler is at risk from sudden bursts of new liquidity (vertical liquidity risk) and from the inherent threats of new tokens (horizontal risk). In light of these risks, Limbo was proposed to address both of these constraints.
+
+Essentially, by nullyfying both the vertical and horizontal risks inherent in Behodler, Limbo allows for a rapid incentivized expansion of Behodler. In the process, a buffet of positive externalities is made possible, including the initially unintentional creation of a stablecoin, Flan, and a price floor mechanism for putting the breaks on impermanent loss without relying on unsustainable minting in the form of Token Proxies.
 
 And so since its proposal, Limbo has evolved from being a tokenomic shield to being a wellspring of liquidity growth and efficiency, manifesting as prosperity through increasing demand generated for the 3 protocol tokens in the Ecosystem.
 
-## The different components of the Behodler Ecosystem
+## Components of the Behodler Ecosystem
 
 <img src="./documentation/watchpugAudit/Behodler_Ecosystem_at_a_Glance.png" />
 
 ### The tokens
 
-EYE is the universal governance token for the Ecosystem. SCX is the liquidity token for Behodler (AMM) and Flan is the reward token minted by Limbo in order to reward liquidity staking. Scarcity burns on transfer. In this way, the regular trade of SCX in other AMMs will decrease the supply which increases the level of liquidity trapped permanently in Behodler. This permanently trapped liquidity is referred to as residual liquidity or the liquidity floor and a secondary purpose of Limbo is to encourage as much SCX lockup and burn as possible in order to grow this floor.
+EYE is the universal governance token for the Ecosystem. SCX is the liquidity token for Behodler (AMM) and Flan is the reward token minted by Limbo in order to reward liquidity staking. Scarcity burns on transfer. In this way, the regular trade of SCX in other AMMs will decrease the supply which increases the level of liquidity trapped permanently in Behodler. This permanently trapped liquidity is referred to as residual liquidity or the liquidity floor and a secondary purpose of Limbo is to encourage as much SCX lockup and burn as possible in order to grow this floor. For this reason, we don't need to levy a fee on trade in the AMM to grow liquidity because we already have the SCX transfer fee.
 
 ### The AMM
 
-Behodler, the AMM has been covered and has a token registration contract, Lachesis which maintains a list of all tradeable tokens. Lachesis can only be altered through governance action. Every trade on Behodler is charged a 0.5% fee. The fee is either burnt or send to the Pyrotoken reserve. Lachesis informs which of these outcomes occurs.
+Behodler, the AMM has been covered and has a token registration contract, Lachesis, which maintains a list of all tradeable tokens. Lachesis can only be altered through governance action. Every trade on Behodler is charged a 0.5% fee. The fee can be changed through governance to any percentage including zero. The fee is either burnt or send to the PyroToken reserve. Lachesis informs which of these outcomes occurs.
 
 ### PyroTokens
 
@@ -59,14 +60,14 @@ Every token that isn't listed as burnable has a corresponding PyroToken in a 1:1
 Whenever a token such as ETH is sold, 0.5% is levied and sent to the corresponding PyroToken reserve. Since SCX's burn mechanism accounts for liquidity growth, the fee on Behodler can be used for other incentives. The other incentive in this case is PyroTokens.
 As trade occurs for a token on Behodler, the PyroToken redeem rate for that token rises because of incoming reserve revenue. PyroTokens burn on transfer which has the effect of increasing the redeem rate instantly through a reduction in supply.
 
-PyroTokens therefore provide a hold incentive over their base tokens. If we have a Uniswap LP token that represents a pair of, say SCX and ETH then if users accumulate its corresponding PyroToken, the demand for the underlying LP token will rise. This will draw liquidity into the SCX/ETH pair. Since SCX burns on transfer, more SCX liquidity means more burning because of reduced slippage and increasing arbitrage opportunities.
-PyroTokens therefore represent a secondary liquidity growth strategy for Behodler.
+PyroTokens therefore provide a hold incentive over their base tokens. If we have a Uniswap LP token composed of a pair of, say, SCX and ETH then if users accumulate its corresponding PyroToken, the demand for the underlying LP token will rise. This will draw liquidity into the SCX/ETH pair. Since SCX burns on transfer, more SCX liquidity means more burning because of reduced slippage and increasing arbitrage opportunities.
+PyroTokens therefore represent a secondary liquidity growth strategy for Behodler. In the community, this pulling on SCX burn is called Automining.
 
 ### Limbo
 
-Limbo lists tokens for staking. Those tokens can either follow the standard staking conditions of all liquidity mines. Here a user stakes a token and receives a Flan payout. These pools are called perpetual pools. The other type of pool concerns tokens which the community wants listed on Behodler. Recall, we can't just list a new token on Behodler without preseeding it with liquidity.
+Limbo lists tokens for staking. The listed tokens can either follow the standard staking conditions of all liquidity mines. Here a user stakes a token and receives a Flan payout. These pools are called perpetual pools. The other type of pool concerns tokens which the community wants listed on Behodler. Recall that we can't just list a new token on Behodler without preseeding it with liquidity, lest we suffer an Early Bird Attack.
 
-Limbo offers Flan in returning for staking a _threshold_ token. When a certain threshold of staked quantity is reached, withdrawals are locked. The entire balance of the token is then injected into Behodler and SCX is generated. Instead of handing out the SCX to the stakers, they are paid with a _crossover bonus_ in Flan, a compensation payment for having their staked tokens confiscated.
+Limbo offers Flan in returning for staking a _threshold_ token. When a certain threshold of staked quantity is reached, withdrawals from Limbo are locked. The entire balance of the token is then injected into Behodler and SCX is generated. Instead of handing out the SCX to the stakers proportionately, they are paid with a _crossover bonus_ in Flan, a compensation payment for having their staked tokens confiscated.
 
 Suppose the SCX generated is worth \$10k. An oracle is consulted and \$10k worth of Flan is minted. It is then coupled with the generated SCX and pooled in the Flan/SCX pool in UniswapV2. This replenishes the liquidity of Flan to enable continued minting of new Flan without suffering a negative price impact.
 
@@ -74,18 +75,22 @@ However, there's an additional step. If the price of Flan has fallen below par w
 
 ### LimboDAO
 
-LimboDAO governs Limbo which means which tokens to list, how they're listed, how much each threshold token should require for crossover, which contracts have the right to mint Flan, which contract should govern crossovers and some emergency shutdown measures.
+LimboDAO governs Limbo, controlling actions such as which tokens to list, how they're listed, how much each threshold token should require for crossover, which contracts have the right to mint Flan, which contract should govern crossovers and some emergency shutdown measures.
 
 Decisions are either made by lodging and voting on proposals or through an instant governance mechanism known as Flash Governance.
 
 **Proposals**
 LimboDAO offers its users non-transferrable voting points called Fate in return for staking EYE or EYE based LP tokens. Fate is generated quadratically in order to dampen whale dominance.
-Lodging a proposal has a Fate price. The lodging process deducts twice the lodge price. If the proposal succeeds, half of the fate is returned to the lodging user, the rest burnt. If not, it is all burnt. This incentivizes against Karen attacks, a griefing attack involving the excessive lodging.
+Lodging a proposal has a Fate price. The lodging process deducts twice the lodge price. If the proposal succeeds, half of the Fate is returned to the lodging user, the rest burnt. If not, it is all burnt. This incentivizes against Karen attacks, a griefing attack involving the excessive lodging of proposals.
 Fate can also be generated by burning EYE. This yields very high quantities of Fate for those who don't wish to wait.
 
 **Flash Governance**
 Some functions in Limbo can be called with small parametric adjustments. This is to allow incentives to be adjusted in response to market movements without having to wait for a long voting period of a proposal. Flash governed methods immediately deduct a large quantity of EYE from the caller as a deposit. If the function call resulted in an undesirable outcome, the community can vote to have the deposit burnt. If no such vote is carried out, after a cooldown period, the caller can withdraw their EYE deposit.
 Flash governance is also useful for pausing Limbo if an attack is detected.
+
+### MorgothDAO (beyond the scope of the audit)
+
+The Behodler Ecosystem is governed through a DAO of DAOs approach. Morgoth is the DAO prime which takes meta governance decisions such as which DAO should govern which Dapp. The sub DAOs such as LimboDAO are referred to as microDAOs. Morgoth acts as a supreme court of sorts whereas each DAO has its own consensus mechanisms appropriate to the task at hand and so are analogous to States in a Federal republic or provinces of an Empire, depending on whether the reader is American/Swiss (Federation oriented) or Chinese/Roman (Provincial Imperial).
 
 # Significant changes since the C4 Audit
 
@@ -93,10 +98,10 @@ While the overview and dynamics are the same, there have been a few security imp
 
 ## Oracles
 
-Previously there was a lightweight price gathering mechanism that C4 wardens determined may result in significant griefing. It has since been replaced with an oracle contract relying on the Uniswap TWAP system. The latest price isn't essential. Rather a robust price is more important.
+Previously there was a lightweight price stamping mechanism that C4 wardens rightly determined may result in significant griefing. It has since been replaced with an oracle contract relying on the UniswapV2 TWAP system. The latest price isn't essential. Rather a robust price is more important.
 
-Sometimes it is necessary to know the balance of a token within an pool. For instance, instead of knowing the price of SCX from SCX/FLAN, we may want to know how much Flan is locked in the pool. There is no oracle stamping for this but there is a workaround:
-Suppose we create a pool of SCX/(SCX/FLAN) where the second token is the LP token generated from SCX/FLAN. We take oracle reading of this pool as well. We then list this pool on Behodler and Limbo so that it receives incentives for liquidity addition so that we know the market price is accurate. If we know the price of SCX/FLAN in terms SCX from this secondary pool and we know the price of Flan in terms of SCX and we know the total supply of SCX/FLAN then we can infer the quantity of Flan locked in SCX/FLAN in a tamper proof robust manner.
+Sometimes it is necessary to know the balance of a token within an pool. For instance, instead of knowing the price of SCX from SCX/Flan, we may want to know how much Flan is locked in the pool. There is no oracle stamping for this but there is a workaround:
+Suppose we create a pool of SCX/(SCX/Flan) where the second token is the LP token generated from SCX/Flan. We take oracle reading of this pool as well. We then list this pool on Behodler and Limbo so that it receives incentives for liquidity addition so that we know the market price is accurate. If we know the price of SCX/Flan in terms SCX from this secondary pool and we know the price of Flan in terms of SCX and we know the total supply of SCX/Flan then we can infer the quantity of Flan locked in SCX/Flan in a tamper proof, robust manner.
 
 ## Proxies
 
@@ -126,5 +131,8 @@ Limbo staking/unstaking need to be as gas efficient as possible.
 For the proxies, LimboProxy's stake and unstake also need to be gas efficient. For CliffFace, swapAsInput and swapAsOutput need to be optimized to the bone.
 
 Please don't worry about constructor parameter validation such as zero checks. Only bugs matter.
+
+There's a testnet deployment component which is also beyond the scope. Ignore the directory labelled scripts and if you review unit tests, ignore the Wargames directory. 
+
 
 This markdown document will self destruct in 5 seconds.
