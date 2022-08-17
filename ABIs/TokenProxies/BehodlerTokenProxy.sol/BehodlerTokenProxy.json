@@ -171,6 +171,19 @@
       "type": "event"
     },
     {
+      "inputs": [],
+      "name": "IS_PROXY",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -411,6 +424,11 @@
           "internalType": "uint256",
           "name": "initialSupply",
           "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "scxDestination",
+          "type": "address"
         }
       ],
       "name": "seedBehodler",
@@ -562,6 +580,13 @@
           "type": "bool"
         }
       ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "withdrawReserve",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     }
