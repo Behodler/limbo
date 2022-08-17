@@ -173,6 +173,13 @@ library CrossingLib {
 library MigrationLib {
   using SafeERC20 for IERC20;
 
+  /**
+   *@dev This lib serves to circumvent EIP 170 while also improving readability by ringfencing MorgothDAo logic from Limbo logic
+   *@param token to be migrated (or crossed over) from Limbo to Behodler
+   *@param power MorgothDAO power is a spell of sorts that can perform a governance action on Morgoth. Powes have validation rules just like proposals in other DAOs. This power is considered to be prevalidated and ready for repeat execution by Limbo only.
+   *@param crossingConfig rules for crossing over the token at hand
+   *@param soul is the Limbo specific details of this token
+   */
   function migrate(
     address token,
     LimboAddTokenToBehodlerPowerLike power,
@@ -257,6 +264,16 @@ contract Limbo is Governable {
   modifier enabled() {
     if (!protocolEnabled) {
       revert ProtocolDisabled();
+    }
+    _;
+  }
+
+  modifier preventFlashLoanMigration(address token) {
+    if (
+      block.timestamp - tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp <
+      crossingConfig.crossingMigrationDelay
+    ) {
+      revert MigrationCoolDownActive(token, latestIndex[token], crossingConfig.crossingMigrationDelay);
     }
     _;
   }
@@ -550,21 +567,9 @@ contract Limbo is Governable {
    * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
    * permission on Morgoth to execute migrations to Behodler. The other big depenency is the AMM helper which contains the bulk of the migration logic.
    */
-  function migrate(address token) public enabled {
+  function migrate(address token) public enabled preventFlashLoanMigration(token) {
     Soul storage soul = currentSoul(token);
-    if (soul.soulType != SoulType.threshold) {
-      revert InvalidSoulType(token, uint256(soul.soulType), uint256(SoulType.threshold));
-    }
-    if (soul.state != SoulState.waitingToCross) {
-      revert InvalidSoulState(token, uint256(soul.state));
-    }
-
-    if (
-      block.timestamp - tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp <
-      crossingConfig.crossingMigrationDelay
-    ) {
-      revert MigrationCoolDownActive(token, latestIndex[token], crossingConfig.crossingMigrationDelay);
-    }
+    checkSoul(soul, token, SoulType.threshold, SoulState.waitingToCross);
 
     (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
       LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),
@@ -604,7 +609,7 @@ contract Limbo is Governable {
       Flan.mint(recipient, pending);
     }
 
-   //in the case of FOT or other non traditional tokens, use the limbo proxy.
+    //in the case of FOT or other non traditional tokens, use the limbo proxy.
     IERC20(token).safeTransferFrom(payer, address(this), amount);
     uint256 newBalance = IERC20(token).balanceOf(address(this));
 
@@ -634,5 +639,20 @@ contract Limbo is Governable {
 
   function getPending(User memory user, Soul memory soul) internal pure returns (uint256) {
     return ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
+  }
+
+  //Refactored purely for readability for reduce oversight bugs
+  function checkSoul(
+    Soul storage soul,
+    address token,
+    SoulType soulType,
+    SoulState state
+  ) private view {
+    if (soul.soulType != SoulType.threshold) {
+      revert InvalidSoulType(token, uint256(soul.soulType), uint256(soulType));
+    }
+    if (soul.state != SoulState.waitingToCross) {
+      revert InvalidSoulState(token, uint256(state));
+    }
   }
 }

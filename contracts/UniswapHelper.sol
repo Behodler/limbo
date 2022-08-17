@@ -30,8 +30,30 @@ contract UniswapHelper is Governable, AMMHelper {
     LimboOracleLike oracle;
   }
 
+  /* TODO: price stabilization section
+  struct PriceBufferConfig{
+    uint64 tolerance;
+    uint32 rewardPercentage;
+    uint32 scxTax;
+  }
+
+   PriceBufferConfig public priceBufferConfig;
+
+  function configurePriceStabilization (uint64 tolerance, uint32 rewardPercentage, uint32 scxTax) public onlySuccessfulProposal {
+    if(tolerance > 1e15 || rewardPercentage>1e6 || scxTax>10000 ){
+      revert PriceBufferConfigInvalid(tolerance, rewardPercentage,scxTax);
+    }
+    priceBufferConfig.tolerance = tolerance;
+    priceBufferConfig.rewardPercentage = rewardPercentage;
+    priceBufferConfig.scxTax = scxTax;
+  } 
+
+  function bufferPrice() public {
+    
+  }
+*/
+
   struct UniVARS {
-    uint256 divergenceTolerance;
     uint256 minQuoteWaitDuration;
     IUniswapV2Factory factory;
     address behodler;
@@ -83,14 +105,12 @@ contract UniswapHelper is Governable, AMMHelper {
   ///@param _limbo Limbo contract
   ///@param behodler Behodler AMM
   ///@param flan The flan token
-  ///@param divergenceTolerance The amount of price difference between the two quotes that is tolerated before a migration is attempted
   ///@param precision In order to query the tokens redeemed by a quantity of SCX, Behodler performs a binary search. Precision refers to the max iterations of the search.
   ///@param priceBoostOvershoot Flan targets parity with Dai. If we set Flan to equal Dai then between migrations, it will always be below Dai. Overshoot gives us some runway by intentionally "overshooting" the price
   function configure(
     address _limbo,
     address behodler,
     address flan,
-    uint256 divergenceTolerance,
     uint8 precision,
     uint8 priceBoostOvershoot,
     address oracle
@@ -98,12 +118,9 @@ contract UniswapHelper is Governable, AMMHelper {
     limbo = _limbo;
     VARS.behodler = behodler;
     VARS.flan = flan;
-    if (divergenceTolerance < 100) {
-      revert DivergenceToleranceTooLow(divergenceTolerance);
-    }
-    VARS.divergenceTolerance = divergenceTolerance;
+
     VARS.precision = precision == 0 ? precision : precision;
-    if(priceBoostOvershoot > 99) {
+    if (priceBoostOvershoot > 99) {
       revert PriceOvershootTooHigh(priceBoostOvershoot);
     }
 
@@ -163,8 +180,9 @@ contract UniswapHelper is Governable, AMMHelper {
 
     PriceTiltVARS memory priceTilting = getPriceTiltVARS();
     uint256 transferredSCX = (mintedSCX * 98) / 100;
+    // transferredSCX = transferredSCX*(10000-priceBufferConfig.scxTax);
     uint256 finalSCXBalanceOnLP = (transferredSCX) + priceTilting.currentSCXInFLN_SCX;
-  
+
     uint256 DesiredFinalFlanOnLP = (finalSCXBalanceOnLP * priceTilting.FlanPerSCX) / SPOT;
 
     address pair = address(VARS.oracleSet.fln_scx);

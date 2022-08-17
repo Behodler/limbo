@@ -46,12 +46,12 @@ contract CliffFace is BehodlerTokenProxy {
     VARS.blockNumber = block.number;
   }
 
-  function seedBehodler(uint256 initialSupply) public override {
+  function seedBehodler(uint256 initialSupply, address scxDestination) public override {
     uint256 amount = mint(initialRedeemRate, address(this), msg.sender, initialSupply);
 
     _approve(address(this), behodler, type(uint256).max);
     uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), amount);
-    BehodlerLike(behodler).transfer(msg.sender, scx);
+    BehodlerLike(behodler).transfer(scxDestination, scx);
     VARS.priorRefBalance = IERC20(referenceToken).balanceOf(behodler);
     VARS.thisBalance = IERC20(address(this)).balanceOf(behodler);
   }

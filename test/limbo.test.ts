@@ -53,12 +53,10 @@ describe.only("Limbo", function () {
     const MockAngband = await ethers.getContractFactory("MockAngband");
     this.mockAngband = await MockAngband.deploy();
 
-    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
-    this.addTokenPower = await addTokenPowerFactory.deploy();
-
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
-    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
+    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX");
     this.SCX = this.mockBehodler;
+
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO");
 
@@ -123,8 +121,16 @@ describe.only("Limbo", function () {
     await this.flan.whiteListMinting(owner.address, true);
     // await this.flan.endConfiguration(this.limboDAO.address);
 
+    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
+    this.addTokenPower = await addTokenPowerFactory.deploy(
+      this.mockAngband.address,
+      this.limbo.address,
+      "0x0000000000000000000000000000000000000000"
+    );
+
     await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
 
+    await this.SCX.setTokenPower(this.addTokenPower.address);
     const firstProposalFactory = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
     this.whiteListingProposal = await firstProposalFactory.deploy(this.limboDAO.address, "toggle whitelist");
 
@@ -226,7 +232,6 @@ describe.only("Limbo", function () {
       this.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      110,
       20,
       0,
       this.uniOracle.address
@@ -246,7 +251,10 @@ describe.only("Limbo", function () {
     toggleWhiteList = toggleWhiteListFactory(this.eye, this.limboDAO, this.whiteListingProposal, this.proposalFactory);
 
     const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
-    this.registry = await TokenProxyRegistry.deploy(this.limboDAO.address);
+    this.registry = await TokenProxyRegistry.deploy(
+      this.limboDAO.address,
+      this.mockBehodler.address
+    );
     console.log("end of setup");
   });
 
@@ -1160,7 +1168,6 @@ describe.only("Limbo", function () {
       this.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      200,
       20,
       0,
       this.uniOracle.address
@@ -1204,17 +1211,31 @@ describe.only("Limbo", function () {
     });
     const realBehodler = await RealBehodlerFactory.deploy();
     await realBehodler.configureScarcity(15, 5, owner.address);
+    const LachesisFactory = await ethers.getContractFactory("LachesisLite");
+    const lachesis = await LachesisFactory.deploy();
 
-    const RealAngband = await ethers.getContractFactory("AngbandLite");
+    await realBehodler.setLachesis(lachesis.address);
+    await (lachesis as Types.LachesisLite).setBehodler(realBehodler.address);
+
+    const RealAngband = await ethers.getContractFactory("Angband");
     const realAngband = await RealAngband.deploy();
+
+    const proxyRegistryFactory = await ethers.getContractFactory("TokenProxyRegistry");
+    const registry: Types.TokenProxyRegistry = await proxyRegistryFactory.deploy(
+      this.limboDAO.address,
+      realBehodler.address
+    );
 
     const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
     const realPower = await RealPower.deploy(
       realAngband.address,
       this.limbo.address,
-      realBehodler.address,
-      this.registry.address
+      registry.address,
+      lachesis.address,
+      realBehodler.address
     );
+
+    await registry.setPower(realPower.address)
 
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
@@ -1225,7 +1246,9 @@ describe.only("Limbo", function () {
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
+    await (lachesis as Types.LachesisLite).measure(this.dai.address, true, false);
+    await (lachesis as Types.LachesisLite).updateBehodler(this.dai.address);
+    await (realBehodler as Types.BehodlerLite).addLiquidity(this.dai.address, "14000000000000001010055");
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
@@ -1299,7 +1322,6 @@ describe.only("Limbo", function () {
         this.limbo.address,
         realBehodler.address,
         this.flan.address,
-        200,
         20,
         0,
         this.uniOracle.address
@@ -1350,9 +1372,10 @@ describe.only("Limbo", function () {
     expect(numberClose(scxBalanceOfPairBefore, "129565000000000000000"));
     expect(numberClose(flanPairBalanceBefore, "10615000000000000000000"));
 
+    console.log("js: realpower " + realPower.address);
     await advanceTime(600000);
     result = await executionResult(this.limbo.migrate(this.aave.address));
-    expect(result.success).to.equal(true, result.error);
+    expect(result.success).to.equal(true, result.error.toString());
 
     const blackHoleBalanceAfter = await realflanSCX.balanceOf(blackHoleAddress);
 
@@ -1446,7 +1469,6 @@ describe.only("Limbo", function () {
       this.limbo.address,
       realBehodler.address,
       this.flan.address,
-      200,
       20,
       10, //10% price overshoot on flan means 10% less flan minted,
       this.uniOracle.address
@@ -1575,7 +1597,6 @@ describe.only("Limbo", function () {
         this.limbo.address,
         realBehodler.address,
         this.flan.address,
-        200,
         20,
         0,
         this.uniOracle.address
@@ -1694,7 +1715,6 @@ describe.only("Limbo", function () {
         this.limbo.address,
         realBehodler.address,
         this.flan.address,
-        200,
         20,
         0,
         this.uniOracle.address
@@ -1819,7 +1839,6 @@ describe.only("Limbo", function () {
         this.limbo.address,
         this.mockBehodler.address,
         this.flan.address,
-        100,
         20,
         0,
         this.uniOracle.address
@@ -1936,7 +1955,6 @@ describe.only("Limbo", function () {
         this.limbo.address,
         realBehodler.address,
         this.flan.address,
-        200,
         20,
         0,
         this.uniOracle.address
@@ -2068,7 +2086,6 @@ describe.only("Limbo", function () {
         this.limbo.address,
         realBehodler.address,
         this.flan.address,
-        200,
         20,
         0,
         this.uniOracle.address
@@ -2105,28 +2122,6 @@ describe.only("Limbo", function () {
     ).to.be.revertedWith("FlashToleranceViolated");
   });
 
-  it("t-30. FOT token accounting handled correctly", async function () {
-    const feeOnTransferTokenFactory = await ethers.getContractFactory("MockFOTToken");
-    const feeOnTransferToken = await feeOnTransferTokenFactory.deploy("FOT", "FOT", 50);
-    await this.limbo.configureSoul(feeOnTransferToken.address, "10000000000", 1, 1, 0, 10000000);
-
-    await this.limbo.configureCrossingParameters(feeOnTransferToken.address, 21000000, 0, true, "10000000000");
-
-    await feeOnTransferToken.approve(this.limbo.address, "100000000");
-
-    await this.limbo.stake(feeOnTransferToken.address, "100000000");
-
-    const balanceOnLimbo = (await feeOnTransferToken.balanceOf(this.limbo.address)).toString();
-    expect(balanceOnLimbo).to.equal("95000000");
-    const stakedBalance = (await this.limbo.userInfo(feeOnTransferToken.address, owner.address, 0))[0].toString();
-    expect(stakedBalance).to.equal("95000000");
-
-    const bigBalanceBefore = BigInt((await feeOnTransferToken.balanceOf(owner.address)).toString());
-    await this.limbo.unstake(feeOnTransferToken.address, "95000000");
-    const bigBalanceAfter = BigInt((await feeOnTransferToken.balanceOf(owner.address)).toString());
-    expect((bigBalanceAfter - bigBalanceBefore).toString()).to.equal("90250000");
-  });
-
   it("t-31. test unstaking from another user more than allowance fails", async function () {
     await this.limbo.configureSoul(
       this.aave.address,
@@ -2158,495 +2153,6 @@ describe.only("Limbo", function () {
     await expect(this.limbo.connect(secondPerson).unstakeFor(this.aave.address, 1, owner.address)).to.be.revertedWith(
       "Arithmetic operation underflowed or overflowed outside of an unchecked block"
     );
-  });
-
-  it("t-32. token with proxy but baseToken zero simply migrates proxy", async function () {
-    const proxyFactory = await ethers.getContractFactory("TokenProxy");
-    const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
-    await this.registry.setProxy("0x0000000000000000000000000000000000000000", proxy.address, false);
-    const aaveBalance = await this.aave.balanceOf(owner.address);
-    await this.aave.approve(proxy.address, "100000000000000000000");
-    await proxy.mint(owner.address, "100000000000000000000");
-
-    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
-    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
-    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
-      libraries: {
-        AddressBalanceCheck: addressBalanceCheckLibAddress,
-      },
-    });
-    const realBehodler = await RealBehodlerFactory.deploy();
-    await realBehodler.configureScarcity(15, 5, owner.address);
-    const RealAngband = await ethers.getContractFactory("AngbandLite");
-    const realAngband = await RealAngband.deploy();
-
-    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
-    const realPower = await RealPower.deploy(
-      realAngband.address,
-      this.limbo.address,
-      realBehodler.address,
-      this.registry.address
-    );
-    await realBehodler.mint(owner.address, "10000000000000000000000");
-
-    const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "10000000000000000000000000");
-
-    let fetchResult = await queryChain(createGov(this.flan));
-    expect(fetchResult.success).to.equal(true, fetchResult.error);
-    const realflanSCX = fetchResult.result;
-
-    fetchResult = await queryChain(createGov(this.dai));
-    expect(fetchResult.success).to.equal(true, fetchResult.error);
-    const realdaiSCX = fetchResult.result;
-
-    const CreateMetaflanSCX = await metaPairFactory(realflanSCX, this.uniswapFactory, false);
-    const real_SCX_fln_scx = await CreateMetaflanSCX(realBehodler);
-    const token0 = await real_SCX_fln_scx.token0();
-    const token1 = await real_SCX_fln_scx.token1();
-
-    [token0, token1].forEach((token, i) => {
-      sanityCheckMaker(false)(
-        token === realflanSCX.address || token === realBehodler.address,
-        `MetaFlanSCX pair incorrectly setup. Token: ${token}, this.flanSCX: ${this.flanSCX.address}, SCX: ${realBehodler.address}`,
-        "LP of SCX / (FLN/SCX) successfully tested for token " + i
-      ); //Uniswap checks for token0===token1 so no need for me to replicate that
-    });
-    await simpleTrade(this.dai, realdaiSCX);
-    await simpleTrade(realBehodler, realflanSCX);
-    await simpleTrade(realBehodler, real_SCX_fln_scx);
-    await advanceTime(6000);
-
-    await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
-    await simpleTrade(realflanSCX, real_SCX_fln_scx);
-    await advanceTime(4000);
-
-    await this.uniOracle.RegisterPair(realflanSCX.address, 1);
-    await this.uniOracle.RegisterPair(realdaiSCX.address, 1);
-    await this.uniOracle.RegisterPair(real_SCX_fln_scx.address, 1);
-    await advanceTime(10000);
-    await simpleTrade(this.dai, realdaiSCX);
-    await simpleTrade(realBehodler, realflanSCX);
-    await simpleTrade(realBehodler, real_SCX_fln_scx);
-
-    await this.uniOracle.updatePair(realdaiSCX.address);
-    await this.uniOracle.updatePair(realflanSCX.address);
-    await this.uniOracle.updatePair(real_SCX_fln_scx.address);
-
-    await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
-    await simpleTrade(realflanSCX, real_SCX_fln_scx);
-    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
-
-    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
-
-    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
-
-    await this.dai.mint("1400000000000000010100550");
-    await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
-
-    const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
-    await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
-    await this.flan.mint(pairAddress, "300000000000000000000000");
-
-    let result = await executionResult(scxFlanPair.mint(owner.address));
-    expect(result.success).to.equal(true, result.error);
-
-    await this.limbo.configureCrossingConfig(
-      realBehodler.address,
-      realAngband.address,
-      this.uniswapHelper.address,
-      realPower.address,
-      6756,
-      1000
-      // 20,
-      // 105
-    );
-
-    await this.uniswapHelper.setDAI(this.dai.address);
-    result = await executionResult(
-      this.uniswapHelper.configure(
-        this.limbo.address,
-        realBehodler.address,
-        this.flan.address,
-        200,
-        20,
-        0,
-        this.uniOracle.address
-      )
-    );
-    expect(result.success).to.equal(true, result.error);
-
-    await this.limbo.configureSoul(
-      proxy.address,
-      100, //crossingThreshold
-      1, //soulType
-      1, //state
-      0,
-      10000000
-    );
-    //stake tokens
-    await proxy.approve(this.limbo.address, "100000000000000000000001");
-    await this.limbo.stake(proxy.address, "100000000000000000000");
-
-    //assert state is now waitingToCross
-    const currentSoul = await this.limbo.souls(proxy.address, 0);
-    expect(currentSoul[4]).to.equal(2);
-
-    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
-
-    await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
-    //no longer explicit quote generation
-
-    const minQuoteWaitDuration = 105;
-
-    await advanceBlocks(minQuoteWaitDuration + 1);
-
-    //no longer explicit quote generation
-
-    const scxBalanceOfPairBefore = await realBehodler.balanceOf(pairAddress);
-
-    const blackHoleAddress = await this.uniswapHelper.blackHole();
-
-    const blackHoleBalanceBefore = await scxFlanPair.balanceOf(blackHoleAddress);
-
-    const flanPairBalanceBefore = await this.flan.balanceOf(pairAddress);
-
-    expect(numberClose(scxBalanceOfPairBefore, "7385925340649614305748")).to.be.true;
-    expect(numberClose(flanPairBalanceBefore, "300000000000000000000000")).to.be.true;
-
-    await advanceTime(60000);
-    result = await executionResult(this.limbo.migrate(proxy.address));
-    expect(result.success).to.equal(true, result.error);
-
-    const balanceOfProxyOnBehodler = (await proxy.balanceOf(realBehodler.address)).toString();
-    expect(balanceOfProxyOnBehodler).to.not.equal("0");
-
-    const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
-    expect(aaveBalanceOnBehodler).to.equal("0");
-  });
-
-  it("t-33. token with proxy and baseToken with migrateToBehodler true migrates baseToken", async function () {
-    const proxyFactory = await ethers.getContractFactory("TokenProxy");
-    const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
-    await this.registry.setProxy(this.aave.address, proxy.address, true);
-    const aaveBalance = await this.aave.balanceOf(owner.address);
-    await this.aave.approve(proxy.address, "100000000000000000000");
-    await proxy.mint(owner.address, "100000000000000000000");
-
-    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
-    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
-    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
-      libraries: {
-        AddressBalanceCheck: addressBalanceCheckLibAddress,
-      },
-    });
-    const realBehodler = await RealBehodlerFactory.deploy();
-    await realBehodler.configureScarcity(15, 5, owner.address);
-    const RealAngband = await ethers.getContractFactory("AngbandLite");
-    const realAngband = await RealAngband.deploy();
-
-    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
-    const realPower = await RealPower.deploy(
-      realAngband.address,
-      this.limbo.address,
-      realBehodler.address,
-      this.registry.address
-    );
-
-    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
-
-    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
-
-    await this.dai.mint("1400000000000000010100550");
-    await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
-
-    const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
-    const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000");
-    const realflanSCX = await createGov(this.flan);
-    const realdaiSCX = await createGov(this.dai);
-    await realBehodler.transfer(realflanSCX.address, scxBalanceGenerated.div(10));
-    await this.flan.mint(realflanSCX.address, "3000000000000000000");
-
-    // await realflanSCX.mint(owner.address);
-
-    const CreateMetaflanSCX = await metaPairFactory(realflanSCX, this.uniswapFactory, false);
-    const real_SCX_fln_scx = await CreateMetaflanSCX(realBehodler);
-
-    const token0 = await real_SCX_fln_scx.token0();
-    const token1 = await real_SCX_fln_scx.token1();
-
-    [token0, token1].forEach((token, i) => {
-      sanityCheckMaker(false)(
-        token === realflanSCX.address || token === realBehodler.address,
-        `MetaFlanSCX pair incorrectly setup. Token: ${token}, this.flanSCX: ${this.flanSCX.address}, SCX: ${realBehodler.address}`,
-        "LP of SCX / (FLN/SCX) successfully tested for token " + i
-      ); //Uniswap checks for token0===token1 so no need for me to replicate that
-    });
-
-    await simpleTrade(this.dai, realdaiSCX);
-
-    await simpleTrade(realBehodler, realflanSCX);
-    await simpleTrade(realBehodler, real_SCX_fln_scx);
-    await advanceTime(6000);
-
-    await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
-    await simpleTrade(realflanSCX, real_SCX_fln_scx);
-    await advanceTime(4000);
-
-    await this.uniOracle.RegisterPair(realflanSCX.address, 1);
-    await this.uniOracle.RegisterPair(realdaiSCX.address, 1);
-    await this.uniOracle.RegisterPair(real_SCX_fln_scx.address, 1);
-    await advanceTime(10000);
-    await simpleTrade(this.dai, realdaiSCX);
-    await simpleTrade(realBehodler, realflanSCX);
-    await simpleTrade(realBehodler, real_SCX_fln_scx);
-
-    await this.uniOracle.updatePair(realdaiSCX.address);
-    await this.uniOracle.updatePair(realflanSCX.address);
-    await this.uniOracle.updatePair(real_SCX_fln_scx.address);
-
-    await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
-    await simpleTrade(realflanSCX, real_SCX_fln_scx);
-
-    await this.limbo.configureCrossingConfig(
-      realBehodler.address,
-      realAngband.address,
-      this.uniswapHelper.address,
-      realPower.address,
-      6756,
-      1000
-      // 20,
-      // 105
-    );
-
-    await this.uniswapHelper.setDAI(this.dai.address);
-    await this.uniswapHelper.configure(
-      this.limbo.address,
-      realBehodler.address,
-      this.flan.address,
-      200,
-      20,
-      0,
-      this.uniOracle.address
-    );
-
-    await this.limbo.configureSoul(
-      proxy.address,
-      100, //crossingThreshold
-      1, //soulType
-      1, //state
-      0,
-      10000000
-    );
-    //stake tokens
-    await proxy.approve(this.limbo.address, "100000000000000000000001");
-    await this.limbo.stake(proxy.address, "100000000000000000000");
-
-    //UP TO HERE: using fake this.flanSCX
-
-    //assert state is now waitingToCross
-    const currentSoul = await this.limbo.souls(proxy.address, 0);
-    expect(currentSoul[4]).to.equal(2);
-
-    const requiredDelayBetweenEndOfStakingAndMigrate = (await this.limbo.crossingConfig())[3].toNumber();
-
-    await advanceTime(requiredDelayBetweenEndOfStakingAndMigrate + 1);
-    //no longer explicit quote generation
-
-    const minQuoteWaitDuration = 105;
-
-    await advanceBlocks(minQuoteWaitDuration + 1);
-
-    //no longer explicit quote generation
-
-    const scxBalanceOfPairBefore = await realBehodler.balanceOf(realflanSCX.address);
-
-    const blackHoleAddress = await this.uniswapHelper.blackHole();
-
-    const blackHoleBalanceBefore = await realflanSCX.balanceOf(blackHoleAddress);
-
-    const flanPairBalanceBefore = await this.flan.balanceOf(realflanSCX.address);
-
-    expect(numberClose(scxBalanceOfPairBefore, "129565000000000000000")).to.be.true;
-    expect(numberClose(flanPairBalanceBefore, "10618500000000000000000")).to.be.true;
-
-    await advanceTime(120000);
-
-    const result = await executionResult(this.limbo.migrate(proxy.address));
-    expect(result.success).to.equal(true, result.error);
-
-    const balanceOfProxyOnBehodler = (await proxy.balanceOf(realBehodler.address)).toString();
-    expect(balanceOfProxyOnBehodler).to.equal("0");
-
-    const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
-    expect(aaveBalanceOnBehodler).to.not.equal("0");
-  });
-
-  it("t-34. token with proxy and baseToken with migrateToBehodler false migrates proxy", async function () {
-    const proxyFactory = await ethers.getContractFactory("TokenProxy");
-    const proxy = await proxyFactory.deploy("Hello", "there", this.aave.address);
-    await this.registry.setProxy(this.aave.address, proxy.address, false);
-    const aaveBalance = await this.aave.balanceOf(owner.address);
-    await this.aave.approve(proxy.address, "100000000000000000000");
-    await proxy.mint(owner.address, "100000000000000000000");
-
-    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
-    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
-    const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
-      libraries: {
-        AddressBalanceCheck: addressBalanceCheckLibAddress,
-      },
-    });
-    const realBehodler = await RealBehodlerFactory.deploy();
-    await realBehodler.configureScarcity(15, 5, owner.address);
-
-    await realBehodler.mint(owner.address, "10000000000000000000000");
-    const realSCXBalance = await realBehodler.balanceOf(owner.address);
-    const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "10000000000000000000000000");
-    const realflanSCX = await createGov(this.flan);
-    const realdaiSCX = await createGov(this.dai);
-
-    const CreateMetaflanSCX = await metaPairFactory(realflanSCX, this.uniswapFactory, false);
-    const real_SCX_fln_scx = await CreateMetaflanSCX(realBehodler);
-
-    const token0 = await real_SCX_fln_scx.token0();
-    const token1 = await real_SCX_fln_scx.token1();
-
-    [token0, token1].forEach((token, i) => {
-      sanityCheckMaker(false)(
-        token === realflanSCX.address || token === realBehodler.address,
-        `MetaFlanSCX pair incorrectly setup. Token: ${token}, this.flanSCX: ${this.flanSCX.address}, SCX: ${realBehodler.address}`,
-        "LP of SCX / (FLN/SCX) successfully tested for token " + i
-      ); //Uniswap checks for token0===token1 so no need for me to replicate that
-    });
-
-    await simpleTrade(this.dai, realdaiSCX);
-    await simpleTrade(realBehodler, realflanSCX);
-    await simpleTrade(realBehodler, real_SCX_fln_scx);
-    await advanceTime(6000);
-
-    await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
-    await simpleTrade(realflanSCX, real_SCX_fln_scx);
-    await advanceTime(4000);
-
-    await this.uniOracle.RegisterPair(realflanSCX.address, 1);
-    await this.uniOracle.RegisterPair(realdaiSCX.address, 1);
-    await this.uniOracle.RegisterPair(real_SCX_fln_scx.address, 1);
-    await advanceTime(10000);
-    await simpleTrade(this.dai, realdaiSCX);
-    await simpleTrade(realBehodler, realflanSCX);
-    await simpleTrade(realBehodler, real_SCX_fln_scx);
-
-    await this.uniOracle.updatePair(realdaiSCX.address);
-    await this.uniOracle.updatePair(realflanSCX.address);
-    await this.uniOracle.updatePair(real_SCX_fln_scx.address);
-
-    await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
-    await simpleTrade(realflanSCX, real_SCX_fln_scx);
-
-    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
-
-    const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
-
-    const pairAddress = await realUniswapFactory.getPair(this.flan.address, realBehodler.address);
-    const scxFlanPair = await UniswapPairFactory.attach(pairAddress);
-
-    await this.dai.mint("1400000000000000010100550");
-    await this.dai.approve(realBehodler.address, "140000000000000001010055");
-    await realBehodler.addLiquidity(this.dai.address, "14000000000000001010055");
-
-    const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
-    await realBehodler.transfer(scxFlanPair.address, scxBalanceGenerated);
-    await this.flan.mint(pairAddress, "300000000000000000000000");
-
-    await scxFlanPair.mint(owner.address);
-
-    const RealAngband = await ethers.getContractFactory("AngbandLite");
-    const realAngband = await RealAngband.deploy();
-
-    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
-    const realPower = await RealPower.deploy(
-      realAngband.address,
-      this.limbo.address,
-      realBehodler.address,
-      this.registry.address
-    );
-
-    await this.limbo.configureCrossingConfig(
-      realBehodler.address,
-      realAngband.address,
-      this.uniswapHelper.address,
-      realPower.address,
-      6756,
-      1000
-      // 20,
-      // 105
-    );
-
-    await this.uniswapHelper.setDAI(this.dai.address);
-    await this.uniswapHelper.configure(
-      this.limbo.address,
-      realBehodler.address,
-      this.flan.address,
-      200,
-      20,
-      0,
-      this.uniOracle.address
-    );
-
-    await this.limbo.configureSoul(
-      proxy.address,
-      100, //crossingThreshold
-      1, //soulType
-      1, //state
-      0,
-      10000000
-    );
-    //stake tokens
-    await proxy.approve(this.limbo.address, "100000000000000000000001");
-
-    await this.limbo.stake(proxy.address, "100000000000000000000");
-
-    //assert state is now waitingToCross
-    const currentSoul = await this.limbo.souls(proxy.address, 0);
-    expect(currentSoul[4]).to.equal(2);
-
-    await advanceTime(10000);
-
-    const daiBalanceDaiSCX = await this.dai.balanceOf(realdaiSCX.address);
-    const scxBalanceOfDaiScx = await realBehodler.balanceOf(realdaiSCX.address);
-
-    const flanBalanceFlanSCX = await this.flan.balanceOf(realflanSCX.address);
-    const scxBalanceOfFlanScx = await realBehodler.balanceOf(realflanSCX.address);
-
-    const scxBalanceOfPair = await realBehodler.balanceOf(real_SCX_fln_scx.address);
-
-    await advanceTime(100000);
-    let result = await executionResult(this.limbo.migrate(proxy.address));
-    expect(result.success).to.equal(true, result.error);
-
-    const balanceOfProxyOnBehodler = (await proxy.balanceOf(realBehodler.address)).toString();
-    expect(balanceOfProxyOnBehodler).to.not.equal("0");
-
-    const aaveBalanceOnBehodler = await this.aave.balanceOf(realBehodler.address);
-    expect(aaveBalanceOnBehodler).to.equal("0");
   });
 
   it("t-35. disabled flash governance fails", async function () {
@@ -2897,13 +2403,13 @@ describe.only("Limbo", function () {
     await expect(proposalFactory.lodgeProposal(approveFlanMintingProposal.address))
       .to.emit(proposalFactory, "LodgingStatus")
       .withArgs(approveFlanMintingProposal.address, "SUCCESS");
-    await dao.vote(approveFlanMintingProposal.address,"1000000");
+    await dao.vote(approveFlanMintingProposal.address, "1000000");
     await advanceTime(1000000000000);
 
-    await dao.executeCurrentProposal()
+    await dao.executeCurrentProposal();
 
     await flan.setMintConfig("10000000000000000000", "0");
-    await flanMinter.mintAlot(10)
+    await flanMinter.mintAlot(10);
     await expect(flanMinter.mintAlot(1)).to.be.revertedWith(
       `MaxMintPerEpochExceeded(10000000000000000000, 11000000000000000000)`
     );

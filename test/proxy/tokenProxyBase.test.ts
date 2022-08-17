@@ -51,7 +51,7 @@ describe("token proxy test", function () {
     const TokenProxyRegistryFactory = (await ethers.getContractFactory(
       "TokenProxyRegistry"
     )) as Types.TokenProxyBase__factory;
-    SET.Registry = await deploy<Types.TokenProxyRegistry>(TokenProxyRegistryFactory, SET.DAO.address);
+    SET.Registry = await deploy<Types.TokenProxyRegistry>(TokenProxyRegistryFactory, SET.DAO.address,SET.owner.address);
 
     const VanillaProxyFactory = await ethers.getContractFactory("VanillaProxy");
     SET.RebaseProxy = await deploy<Types.VanillaProxy>(
@@ -62,7 +62,7 @@ describe("token proxy test", function () {
       SET.Registry.address
     );
 
-    await SET.Registry.setProxy(SET.MockRebaseToken.address, SET.RebaseProxy.address, true);
+    await SET.Registry.setProxy(SET.MockRebaseToken.address, SET.RebaseProxy.address, SET.RebaseProxy.address);
 
     let result = await executionResult(SET.MockRebaseToken.approve(SET.RebaseProxy.address, SET.MILLION));
     expect(result.success).to.equal(true, result.error);
@@ -90,7 +90,7 @@ describe("token proxy test", function () {
 
     await SET.FOTProxy.setRAmpFinney(1000); //ONE
 
-    await SET.Registry.setProxy(SET.MockFOTtoken.address, SET.FOTProxy.address, false);
+    await SET.Registry.setProxy(SET.MockFOTtoken.address, SET.FOTProxy.address, SET.FOTProxy.address);
   });
 
   it("t1. initial redeem rate is ONE, redeeming all returns to ONE", async function () {
@@ -409,12 +409,12 @@ describe("token proxy test", function () {
       let baseBalancesAfter: BigNumber[] = [];
 
       const proxyToken = i == 0 ? SET.RebaseProxy : SET.FOTProxy;
-
-      const baseAddress = await SET.Registry.tokenProxy(proxyToken.address);
-
       const baseToken = i == 0 ? SET.MockRebaseToken : SET.MockFOTtoken;
+      const proxies = await SET.Registry.tokenProxy(baseToken.address);
 
-      expect(baseAddress[0]).to.equal(baseToken.address);
+      
+
+      expect(proxies[0]).to.equal(proxyToken.address);
 
       proxyBalancesBefore.push(await proxyToken.balanceOf(ownerAddress));
       proxyBalancesBefore.push(await proxyToken.balanceOf(seconaryAddress));
