@@ -13,6 +13,7 @@ interface TestSet {
   Registry: Types.TokenProxyRegistry;
   DAO: Types.LimboDAO;
   Limbo: Types.Limbo;
+  Behodler:Types.MockBehodler
   ZERO: BigNumber;
   ONE: BigNumber;
   TEN: BigNumber;
@@ -91,12 +92,9 @@ describe("limbo proxy test", function () {
     const MockAngband = await ethers.getContractFactory("MockAngband");
     this.mockAngband = await MockAngband.deploy();
 
-    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
-    this.addTokenPower = await addTokenPowerFactory.deploy();
-
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
-    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
-    this.SCX = this.mockBehodler;
+    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX");
+    SET.Behodler = this.mockBehodler;
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO");
 
@@ -116,28 +114,28 @@ describe("limbo proxy test", function () {
     this.flan = await FlanFactory.deploy(this.limboDAO.address);
     SET.Flan = this.flan;
     await this.flan.setMintConfig("100000000000000000000000000000000000", 0);
-    const createGov = await metaPairFactory(this.SCX, this.uniswapFactory, false);
+    const createGov = await metaPairFactory(SET.Behodler, this.uniswapFactory, false);
     await this.flan.mint(SET.owner.address, "100000000000000000000000");
     //we need Dai/SCX, FLN/SCX and SCX/(FLN/SCX)
     this.flanSCX = await createGov(this.flan);
     this.daiSCX = await createGov(this.dai);
 
     const CreateMetaflanSCX = await metaPairFactory(this.flanSCX, this.uniswapFactory, false);
-    const SCX_fln_scx = await CreateMetaflanSCX(this.SCX);
+    const SCX_fln_scx = await CreateMetaflanSCX(SET.Behodler);
 
     const token0 = await SCX_fln_scx.token0();
     const token1 = await SCX_fln_scx.token1();
     [token0, token1].forEach((token, i) => {
       sanityCheck(
-        token === this.flanSCX.address || token === this.SCX.address,
-        `MetaFlanSCX pair incorrectly setup. Token: ${token}, this.flanSCX: ${this.flanSCX.address}, SCX: ${this.SCX.address}`,
+        token === this.flanSCX.address || token === SET.Behodler.address,
+        `MetaFlanSCX pair incorrectly setup. Token: ${token}, this.flanSCX: ${this.flanSCX.address}, SCX: ${SET.Behodler.address}`,
         "LP of SCX / (FLN/SCX) successfully tested for token " + i
       ); //Uniswap checks for token0===token1 so no need for me to replicate that
     });
 
     await simpleTrade(this.dai, this.daiSCX);
-    await simpleTrade(this.SCX, this.flanSCX);
-    await simpleTrade(this.SCX, SCX_fln_scx);
+    await simpleTrade(SET.Behodler, this.flanSCX);
+    await simpleTrade(SET.Behodler, SCX_fln_scx);
 
     const SoulLib = await ethers.getContractFactory("SoulLib");
     const CrossingLib = await ethers.getContractFactory("CrossingLib");
@@ -161,8 +159,6 @@ describe("limbo proxy test", function () {
     await this.flan.whiteListMinting(this.limbo.address, true);
     await this.flan.whiteListMinting(SET.owner.address, true);
     // await this.flan.endConfiguration(this.limboDAO.address);
-
-    await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
 
     const firstProposalFactory = await ethers.getContractFactory("ToggleWhitelistProposalProposal");
     this.whiteListingProposal = await firstProposalFactory.deploy(this.limboDAO.address, "toggle whitelist");
@@ -229,7 +225,7 @@ describe("limbo proxy test", function () {
     SET.DAO = this.limboDAO;
     SET.Limbo = this.limbo;
     const RegistryFactory = await ethers.getContractFactory("TokenProxyRegistry");
-    SET.Registry = await deploy<Types.TokenProxyRegistry>(RegistryFactory, SET.DAO.address);
+    SET.Registry = await deploy<Types.TokenProxyRegistry>(RegistryFactory, SET.DAO.address,SET.Behodler.address);
 
     const limboProxyFactory = await ethers.getContractFactory("LimboProxy");
     SET.LimboProxy = await deploy<Types.LimboProxy>(
@@ -265,6 +261,16 @@ describe("limbo proxy test", function () {
 
     await this.limboDAO.makeLive();
 
+    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
+    this.addTokenPower = await addTokenPowerFactory.deploy(
+      this.mockAngband.address,
+      this.limbo.address,
+      "0x0000000000000000000000000000000000000000"
+    );
+
+    await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
+    await SET.Behodler.setTokenPower(this.addTokenPower.address);
+
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
     this.soulReader = await SoulReaderFactory.deploy();
 
@@ -282,7 +288,6 @@ describe("limbo proxy test", function () {
       this.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      110,
       20,
       0,
       this.uniOracle.address
@@ -302,7 +307,7 @@ describe("limbo proxy test", function () {
     toggleWhiteList = toggleWhiteListFactory(this.eye, this.limboDAO, this.whiteListingProposal, this.proposalFactory);
 
     const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
-    this.registry = await TokenProxyRegistry.deploy(this.limboDAO.address);
+    this.registry = await TokenProxyRegistry.deploy(this.limboDAO.address, this.mockBehodler.address);
     await SET.Limbo.configureSoul(SET.LimboProxy.address, SET.TEN, 1, 1, 0, 10000000);
     console.log("end of setup");
   });

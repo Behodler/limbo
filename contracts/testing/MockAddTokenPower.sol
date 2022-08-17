@@ -5,15 +5,23 @@ import "../facades/LimboAddTokenToBehodlerPowerLike.sol";
 
 contract MockAddTokenPower is LimboAddTokenToBehodlerPowerLike {
     address behodler;
-    address limbo;
     uint256 scxToMint = 10000;
+
+ constructor(
+        address _angband,
+        address limbo,
+        address proxyRegistry
+    ) {
+        params.limbo = limbo;
+        params.tokenProxyRegistry = proxyRegistry;
+    }
 
     function setScarcityToMint(uint256 _scarcity) public {
         scxToMint = _scarcity;
     }
 
     function seed(address _behodler, address _limbo) public {
-        limbo = _limbo;
+        params.limbo = _limbo;
         behodler = _behodler;
     }
 
@@ -21,6 +29,6 @@ contract MockAddTokenPower is LimboAddTokenToBehodlerPowerLike {
 
     function invoke() public {
         MockBehodler(behodler).mint(scxToMint);
-        MockBehodler(behodler).transfer(limbo, scxToMint);
+        MockBehodler(behodler).transfer(params.limbo, scxToMint);
     }
 }

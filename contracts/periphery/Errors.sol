@@ -36,6 +36,7 @@ error OnlyLimbo(address msgSender, address limbo);
 error NotOnMainnet();
 error DivergenceToleranceTooLow(uint256 tolerance);
 error PriceOvershootTooHigh(uint8 overshoot);
+error PriceBufferConfigInvalid(uint64 tolerance, uint32 rewardPercentage, uint32 scxTax);
 
 //ERC20
 error ApproveToNonZero(address token, address spender, uint256 amount);
@@ -94,6 +95,7 @@ error OnlyProxy(address sender, address proxy);
 error SlippageManipulationPrevention(uint256 blockNumber, uint256 priorBlockNumber);
 error AmplificationTooLow(uint256 R_amp);
 error BehodlerSwapOutInvariantViolated(address inputToken, uint256 actualAmount, uint256 expectedAmount);
+error NotMorgothPower(address sender,address power);
 
 //TESTING
 error BehodlerMaxLiquidityExit(uint256 outputAmount, uint256 initialOutputBalance, uint256 maxLiquidityExit);

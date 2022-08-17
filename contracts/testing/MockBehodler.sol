@@ -31,11 +31,14 @@ contract MockBehodler is ERC677 {
 
   constructor(
     string memory name,
-    string memory symbol,
-    address _addTokenPower
+    string memory symbol
   ) ERC677(name, symbol) {
     _mint(msg.sender, 1000000 ether);
-    addTokenPower = _addTokenPower;
+
+  }
+
+  function setTokenPower (address power) public{
+   addTokenPower = power;
   }
 
   address MickyMouseToken = 0xAa645185F79506175917Ae2Fdd3128E4711D4065;
