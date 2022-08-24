@@ -1296,7 +1296,24 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(realdaiSCX.address);
     await this.uniOracle.updatePair(realflanSCX.address);
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
+    await advanceTime(10000);
+    await simpleTrade(realBehodler, realdaiSCX);
+    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
+
+    await this.uniOracle.updatePair(realdaiSCX.address);
+    await this.uniOracle.updatePair(realflanSCX.address);
+    await this.uniOracle.updatePair(real_SCX_fln_scx.address);
+    await advanceTime(10000);
+    await simpleTrade(realBehodler, realdaiSCX);
+    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(realflanSCX, real_SCX_fln_scx);
+
+    await this.uniOracle.updatePair(realdaiSCX.address);
+    await this.uniOracle.updatePair(realflanSCX.address);
+    await this.uniOracle.updatePair(real_SCX_fln_scx.address);
+    await advanceTime(10000);
     await simpleTrade(realBehodler, realdaiSCX);
     await simpleTrade(this.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
@@ -1372,8 +1389,8 @@ describe.only("Limbo", function () {
     expect(numberClose(scxBalanceOfPairBefore, "129565000000000000000"));
     expect(numberClose(flanPairBalanceBefore, "10615000000000000000000"));
 
-    console.log("js: realpower " + realPower.address);
     await advanceTime(600000);
+    const scxInflanSCXBefore = await realBehodler.balanceOf(realflanSCX.address)
     result = await executionResult(this.limbo.migrate(this.aave.address));
     expect(result.success).to.equal(true, result.error.toString());
 
@@ -1384,7 +1401,9 @@ describe.only("Limbo", function () {
     const flanPairBalanceAfter = await this.flan.balanceOf(realflanSCX.address);
     const scxBalanceOfPairAfter = await realBehodler.balanceOf(realflanSCX.address);
 
-    expect(numberClose(flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter), 83264)).to.be.true;
+    const flanToSCXRatio = flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)
+
+    expect(numberClose(flanToSCXRatio, 2713842)).to.equal(true, flanToSCXRatio);
 
     //SECOND MIGRATION
 
@@ -1439,7 +1458,7 @@ describe.only("Limbo", function () {
     const ratio = flanBalanceAfterSecondMigrate.mul(1000).div(scxBalanceOfPairAfterSecondMigrate);
 
     //flan strengthens
-    expect(numberClose(ratio, "84000")).to.be.true;
+    expect(numberClose(ratio, "2379392")).to.equal(true, ratio);
 
     //  THIRD MIGRATION
     const mock2 = await this.TokenFactory.deploy("mock1", "mock1");
@@ -1487,11 +1506,11 @@ describe.only("Limbo", function () {
     await this.limbo.migrate(mock2.address);
 
     const flanBalanceAfterThirdMigrate = await this.flan.balanceOf(realflanSCX.address);
-    const scxBalanceOfPairAfteThirdMigrate = await realBehodler.balanceOf(realflanSCX.address);
+    const scxBalanceOfPairAfterThirdMigrate = await realBehodler.balanceOf(realflanSCX.address);
 
-    const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfteThirdMigrate);
+    const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfterThirdMigrate);
 
-    expect(numberClose(ratio2, "816655")).to.be.true;
+    expect(numberClose(ratio2, "23687384")).to.equal(true,ratio2);
   });
 
   it("t-23. any whitelisted contract can mint flan", async function () {
