@@ -20,6 +20,34 @@
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "params",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "soul",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "burnable",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "limbo",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "tokenProxyRegistry",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     }
   ],
   "bytecode": "0x",

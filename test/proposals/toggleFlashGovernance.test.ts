@@ -3,7 +3,7 @@ import { executionResult, numberClose, queryChain } from "../helpers";
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
 const web3 = require("web3");
-
+import * as Types from "../../typechain/";
 describe.only("ToggleFlashLoanProposal", function () {
   let owner, secondPerson, link, sushi;
   let daieyeSLP, linkeyeSLP, sushieyeSLP, daiSushiSLP;
@@ -53,16 +53,11 @@ describe.only("ToggleFlashLoanProposal", function () {
     const MockAngband = await ethers.getContractFactory("MockAngband");
     this.mockAngband = await MockAngband.deploy();
 
-    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
-    this.addTokenPower = await addTokenPowerFactory.deploy();
-
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
-    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX", this.addTokenPower.address);
+    this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX");
     this.SCX = this.mockBehodler;
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
-    const daoFactory = await ethers.getContractFactory("LimboDAO", {
-
-    });
+    const daoFactory = await ethers.getContractFactory("LimboDAO", {});
 
     this.limboDAO = await daoFactory.deploy();
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
@@ -71,12 +66,13 @@ describe.only("ToggleFlashLoanProposal", function () {
     await this.limboDAO.setFlashGoverner(this.flashGovernance.address);
 
     await this.flashGovernance.configureSecurityParameters(10, 100, 30);
-    // await this.eye.approve(this.limbo.address, 2000);
+
     await this.flashGovernance.configureFlashGovernance(this.eye.address, 1000, 10, true);
 
     const FlanFactory = await ethers.getContractFactory("Flan");
-    this.flan = await FlanFactory.deploy(this.limboDAO.address);
+    this.flan = (await FlanFactory.deploy(this.limboDAO.address)) as Types.Flan;
 
+    await (this.flan as Types.Flan).setMintConfig("1000000000000000000000000000", "1000000000000000000000000000");
     const createGov = await metaPairFactory(this.SCX, this.uniswapFactory, false);
     await this.flan.mint(owner.address, "100000000000000000000000");
     //we need Dai/SCX, FLN/SCX and SCX/(FLN/SCX)
@@ -110,18 +106,23 @@ describe.only("ToggleFlashLoanProposal", function () {
         MigrationLib: (await MigrationLib.deploy()).address,
       },
     });
-    this.limbo = await LimboFactory.deploy(
-      this.flan.address,
-      //  10000000,
-      this.limboDAO.address
+    this.limbo = await LimboFactory.deploy(this.flan.address, this.limboDAO.address);
+    await this.eye.approve(this.limbo.address, 2000);
+    const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
+    this.addTokenPower = await addTokenPowerFactory.deploy(
+      this.mockAngband.address,
+      this.limbo.address,
+      "0x0000000000000000000000000000000000000000"
     );
+
+    await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
+    await this.SCX.setTokenPower(this.addTokenPower.address);
 
     //enable flash governance on Limbo
     await this.flashGovernance.setGoverned([this.limbo.address], [true]);
-
+    //WORKING
     await this.flan.whiteListMinting(this.limbo.address, true);
     await this.flan.whiteListMinting(owner.address, true);
-    // await this.flan.endConfiguration();
 
     await this.addTokenPower.seed(this.mockBehodler.address, this.limbo.address);
 
@@ -215,6 +216,7 @@ describe.only("ToggleFlashLoanProposal", function () {
     const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
     this.uniswapHelper = await UniswapHelperFactory.deploy(this.limbo.address, this.limboDAO.address);
     await this.flan.whiteListMinting(this.uniswapHelper.address, true);
+    await this.flan.endConfiguration(this.limboDAO.address);
 
     const migrationTokenPairFactory = await ethers.getContractFactory("MockMigrationUniPair");
     this.migrationTokenPair = await migrationTokenPairFactory.deploy("uni", "uni");
@@ -226,7 +228,6 @@ describe.only("ToggleFlashLoanProposal", function () {
       this.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      110,
       20,
       0,
       this.uniOracle.address
@@ -245,8 +246,14 @@ describe.only("ToggleFlashLoanProposal", function () {
 
     toggleWhiteList = toggleWhiteListFactory(this.eye, this.limboDAO, this.whiteListingProposal, this.proposalFactory);
 
+    // const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
+    // this.registry = await TokenProxyRegistry.deploy(this.limboDAO.address);
+
     const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
-    this.registry = await TokenProxyRegistry.deploy(this.limboDAO.address);
+    this.registry = await TokenProxyRegistry.deploy(
+      this.limboDAO.address,
+      this.mockBehodler.address
+    );
     console.log("end of setup");
   });
 
@@ -397,6 +404,8 @@ describe.only("ToggleFlashLoanProposal", function () {
     };
   };
 
+  it("t0", async function () {});
+
   it("t-1. Proposal to enable flash governance works.", async function () {
     //configure soul
     await this.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
@@ -420,16 +429,15 @@ describe.only("ToggleFlashLoanProposal", function () {
     await toggleWhiteList(toggleFlashGovernanceProposal.address);
 
     await this.flashGovernance.setGoverned([this.limbo.address], [false]);
-    await this.flashGovernance.endConfiguration();
+    await this.flashGovernance.endConfiguration(this.limboDAO.address);
     //end configuration
-    await this.limbo.endConfiguration();
+    await this.limbo.endConfiguration(this.limboDAO.address);
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);
     await expect(this.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001)).to.be.revertedWith(
-      "LIMBO: EP"
+      "FlashGovernanceDisabled"
     );
-
 
     await toggleFlashGovernanceProposal.parameterize([this.limbo.address], [true]);
 

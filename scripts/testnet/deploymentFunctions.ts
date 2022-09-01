@@ -183,7 +183,7 @@ export async function deployLimbo(
 
   await broadcast(
     "configure uniswaphelper",
-    uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 180, 3, 20, 10, await getNonce()),
+    uniswapHelper.configure(limbo.address, flanSCXPair, behodler, flan, 3, 20, 10, await getNonce()),
     pauser
   );
 

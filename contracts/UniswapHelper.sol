@@ -11,9 +11,7 @@ import "./facades/LimboOracleLike.sol";
 
 // import "hardhat/console.sol";
 
-contract BlackHole {
-
-}
+contract BlackHole {}
 
 ///@Title Uniswap V2 helper for managing Flan liquidity on Uniswap V2, Sushiswap and any other compatible AMM
 ///@author Justin Goro
@@ -22,7 +20,15 @@ contract BlackHole {
  */
 contract UniswapHelper is Governable, AMMHelper {
   address limbo;
+  /*SPOT is a small constant used to express selling a very small portion of a token. 
+  It is used to simulate a small trade in the oracle to give something close to the spot price. 
+  EG. if oracle.consult(tokenIN,tokenOut, 10000) = 20000 then we know 10000 units of tokenIn will buy 20000 units
+  of tokenOut in the Uniswap Pair that contains (tokenIn;tokenOut). So we're asking how much SPOT units of token in buys.
+  The reason we don't use 1 is because of fixed point arithmetic: we may get back a value of zero if tokenOut is more abundant
+  than tokenIn or we may get back 1 if tokenOut is only slightly more abundant than tokenIn. SPOT gives us 8 decimal places.
+  */
   uint256 constant SPOT = 1e8;
+
   struct OracleSet {
     IUniswapV2Pair fln_scx;
     IUniswapV2Pair dai_scx;
@@ -31,7 +37,6 @@ contract UniswapHelper is Governable, AMMHelper {
   }
 
   struct UniVARS {
-    uint256 divergenceTolerance;
     uint256 minQuoteWaitDuration;
     IUniswapV2Factory factory;
     address behodler;
@@ -83,14 +88,12 @@ contract UniswapHelper is Governable, AMMHelper {
   ///@param _limbo Limbo contract
   ///@param behodler Behodler AMM
   ///@param flan The flan token
-  ///@param divergenceTolerance The amount of price difference between the two quotes that is tolerated before a migration is attempted
   ///@param precision In order to query the tokens redeemed by a quantity of SCX, Behodler performs a binary search. Precision refers to the max iterations of the search.
   ///@param priceBoostOvershoot Flan targets parity with Dai. If we set Flan to equal Dai then between migrations, it will always be below Dai. Overshoot gives us some runway by intentionally "overshooting" the price
   function configure(
     address _limbo,
     address behodler,
     address flan,
-    uint256 divergenceTolerance,
     uint8 precision,
     uint8 priceBoostOvershoot,
     address oracle
@@ -98,12 +101,9 @@ contract UniswapHelper is Governable, AMMHelper {
     limbo = _limbo;
     VARS.behodler = behodler;
     VARS.flan = flan;
-    if (divergenceTolerance < 100) {
-      revert DivergenceToleranceTooLow(divergenceTolerance);
-    }
-    VARS.divergenceTolerance = divergenceTolerance;
+
     VARS.precision = precision == 0 ? precision : precision;
-    if(priceBoostOvershoot > 99) {
+    if (priceBoostOvershoot > 99) {
       revert PriceOvershootTooHigh(priceBoostOvershoot);
     }
 
@@ -134,23 +134,29 @@ contract UniswapHelper is Governable, AMMHelper {
     uint256 totalSupplyOfFLN_SCX;
     uint256 currentSCXInFLN_SCX;
     uint256 currentFLNInFLN_SCX;
+    uint256 DAIPerSCX;
   }
 
   //flan per scx. (0)
   //scx value of fln/scx (1)
   //total supply of fln/scx. (2)
-  //flan in flan/scx = ((1*2)/2 * 0)
+  //flan in flan/scx = ((1*2)/2 * (0))
   function getPriceTiltVARS() internal view returns (PriceTiltVARS memory tilt) {
     tilt.FlanPerSCX = VARS.oracleSet.oracle.consult(VARS.behodler, VARS.flan, SPOT);
     tilt.SCXPerFLN_SCX = VARS.oracleSet.oracle.consult(address(VARS.oracleSet.fln_scx), VARS.behodler, SPOT);
     tilt.totalSupplyOfFLN_SCX = VARS.oracleSet.fln_scx.totalSupply(); // although this can be manipulated, it appears on both sides of the equation(cancels out)
+    
+    tilt.DAIPerSCX = VARS.oracleSet.oracle.consult(VARS.behodler, VARS.DAI, SPOT);
 
-    //console.log("tilt.SCXPerFLN_SCX %s", tilt.SCXPerFLN_SCX);
-    tilt.currentSCXInFLN_SCX = (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (2 * SPOT);
+    /*if all of the contained liquidity of FLN_SCX were converted to SCX, tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT) would be the quantity.
+     Divide by 2 and we get an approximation of the true quantity of SCX in FLN_SCX since half of FLN_SCX is indeed SCX.
+     Divide (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) by SPOT and to remove the SPOT amplification of the oracle operation
+     and are left with the order or magnitude of totalSupply.
+     which is 18 decimal places or 1 ether since FLN and SCX are both 18 decimal place tokens
+     */
+    tilt.currentSCXInFLN_SCX = (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT*2);//normalized to in units of 1 ether
 
     tilt.currentFLNInFLN_SCX = (tilt.currentSCXInFLN_SCX * tilt.FlanPerSCX) / SPOT;
-    // console.log("currentFLN in FLN_SCX %s", tilt.currentFLNInFLN_SCX);
-    // console.log("actual flan in fln_scx %s", IERC20(VARS.flan).balanceOf(address(VARS.oracleSet.fln_scx)));
   }
 
   ///@notice When tokens are migrated to Behodler, SCX is generated. This SCX is used to boost Flan liquidity and nudge the price of Flan back to parity with Dai
@@ -164,8 +170,7 @@ contract UniswapHelper is Governable, AMMHelper {
     PriceTiltVARS memory priceTilting = getPriceTiltVARS();
     uint256 transferredSCX = (mintedSCX * 98) / 100;
     uint256 finalSCXBalanceOnLP = (transferredSCX) + priceTilting.currentSCXInFLN_SCX;
-  
-    uint256 DesiredFinalFlanOnLP = (finalSCXBalanceOnLP * priceTilting.FlanPerSCX) / SPOT;
+    uint256 DesiredFinalFlanOnLP = (finalSCXBalanceOnLP * priceTilting.DAIPerSCX) / SPOT;
 
     address pair = address(VARS.oracleSet.fln_scx);
 

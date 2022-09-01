@@ -86,7 +86,11 @@ describe("cliffFace proxy test", function () {
     const TokenProxyRegistryFactory = (await ethers.getContractFactory(
       "TokenProxyRegistry"
     )) as Types.TokenProxyBase__factory;
-    SET.Registry = await deploy<Types.TokenProxyRegistry>(TokenProxyRegistryFactory, SET.DAO.address);
+    SET.Registry = await deploy<Types.TokenProxyRegistry>(
+      TokenProxyRegistryFactory,
+      SET.DAO.address,
+      SET.Behodler.address
+    );
 
     await SET.ReferenceToken.transfer(SET.Behodler.address, SET.TEN_K);
 
@@ -121,7 +125,7 @@ describe("cliffFace proxy test", function () {
     await SET.SimilarToken.mint(SET.TEN_K);
 
     const scxBalanceBefore = await SET.Behodler.balanceOf(SET.owner.address);
-    await SET.CliffFace.seedBehodler(cliffFaceStartingBalance);
+    await SET.CliffFace.seedBehodler(cliffFaceStartingBalance, SET.owner.address);
     const scxBalanceAfter = await SET.Behodler.balanceOf(SET.owner.address);
     await SET.Behodler.setSafetParameters("30", "30");
     await SET.CliffFace.approveBehodlerFor(SET.SimilarToken.address);
@@ -232,7 +236,7 @@ describe("cliffFace proxy test", function () {
       SET.owner.address,
       SET.ReferenceToken.address,
       pureOutAmount.sub(cliffFaceSlippageEffect),
-      swapAmount,
+      swapAmount
     );
 
     //Assert inputs and outputs are the different
@@ -250,12 +254,7 @@ describe("cliffFace proxy test", function () {
       SET.CliffFace.swapAsOuput(SET.owner.address, SET.Behodler.address, SET.TEN.mul(4), "101772565270515100")
     ).to.be.revertedWith("SCXBalanceTooLow");
 
-    await SET.CliffFace.swapAsOuput(
-      SET.owner.address,
-      SET.Behodler.address,
-      SET.TEN.mul(4),
-      "106772565270515100"
-    );
+    await SET.CliffFace.swapAsOuput(SET.owner.address, SET.Behodler.address, SET.TEN.mul(4), "106772565270515100");
   });
 
   for (let i = 0; i < 2; i++) {
@@ -342,7 +341,7 @@ describe("cliffFace proxy test", function () {
 
         it(description + "Swaps CliffFace for Similar", async function () {
           const inputAmount = SET.ONE;
-          const outputAmount =SET.ONE.mul(9999).div(10000);
+          const outputAmount = SET.ONE.mul(9999).div(10000);
           const result = await executionResult(
             SET.CliffFace.swapAsInput(SET.owner.address, SET.SimilarToken.address, outputAmount, inputAmount)
           );

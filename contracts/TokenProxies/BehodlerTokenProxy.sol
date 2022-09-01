@@ -10,8 +10,8 @@ abstract contract BehodlerTokenProxy is TokenProxyBase {
     string memory name_,
     string memory symbol_,
     address registry,
-    uint initialRedeemRate
-  ) TokenProxyBase(_baseToken, name_, symbol_, registry,initialRedeemRate) {
+    uint256 initialRedeemRate
+  ) TokenProxyBase(_baseToken, name_, symbol_, registry, initialRedeemRate) {
     behodler = _behodler;
   }
 
@@ -36,5 +36,5 @@ abstract contract BehodlerTokenProxy is TokenProxyBase {
 
   ///@dev call this after approving on Lachesis
   ///@param initialSupply the amount used to preseed Behodler.
-  function seedBehodler(uint256 initialSupply) public virtual;
+  function seedBehodler(uint256 initialSupply, address scxDestination) public virtual;
 }

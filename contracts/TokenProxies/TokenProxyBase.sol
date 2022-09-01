@@ -6,6 +6,7 @@ import "../openzeppelin/ERC20Burnable.sol";
 ///@dev Only use this directly for perpetual tokens. For threshold tokens, use BehodlerTokenProxy
 contract TokenProxyBase is ERC20 {
   using SafeERC20 for IERC20;
+  bool public constant IS_PROXY = true;
   address public immutable proxyRegistry;
 
   address public immutable baseToken;
@@ -22,6 +23,13 @@ contract TokenProxyBase is ERC20 {
     baseToken = _baseToken;
     proxyRegistry = registry;
     initialRedeemRate = _initialRedeemRate;
+  }
+
+  modifier onlyRegistry() {
+    if (msg.sender != proxyRegistry) {
+      revert OnlyProxy(msg.sender, proxyRegistry);
+    }
+    _;
   }
 
   /**
@@ -60,11 +68,12 @@ contract TokenProxyBase is ERC20 {
     return (balanceOfBase * initialRedeemRate) / totalSupply();
   }
 
-  function migrateBaseReserveToNewProxy(address newProxy) public {
-    if (msg.sender != proxyRegistry) {
-      revert OnlyProxy(msg.sender, proxyRegistry);
-    }
+  function migrateBaseReserveToNewProxy(address newProxy) public onlyRegistry {
     IERC20 base = IERC20(baseToken);
     base.transfer(newProxy, base.balanceOf(address(this)));
+  }
+
+  function withdrawReserve() public onlyRegistry {
+    IERC20(baseToken).safeTransfer(msg.sender, IERC20(baseToken).balanceOf(address(this)));
   }
 }
