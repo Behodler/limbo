@@ -242,6 +242,8 @@ This means that from Behodler's perspective, the purpose of Crossover pools in L
 *Section Summary*
 
     1. If high yields boost both the price of SCX and Flan as explained in the previous sections, Crossovers have the effect of weakening Flan with respect to SCX by minting a compensating amount.
+    We can expect the price of Flan and SCX to diverge stepwise at every Crossover until the market prices in the trend. When the market adjusts the prices in expectation, 
+    Crossovers are able to deepen liquidity even more so than usual.
     2. Governance decisions on yields on Limbo should be calculated as though the Flan price is 1 Dai so that Crossovers don't overshoot the price correction and cause Flan to sink below 1 Dai. 
     3. Erring on the side of excessive Flan rewards is safe enough without the need for precise mathematical tuning.
     4. From Behodler's perspective, the purpose of Crossover pools is to expand the breadth of liquidity on Behodler and the purpose of Perpetual pools is to expand the depth of liquidity on Behodler.
@@ -249,16 +251,23 @@ This means that from Behodler's perspective, the purpose of Crossover pools in L
 
 ### Second order effects: PyroFlan and SCX LP tokens
 
-We've analyzed the effect of a raw Perpetual pool for SCX considering other Perpetual pools and without taking advantage of Scarcity's fee-on-transfer. In this section, the scope of Perpetual staking options will be expanded to take advantage of the full cryptoeconomic breadth of the Behodler Ecosystem.
+We've analyzed the effect of a raw Perpetual pool for SCX without considering other Perpetual pools and without taking advantage of Scarcity's fee-on-transfer (FOT) feature. In this section, the scope of Perpetual staking options will be expanded to take advantage of the full cryptoeconomic breadth of the Behodler Ecosystem.
 
 **PyroFlan**
 
 Let's introduce a pool for staking Flan in the form of PyroFlan. The pool is issued $π$ Flan per second which works out to $Π$ Flan per year where $Π = 31536000π$.
 
-Because of the law of one price, we expect the yield of the PyroFlan pool to converge on the universal yield, $I$. Note that the yield of PyroFlan means the Flan reward plus the growth in redeem rate, especially if the Flan price stabilizes.
+Because of the Law of One Price, we expect the yield of the PyroFlan pool to converge on the universal yield, $I$. Note that the yield of PyroFlan means the Flan reward plus the growth in redeem rate, especially if the Flan price stabilizes.
 
-Initially it will start at $I_F$, a higher rate than $I$. When stakers receive Flan as a reward, they will be faced with the prospect of either selling into the Reference Pair for SCX and staking that for $I$ or minting PyroFlan and staking that for $I$. So long as $I_F$ is higher than $I$, Flan rewards will be drawn away to staking for PyroFlan. Therefore, if $S_E$ is the SCX that the circulating Flan can redeem from the Reference Pair, the effect of a PyroFlan Perpetual pool is to reduce this number by drawing some away for lockup in the PyroFlan pool. This will induce more minting of SCX. 
+Initially it will start at $I_F$, a higher rate than $I$. When stakers receive Flan as a reward, they will be faced with the prospect of either selling into the Reference Pair for SCX and staking that for $I$ or minting PyroFlan and staking that for $I_F$. So long as $I_F$ is higher than $I$, Flan rewards will be drawn away to staking for PyroFlan. Therefore, if $S_E$ is the SCX that the circulating Flan can redeem from the Reference Pair, the effect of a PyroFlan Perpetual pool is to reduce this number by drawing some away for lockup in the PyroFlan pool. This will induce more minting of SCX. 
 The effect of PyroTokens on their base tokens is to encourage lockup and increase demand, mostly through burning incentives. If a Limbo pool adds to this incentive enough that the price of Flan nudges higher between Crossovers then the Flan per year variable, $Δ_A$ in equation (4) will increase, causing $I_L$ to increase which will increase demand for SCX lockup in Limbo.
+
+*Section Summary*
+
+    1. Providing an above market yield on PyroFlan staking requires less Flan minting than for pure Flan staking.
+    2. When the APY on PyroFlan exceeds the market norm, circulating SCX declines.
+    3. If the return on SCX staking on Limbo is in line with the market then an above market yield on PyroFlan staking will induce more SCX minting.
+    4. The effect of SCX minting will increase the price of Flan between Crossovers, amplifying and supporting the above effects.
 
 **SCX Burn: PyroSCX**
 
@@ -279,19 +288,34 @@ This will mean that not enough SCX is available to bring the yield down to the p
 
 A final note on LP tokens. As SCX is drawn into pairs on Uniswap, we can have a situation where the price impact of SCX sales is lower on Uniswap than on Behodler. If traders meet this condition, they will be more likely to sell onto Uniswap, incurring a burn fee than to redeem on Behodler. This desirable equilibrium is known as Uniswap Affinity and will act to preserve liquidity in Behodler.
 
+*Section Summary*
+
+    1. Unlike for PyroTokens, SCX burning does not immediately translate to an increase in price.
+    2. By creating arbitrage dynamics to induce a shortage of circulating Scarcity every time it burns, Limbo can be used to trigger SCX minting almost immediately after it is burnt, bringing the price raising and burning much closer together in time.
+    3. Uniswap Affinity both assists and is assisted by this process.
+
 **SCX Burn: LP tokens**
 
 A Perpetual pool for pure SCX will act to burn SCX as illustrated above. However, LP tokens containing SCX are preferable in a number of ways and should form part of the SCX staking options offered on Limbo. 
 
 **Arbitrage**
 
-When multiple LP tokens in popular and liquid tokens such as ETH or Uni are created, the possibility for high frequency traders to exploit arbitrage differences in price rises. In particular, for every new pair added, the drift in price between one pair and any other through random fluctuations in the different prices of the coupled 'other tokens' creates a kind of Brownian motion of price perturbations. The higher the liquidity locked, the smaller the required price divergence to allow for profit, assuming the traders make use of large volumes of capital. Flash loans make this challenge merely technical rather than financial.
+When multiple SCX containing LP tokens in popular and liquid tokens such as ETH or Uni are created, the possibility for high frequency traders to exploit arbitrage differences in price rises. In particular, for every new pair added, the drift in price between one pair and any other through random fluctuations in the different prices of the coupled 'other tokens' creates a kind of Brownian motion of price perturbations. The higher the liquidity locked, the smaller the required price divergence to allow for profit, assuming the traders make use of large volumes of capital. Flash loans make this challenge merely technical rather than financial.
 
-And so for a given level of gas price, an inducement to stake more LP tokens AND for there to be many LP token pools will increase the degree of SCX burning. A second order effect would be to provide more locations for dumping any surplus SCX when it arises external to the Reference Pair.
+And so for a given level of gas price, an inducement to stake more LP tokens AND for there to be many LP token pools will increase the degree of SCX burning. A second order effect would be to provide more locations for dumping any surplus SCX when it arises.
 
 If the price of a token in a liquidity pool rises, the quantity of that token declines as traders sell the less valuable token in order to buy the more valuable token, a process known as impermanent loss. While random daily price jitters between SCX LPs shouldn't have a net effect (in fact Uniswap's fees compensate for this), accumulating impermanent loss may see the quantity of staked SCX decline. However, it is important to note that, in equation (4), the SCX term is *value* of SCX, not quantity. And so the effect of the rising price does offset to some extent the reduction in quantity. Nonetheless, the effect of this offset is ambiguous. As such, the strategy of rewarding SCX LPs in order to encourage SCX lockup will be more optimal when coupled either with increased Flan staking or pure SCX staking. The purpose of the increased Flan staking is to draw in circulating Flan from liberating SCX from the Reference pair and the purpose of SCX staking is to ensure that the absolute quantity of SCX staked remains high. From equation (4), an increase in the SCX price will also induce a reduction in SCX staked but the effect of pair rebalancing is not present and so we should expect the level of SCX staked to not decline as much as with LP tokens.
 
 It should be noted that since $Δ_A$ is high enough that the supply of both Flan and SCX in circulation is constrained, an increase in the SCX price will increase the value of Flan in the Reference Pair. This would increase the value of $Δ_A$ and so offset the reduction in SCX unstaking that accompanies a price increase in SCX. For pure SCX staking, this may be enough to offset it entirely so that an increase in SCX price has no effect on the level of SCX staked when $I_L$ is at equilibrium. The remaining effect will be the LP token rebalancing. 
+
+*Section Summary*
+
+    1. Multiple deeply liquid SCX containing LP tokens will create constant burning through a Brownian motion daily drift in prices that arbitrage traders seek to exploit and correct.
+    2. More liquid SCX pairs provide additional SCX sell locations in addition to the Reference Pair.
+    3. Impermanent Loss implies that as the SCX price rises, absolute levels of SCX locked in Uniswap declines.
+    4. A rising price of SCX increases the value of Flan rewards and so counters the reduction by inducing more LP lockup.
+    5. Providing a pure SCX staking option can help blunt the reduction of locked SCX caused by a price rise, especially when coupled with the temporary Flan price rise caused by an increase in the SCX price.
+    6. Conversely, if the SCX price falls, the absolute amount of SCX on Uniswap increases, acting as a sink for freely circulating SCX.
 
 **A final word on PyroTokens and price movements**
 
@@ -300,7 +324,7 @@ While burning is an ongoing source of PyroToken redeem rate growth, Behodler fee
 This creates an incentive to list as many SCX LP tokens in Crossover pools as possible to produce as many PyroTokens as possible. It may be desirable that every time a new project is listed for Crossover staking on Behodler, a corresponding suite of LP tokens is listed including an SCX/Project pair, allowing for the creation of more Pyro- LP tokens. Pyro- LP tokens containing SCX provide an additional source of revenue to holders of SCX and support the health of Limbo and the integrity of Flan in a way that requires no additional Flan rewards to be minted.
 
 ## Summary
-This section will bring the anaysis above together by first reminding the reader of the ambient assumptions made, then by revisiting the important equations and finally by producing policy recommendations for the community.
+This section will bring the analysis above together by first reminding the reader of the ambient assumptions made, then by revisiting the important equations and finally by producing policy recommendations for the community.
 
 ### Assumptions made
 
@@ -332,13 +356,13 @@ $$
 I_L = \frac{Δ_A}{S_L} \tag {4}
 $$
 
-to determine the value of SCX required to be staked in Limbo. If we know the prevailing yield in DeFi, we can then, through governance, set the Flan-per-second ( $Δ$ ) required to achieve enough staking of SCX that all of the freely floating Flan is used up. In anticipation of new Flan creating from this reward, we may wish to raise $Δ_A$ to compensate. 
+to determine the value of SCX required to be staked in Limbo. If we know the prevailing yield in DeFi, we can then, through governance, set the Flan-per-second ( $Δ$ ) required to achieve enough staking of SCX that all of the freely floating Flan is used up. In anticipation of new Flan minted from this reward, we may wish to raise $Δ_A$ to compensate. 
 
-It would appear that if we raise $Δ_A$, we'll have more freely floating Flan and so will have to raise $Δ_A$ further but recall that the underscore _A represents the entire year's worth of Flan minting and so implicit in this equation is expectation formation by stakers. In other words, APY hunting. For instance, if we offer 100% APY on Flan, we do not instantly double the quantity of Flan staked. Instead, if the supply of Flan staked is X then X is removed from circulation. After day 1, the Flan supply has only increased by 0.0027X but this assumes the reward is immediately claimed. The net effect at worse is therefore a decrease in the Flan supply of 0.997X.
+It would appear that if we raise $Δ_A$, we'll have more freely floating Flan and so will have to raise $Δ_A$ further in a runaway cycle of inflation but recall that the underscore _A represents the entire year's worth of Flan minting and so implicit in this equation is expectation formation by stakers. In other words, APY hunting. For instance, if we offer 100% APY on Flan, we do not instantly double the quantity of Flan staked. Instead, if the supply of Flan staked is X then X is removed from circulation. After day 1, the Flan supply has only increased by 0.0027X but this assumes the reward is immediately claimed. The net effect at worse is therefore a <span style="font-weight: bold; font-style:italic">decrease</span> in the Flan supply of 0.997X.
 This temporary deflation of Flan allows us to effect SCX burning which leads to a permanent deflation of SCX, drawing more liquidity into Behodler. This spills over into Flan through the Reference Pair and future Crossovers. This is how the system is kept sustainable. In the absence of liquidity boosting mechanisms such as Crossover events, Flan would eventually hyperinflate. At some point, it may be that the effect of PyroFlan and very deeply liquid pools of Flan, it will become sustainable to not require Limbo Crossovers but this is not the case during the bootstrapping phase.
 
 ### Policy recommendations
-The policy instrument for Limbo is Flan-per-second (fps) rewards on each pool. Calculating the optimal fps on threshold pools is fairly trivial since we have a target of ABV and simply have to offer a reward that exceeds the gas costs of staking sufficiently. 
+The policy instrument for Limbo is Flan-per-second (fps) rewards on each pool. Calculating the optimal fps on threshold pools is fairly trivial since we have a target of AVB and simply have to offer a reward that exceeds the gas costs of staking sufficiently. 
 
 Crossover pools should contain as many SCX paired pools as possible. For every new project listed through Limbo, the requirement for an SCX pool should be mandatory. This can be enforced when the market for Fate (LimboDAO voting points) is established formally. Until then, the community is strongly encouraged to enforce this as a norm. Of course, Behodler's ability to offer routerless, single sided exchange of LP tokens into base tokens is an attractive selling point and so the project token should also be pooled with Eth and popular stable coins. This of course indirectly adds to the liquidity available to SCX since the project token can act as a hop between liquid tokens and SCX.
 
@@ -351,7 +375,7 @@ For Perpetual pools, it is recommended that both pure SCX and SCX LP tokens be o
 
 Flan should have an initial seeding ceremony known as Flan Genesis which establishes the Reference Pair with a large quantity of initial liquidity. In addition, the Flan genesis should create PyroTokens of both Flan and the Reference Pair.
 
-*The pricing of Flan and SCX relies on regular trade in some obscure odd pools. For instance, (SCX/FLN; SCX). These pools should be deployed as Crossover immediately so that arbitrage profit seekers can drive their prices to equilibrium.*
+*The pricing of Flan and SCX relies on regular trade in some obscure odd pools. For instance, (SCX/FLN; SCX). These pools should be deployed at Flan Genesis so that arbitrage profit seekers can drive their prices to equilibrium.*
 
 Once liquidity and price stability is established, the community should aim to purchase CRV tokens by creating a Flan mint stream. This can be automated so that a contract fills up with Flan and a user can then trigger a CRV purchase through Uniswap V3 or CRV. The rate of purchase should exceed the aggregate value of all other CRV purchases so that as time progresses, the Behodler Ecosystem's clout in the Curve War grows unchecked. It might be prudent to list CRV on Behodler and then to stake PyroCRV to accelerate this process. In time, a CRV proposal can be wrapped as a LimboDAO proposal to create a Flan pool on Curve.fi in order to help secure Flan price stability. Then the tokens minted by such a pool can be staked first as a Crossover token on Limbo and then as a Perpetual token for Flan rewards. A Convex-like proxy can be created such that CRV emissions are auto-compounded on the Limbo side.  
 The effect of multiple pools of stable coins will be to increase the value of SCX that can be staked on Limbo which raises the natural growth rate of liquidity on Behodler and increases the SCX price.
@@ -359,7 +383,20 @@ The effect of multiple pools of stable coins will be to increase the value of SC
 As more project tokens are added, the community may wish to alter the Behodler UI to allow for filtering by project (as well as a few big tokens such as Eth and Dai). This would cater to the Zapper audience who wish to use Behodler to jump in and out of yield and base tokens.
 
 **Flan Genesis**
-Flan Genesis is a once off contract that creates Flan, seeds Behodler and establishes the Reference Pair. The Reference Pair could then be listed on Behodler, generating more SCX for increased liquidity of the pair. The Genesis seeds the Reference Pair with so much liquidity that it begins to behave like a stableswap pair ( $x+y=k$ ) instead of a typical CFMM pair ( $xy=k$ ).
+Flan Genesis is a once off contract that creates Flan, seeds Behodler and establishes the Reference Pair. The Reference Pair could then be listed on Behodler, generating more SCX for increased liquidity of the pair. The Genesis seeds the Reference Pair with so much liquidity that it begins to behave like a stableswap pair ( $x+y=k$ ) instead of a typical CFMM pair ( $xy=k$).
+
+**Policy Fine tuning**
+The full analysis of this paper outlines the lower bounds that must be overcome in order to induce the full breadth of cryptoeconomic benefits provided by Limbo. Calculating the actual numbers in the real world can be a very data intensive process and is prone to measurement error. However, it should be clear that there is little downside to overshooting the lower bounds. Therefore, it will be easier for the community to develop simple heuristics to follow. For instance, if the SCX price falls in a given period, increase the Flan Per Second yield on SCX LP tokens and PyroFlan by 50% and observe the effect.
+Another metric to watch is to compare SCX locked on Limbo with SCX outside of the Reference Pair. The bigger the former relative to the latter, the more likely we are to achieve all the goals of Limbo. Therefore, having a target ratio that informs adjustment in base Flan rewards can be built into an automatic governance mechanism, allowing the market to anticipate and price in yield changes on Limbo.
+
+Central Banks are implicitly aware of the dangers of micro tinkering and have developed heuristic based management as well. For instance, inflation targeting nations often adjust interest rates in fixed increments of 50 or 25 basis points in response to inflation data. You never see monetary policy committees suggesting obscure, fine tuned adjustments like 7.1387%.
+
+So in a sense, the technical parts of this paper are not required reading for anyone participating in governance in Limbo. They serve rather to justify the policy recommendations made. It is sufficient to do only the following:
+
+   1. Offer many perpetual SCX LP staking options.
+   2. Offer both Flan and PyroFlan Perpetual pools.
+   3. New tokens for Crossover should be accompanied by SCX/Project LP tokens.
+   4. Make sure the Flan per second yield on Perpetual pools is high enough to induce a very big lockup of SCX in Limbo, relative to the circulating SCX supply. 
 
 ## Conclusion.
 The stability of Flan is necessary to ensure the sustainability of Limbo rewards. By establishing price stability through regular Crossover events, Flan can be used to stimulate the growth of Scarcity (and hence the liquidity in Behodler), even as the Flan price remains stable.
@@ -369,7 +406,7 @@ Stability is achieved by vastly oversupplying the SCX/Flan Uniswap V2 pair known
 Since Flan is minted in an ongoing reward cycle, the danger created is that over time, there will be a one way sale of Flan into the Reference Pair for SCX which would be dumped onto Behodler, reducing liquidity and the Flan price, thereby requiring higher Flan emissions in order to compensate for falling price and eventually culminating in hyperinflation and collapse of Behodler.
 Therefore a strategy is required to absorb Flan emissions. Two approaches are put forward: 
 
-1. Perpetual SCX staking is offered on Limbo at a rate high enough such that if the entire supply of Flan were sold for SCX in the Reference Pair, all of that SCX would find higher than market returns through staking in Limbo. By pursuing this strategy, we can create a shortage of SCX on Limbo such that whenever SCX burning occurs, it necessitates more SCX minting in order to fill the Limbo gap. This would close the time gap between an SCX burn and price rise such that SCX begins to behave more like a PyroToken.
+1. Perpetual SCX staking is offered on Limbo at a rate high enough such that if the entire supply of Flan were sold for SCX in the Reference Pair, all of that SCX would find higher than market returns through staking in Limbo. By pursuing this strategy, we can create a shortage of SCX on Limbo such that whenever SCX burning occurs, it necessitates more SCX minting in order to fill the Limbo Gap. This would close the time gap between an SCX burn and price rise such that SCX begins to behave more like a PyroToken.
 2. Perpetual Flan and PyroFlan staking is offered on Limbo in order to absorb Flan emissions before they enter the Reference Pair.
 
 Furthermore the strategies of 1 and 2 can be deepened and made more sophisticated. For 1, we can offer SCX LP token staking so that SCX burns more and so that Uniswap Affinity is enhanced. For 2, we can enter the Curve Wars, create Uniswap V3 pools and so on, in order to deepen Flan liquidity and establish true price stability throughout DeFi.
@@ -378,7 +415,7 @@ By formalizing the analysis of monetary policy in Limbo, it is my hope that the 
 
 ## Appendix
 
-The appendix simply elaborates on some concepts assumed in the main body.
+The appendix elaborates on some concepts assumed in the main body.
 
 ### SCX curvature
 
@@ -393,20 +430,20 @@ $$
 W > D
 $$
 
-So let L, the Limbo Gap be,
+So let L, the Limbo Gap, be
 
 $$
 L = W - D 
 $$
 
-The Limbo gap represents the degree to which newly minted SCX is able to redeem more than it *should*. Since W is the value of what SCX can redeem and D is the value added to produce that SCX, if L is positive, it means we're able to steal value from Behodler by minting Scarcity.
+The Limbo Gap represents the degree to which newly minted SCX is able to redeem more than it *should*. Since W is the value of what SCX can redeem and D is the value added to produce that SCX, if L is positive, it means we're able to steal value from Behodler by minting Scarcity.
 
 Limbo exists to close the Limbo Gap for a newly listed token. By listing a new token with L = 0, no one can mint SCX and then immediately redeem more value than they added in the first place. 
 
 Suppose that Behodler is back to equilibrium and let's deposit too much X to lower the price of X below the market price. Let X be Dai in this case to simplify and assume that Dai is worth $1. And let's deposit D units of Dai. Because of slippage in SCX (curvature of SCX minting),
 
 $$
-D<W
+D>W
 $$
 
 If the price on Behodler falls out of alignment with the market and an external AMM such as Uniswap has huge liquidity, someone may want to mint SCX with DAI in order to redeem ETH. Doing so would run up against SCX slippage.
@@ -414,6 +451,8 @@ If the price on Behodler falls out of alignment with the market and an external 
 If SCX was minted proportionately like a typical LP token then the price of SCX wouldn't change for a given minting and someone could empty Behodler of ETH in one transaction at a profit if the price diverges from Uniswap. In other words, if the price of Eth on Behodler is 10 Dai and the price of Eth on Uniswap is 11 Dai and if we had 100 Eth on Behodler then someone could deposit 1000 Dai to get 100 Eth and sell it on Uniswap to get just less than 1100 Dai. Behodler would be left with 0 Eth and 2000 Dai.
 
 In real Behodler, doing this would cause the SCX price to rise as more is minted which implies a price impact. And so a much smaller arbitrage sale would occur.
+
+The curvature of SCX minting is necessary for a single sided liquidity addition protocol to function in the presence of market forces. When the TVL of a token in Behodler is higher than AVB, the SCX mint curvature protects Behodler from liquidity drains. When the TVL is below AVB, SCX minting can lead to excessive liquidity withdrawal. Limbo acts to protect Behodler from TVL below AVB by seeking to list tokens with the required seed level of liquidity. 
 
 ### The Art of Monetary Policy
 
