@@ -383,9 +383,11 @@ The effect of multiple pools of stable coins will be to increase the value of SC
 As more project tokens are added, the community may wish to alter the Behodler UI to allow for filtering by project (as well as a few big tokens such as Eth and Dai). This would cater to the Zapper audience who wish to use Behodler to jump in and out of yield and base tokens.
 
 **Flan Genesis**
+
 Flan Genesis is a once off contract that creates Flan, seeds Behodler and establishes the Reference Pair. The Reference Pair could then be listed on Behodler, generating more SCX for increased liquidity of the pair. The Genesis seeds the Reference Pair with so much liquidity that it begins to behave like a stableswap pair ( $x+y=k$ ) instead of a typical CFMM pair ( $xy=k$).
 
 **Policy Fine tuning**
+
 The full analysis of this paper outlines the lower bounds that must be overcome in order to induce the full breadth of cryptoeconomic benefits provided by Limbo. Calculating the actual numbers in the real world can be a very data intensive process and is prone to measurement error. However, it should be clear that there is little downside to overshooting the lower bounds. Therefore, it will be easier for the community to develop simple heuristics to follow. For instance, if the SCX price falls in a given period, increase the Flan Per Second yield on SCX LP tokens and PyroFlan by 50% and observe the effect.
 Another metric to watch is to compare SCX locked on Limbo with SCX outside of the Reference Pair. The bigger the former relative to the latter, the more likely we are to achieve all the goals of Limbo. Therefore, having a target ratio that informs adjustment in base Flan rewards can be built into an automatic governance mechanism, allowing the market to anticipate and price in yield changes on Limbo.
 
