@@ -81,8 +81,8 @@ abstract contract Governable {
   }
 
   constructor(address dao) {
-    setDAO(dao);
     temporaryConfigurationLord = msg.sender;
+    setDAO(dao);
   }
 
   //singleton pattern to resolve circularity of dependency without impacting gas significantly
@@ -93,7 +93,7 @@ abstract contract Governable {
 
   ///@param dao The LimboDAO contract address
   function setDAO(address dao) public {
-    if (DAO != address(0) && msg.sender != DAO && configured()) {
+    if (configured()) {
       revert AccessDenied(temporaryConfigurationLord, msg.sender);
     }
     DAO = dao;
