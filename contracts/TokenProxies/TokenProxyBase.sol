@@ -50,6 +50,21 @@ contract TokenProxyBase is ERC20 {
     _mint(proxyRecipient, proxy);
   }
 
+  ///@notice public facing mint for PyroToken usage
+  function mint(
+    address proxyRecipient,
+    address baseSource,
+    uint256 amount
+  ) public returns (uint256 proxy) {
+    uint256 _redeemRate = redeemRate();
+    uint256 balanceBefore = IERC20(baseToken).balanceOf(address(this));
+
+    IERC20(baseToken).safeTransferFrom(baseSource, address(this), amount);
+    uint256 baseAmount = IERC20(baseToken).balanceOf(address(this)) - balanceBefore;
+    proxy = ((baseAmount * initialRedeemRate) / _redeemRate);
+    _mint(proxyRecipient, proxy);
+  }
+
   function redeem(
     address proxySource,
     address baseRecipient,
