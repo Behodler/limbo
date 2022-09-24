@@ -246,6 +246,8 @@ describe("DAO Proposals", function () {
     };
   };
 
+  it("t0. test",async ()=>{})
+
   it("t1-Insufficient fate to lodge rejected, proposal unlocks", async function () {
     let query;
     let result;
