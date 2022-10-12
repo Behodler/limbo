@@ -1,0 +1,10 @@
+[
+  "error AccessDenied(address,address)",
+  "error BackrunDetected(address,address)",
+  "function DAO() view returns (address)",
+  "function configured() view returns (bool)",
+  "function endConfiguration(address)",
+  "function governer() view returns (address)",
+  "function setDAO(address)",
+  "function temporaryConfigurationLord() view returns (address)"
+]

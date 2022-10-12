@@ -1,0 +1,10 @@
+[
+  "function aggregate(tuple(address,bytes)[]) returns (uint256, bytes[])",
+  "function getBlockHash(uint256) view returns (bytes32)",
+  "function getCurrentBlockCoinbase() view returns (address)",
+  "function getCurrentBlockDifficulty() view returns (uint256)",
+  "function getCurrentBlockGasLimit() view returns (uint256)",
+  "function getCurrentBlockTimestamp() view returns (uint256)",
+  "function getEthBalance(address) view returns (uint256)",
+  "function getLastBlockHash() view returns (bytes32)"
+]

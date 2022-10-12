@@ -1,0 +1,4 @@
+[
+  "function makeProposal(address,address)",
+  "function successfulProposal(address) view returns (bool)"
+]

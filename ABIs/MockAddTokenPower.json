@@ -1,0 +1,8 @@
+[
+  "constructor(address,address,address)",
+  "function invoke()",
+  "function parameterize(address,bool)",
+  "function params() view returns (address, bool, address, address)",
+  "function seed(address,address)",
+  "function setScarcityToMint(uint256)"
+]

@@ -1,0 +1,7 @@
+[
+  "function drain(address) returns (uint256)",
+  "function getPyroToken(address) view returns (address)",
+  "function registerPyroToken(address,string,string)",
+  "function setFeeExemptionStatusOnPyroForContract(address,address,uint8)",
+  "function setPyroTokenLoanOfficer(address,address)"
+]

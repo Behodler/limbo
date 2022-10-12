@@ -1,0 +1,23 @@
+[
+  "constructor(address,address)",
+  "error AccessDenied(address,address)",
+  "error BackrunDetected(address,address)",
+  "error DaiThresholdMustBePositive()",
+  "error GovernanceActionFailed(bool,address)",
+  "error NotOnMainnet()",
+  "error OnlyLimbo(address,address)",
+  "error OracleLPsNotSet(address,address,address)",
+  "error PriceOvershootTooHigh(uint8)",
+  "function DAO() view returns (address)",
+  "function blackHole() view returns (address)",
+  "function buyFlanAndBurn(address,uint256,address)",
+  "function configure(address,address,address,uint8,uint8,address)",
+  "function configured() view returns (bool)",
+  "function endConfiguration(address)",
+  "function governer() view returns (address)",
+  "function minAPY_to_FPS(uint256,uint256) pure returns (uint256)",
+  "function setDAI(address)",
+  "function setDAO(address)",
+  "function stabilizeFlan(uint256) returns (uint256)",
+  "function temporaryConfigurationLord() view returns (address)"
+]

@@ -1,0 +1,9 @@
+[
+  "error OnlyOwner(address,address)",
+  "error TransferToZeroAddress()",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "function LetThereBeFlan(uint256,uint256)",
+  "function dependencies() view returns (address, address, address)",
+  "function owner() view returns (address)",
+  "function transferOwnership(address)"
+]

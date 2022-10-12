@@ -1,55 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.16;
 // import "hardhat/console.sol";
+import "../../openzeppelin/IERC20.sol";
+import "../../openzeppelin/Ownable.sol";
 
-contract Ownable {
-  address private _owner;
+pragma solidity 0.8.16;
 
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-  constructor() {
-    _owner = msg.sender;
-    emit OwnershipTransferred(address(0), msg.sender);
-  }
-
-  function owner() public view returns (address) {
-    return _owner;
-  }
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(_owner == msg.sender, "Ownable: caller is not the owner");
-    _;
-  }
-
-  /**
-   * @dev Leaves the contract without owner. It will not be possible to call
-   * `onlyOwner` functions anymore. Can only be called by the current owner.
-   *
-   * NOTE: Renouncing ownership will leave the contract without an owner,
-   * thereby removing any functionality that is only available to the owner.
-   */
-  function renounceOwnership() public virtual onlyOwner {
-    emit OwnershipTransferred(_owner, address(0));
-    _owner = address(0);
-  }
-
-  /**
-   * @dev Transfers ownership of the contract to a new account (`newOwner`).
-   * Can only be called by the current owner.
-   */
-  function transferOwnership(address newOwner) public virtual onlyOwner {
-    require(newOwner != address(0), "Ownable: new owner is the zero address");
-    emit OwnershipTransferred(_owner, newOwner);
-    _owner = newOwner;
-  }
-}
-
-pragma solidity 0.8.13;
-
-abstract contract PyroTokenLike {
+abstract contract PyroToken2Like {
   function config()
     public
     virtual
@@ -69,35 +26,7 @@ abstract contract PyroTokenLike {
   // function baseToken() public view virtual returns (address);
 }
 
-pragma solidity 0.8.13;
-
-interface IERC20 {
-  function name() external view returns (string memory);
-
-  function symbol() external view returns (string memory);
-
-  function totalSupply() external view returns (uint256);
-
-  function balanceOf(address account) external view returns (uint256);
-
-  function decimals() external returns (uint8);
-
-  function transfer(address recipient, uint256 amount) external returns (bool);
-
-  function allowance(address owner, address spender) external view returns (uint256);
-
-  function approve(address spender, uint256 amount) external returns (bool);
-
-  function transferFrom(
-    address sender,
-    address recipient,
-    uint256 amount
-  ) external returns (bool);
-
-  event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-pragma solidity 0.8.13;
+pragma solidity 0.8.16;
 
 interface IERC2612 {
   /**
@@ -285,9 +214,9 @@ interface IApprovalReceiver {
 /// `withdraw` ETH from WETH10, which will then burn WETH10 token in your wallet. The amount of WETH10 token in any wallet is always identical to the
 /// balance of ETH deposited minus the ETH withdrawn with that specific wallet.
 contract WETH10 is IWETH10 {
-  string public constant override name = "WETH10";
-  string public constant override symbol = "WETH10";
-  uint8 public constant override decimals = 18;
+  string public constant  name = "WETH10";
+  string public constant  symbol = "WETH10";
+  uint8 public constant  decimals = 18;
 
   bytes32 public immutable CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
   bytes32 public immutable PERMIT_TYPEHASH =
@@ -681,7 +610,7 @@ contract PyroWeth10Proxy is Ownable {
 
   constructor(address pyroWeth) {
     baseToken = pyroWeth;
-    (, address weth, , ) = PyroTokenLike(pyroWeth).config();
+    (, address weth, , ) = PyroToken2Like(pyroWeth).config();
     weth10 = IWETH10(weth);
     IERC20(weth10).approve(baseToken, type(uint256).max);
   }
@@ -693,7 +622,7 @@ contract PyroWeth10Proxy is Ownable {
   function redeem(uint256 pyroTokenAmount) external reentrancyGuard returns (uint256) {
     IERC20(baseToken).transferFrom(msg.sender, address(this), pyroTokenAmount); //0.1% fee
     uint256 actualAmount = IERC20(baseToken).balanceOf(address(this));
-    PyroTokenLike(baseToken).redeem(actualAmount);
+    PyroToken2Like(baseToken).redeem(actualAmount);
     uint256 balanceOfWeth = weth10.balanceOf(address(this));
     weth10.withdrawTo(payable(msg.sender), balanceOfWeth);
     return balanceOfWeth;
@@ -703,14 +632,14 @@ contract PyroWeth10Proxy is Ownable {
     require(msg.value == baseTokenAmount && baseTokenAmount > 0, "PyroWethProxy: amount invariant");
     weth10.deposit{value: msg.value}();
     uint256 weth10Balance = weth10.balanceOf(address(this));
-    PyroTokenLike(baseToken).mint(weth10Balance);
+    PyroToken2Like(baseToken).mint(weth10Balance);
     uint256 pyroWethBalance = IERC20(baseToken).balanceOf(address(this));
     IERC20(baseToken).transfer(msg.sender, pyroWethBalance);
     return (pyroWethBalance * 999) / 1000; //0.1% fee
   }
 
   function calculateMintedPyroWeth(uint256 baseTokenAmount) external view returns (uint256) {
-    uint256 pyroTokenRedeemRate = PyroTokenLike(baseToken).redeemRate();
+    uint256 pyroTokenRedeemRate = PyroToken2Like(baseToken).redeemRate();
     uint256 mintedPyroTokens = (baseTokenAmount * ONE) / (pyroTokenRedeemRate);
     return (mintedPyroTokens * 999) / 1000; //0.1% fee
   }
@@ -726,6 +655,6 @@ contract PyroWeth10Proxy is Ownable {
   }
 
   function redeemRate() public view returns (uint256) {
-    return PyroTokenLike(baseToken).redeemRate();
+    return PyroToken2Like(baseToken).redeemRate();
   }
 }

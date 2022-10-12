@@ -1,0 +1,16 @@
+[
+  "constructor(address)",
+  "error OnlyOwner(address,address)",
+  "error TransferToZeroAddress()",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "function balanceOf(address) view returns (uint256)",
+  "function baseToken() view returns (address)",
+  "function calculateMintedPyroWeth(uint256) view returns (uint256)",
+  "function calculateRedeemedWeth(uint256) view returns (uint256)",
+  "function mint(uint256) payable returns (uint256)",
+  "function owner() view returns (address)",
+  "function redeem(uint256) returns (uint256)",
+  "function redeemRate() view returns (uint256)",
+  "function transferOwnership(address)",
+  "function weth10() view returns (address)"
+]

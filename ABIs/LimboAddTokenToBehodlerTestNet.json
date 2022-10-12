@@ -1,0 +1,7 @@
+[
+  "constructor(address,address,address,address)",
+  "event PowerInvoked(address,bytes32,bytes32)",
+  "function invoke(bytes32,address)",
+  "function parameterize(address,bool)",
+  "function params() view returns (address, bool, address)"
+]

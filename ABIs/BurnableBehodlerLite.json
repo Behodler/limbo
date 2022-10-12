@@ -1,0 +1,5 @@
+[
+  "function burn(uint256)",
+  "function burn(address,uint256)",
+  "function symbol() pure returns (string)"
+]

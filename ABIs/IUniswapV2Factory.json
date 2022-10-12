@@ -1,0 +1,11 @@
+[
+  "event PairCreated(address indexed,address indexed,address,uint256)",
+  "function allPairs(uint256) view returns (address)",
+  "function allPairsLength() view returns (uint256)",
+  "function createPair(address,address) returns (address)",
+  "function feeTo() view returns (address)",
+  "function feeToSetter() view returns (address)",
+  "function getPair(address,address) view returns (address)",
+  "function setFeeTo(address)",
+  "function setFeeToSetter(address)"
+]

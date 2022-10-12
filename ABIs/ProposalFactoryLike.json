@@ -1,0 +1,4 @@
+[
+  "function soulUpdateProposal() view returns (address)",
+  "function toggleWhitelistProposal(address)"
+]

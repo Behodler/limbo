@@ -1,0 +1,7 @@
+[
+  "function addToken(address)",
+  "function approved(address) view returns (bool)",
+  "function approvedTokens(address) view returns (bool)",
+  "function removeToken(address)",
+  "function toggleManyTokens(address[],bool)"
+]

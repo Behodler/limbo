@@ -1,26 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity 0.8.16;
 // import "hardhat/console.sol";
+import "../../openzeppelin/Ownable.sol";
+import "../../facades/LachesisLike.sol";
+import "../../facades/LiquidityReceiverLike.sol";
+import "./SnufferCap.sol";
 
-enum FeeExemption {
-  NO_EXEMPTIONS,
-  SENDER_EXEMPT,
-  SENDER_AND_RECEIVER_EXEMPT,
-  REDEEM_EXEMPT_AND_SENDER_EXEMPT,
-  REDEEM_EXEMPT_AND_SENDER_AND_RECEIVER_EXEMPT,
-  RECEIVER_EXEMPT,
-  REDEEM_EXEMPT_AND_RECEIVER_EXEMPT,
-  REDEEM_EXEMPT_ONLY
-}
-
-// File contracts/facades/IERC20.sol
+// File contracts/facades/LR_IERC20.sol
 
 // Se-Identifier: MIT
 
 /**
- * @dev Interface of the ERC20 standard as defined in the EIP but with a burn friendly extra param added to transfer
+ * @dev Interface of the LR_ERC20 standard as defined in the EIP but with a burn friendly extra param added to transfer
  */
-interface IERC20 {
+interface LR_IERC20 {
   /**
    * @dev Returns the name of the token.
    */
@@ -126,7 +119,7 @@ abstract contract Context {
   }
 }
 
-abstract contract ERC20 is Context, IERC20 {
+abstract contract LR_ERC20 is Context, LR_IERC20 {
   mapping(address => uint256) internal _balances;
 
   mapping(address => mapping(address => uint256)) internal _allowances;
@@ -157,40 +150,40 @@ abstract contract ERC20 is Context, IERC20 {
    * be displayed to a user as `5.05` (`505 / 10 ** 2`).
    *
    * Tokens usually opt for a value of 18, imitating the relationship between
-   * Ether and Wei. This is the value {ERC20} uses, unless this function is
+   * Ether and Wei. This is the value {LR_ERC20} uses, unless this function is
    * overridden;
    *
    * NOTE: This information is only used for _display_ purposes: it in
    * no way affects any of the arithmetic of the contract, including
-   * {IERC20-balanceOf} and {IERC20-transfer}.
+   * {LR_IERC20-balanceOf} and {LR_IERC20-transfer}.
    */
   function decimals() public view virtual override returns (uint8) {
     return 18;
   }
 
   /**
-   * @dev See {IERC20-totalSupply}.
+   * @dev See {LR_IERC20-totalSupply}.
    */
   function totalSupply() public view virtual override returns (uint256) {
     return _totalSupply;
   }
 
   /**
-   * @dev See {IERC20-balanceOf}.
+   * @dev See {LR_IERC20-balanceOf}.
    */
   function balanceOf(address account) public view virtual override returns (uint256) {
     return _balances[account];
   }
 
   /**
-   * @dev See {IERC20-allowance}.
+   * @dev See {LR_IERC20-allowance}.
    */
   function allowance(address owner, address spender) public view virtual override returns (uint256) {
     return _allowances[owner][spender];
   }
 
   /**
-   * @dev See {IERC20-approve}.
+   * @dev See {LR_IERC20-approve}.
    *
    * Requirements:
    *
@@ -205,7 +198,7 @@ abstract contract ERC20 is Context, IERC20 {
    * @dev Atomically increases the allowance granted to `spender` by the caller.
    *
    * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
+   * problems described in {LR_IERC20-approve}.
    *
    * Emits an {Approval} event indicating the updated allowance.
    *
@@ -222,7 +215,7 @@ abstract contract ERC20 is Context, IERC20 {
    * @dev Atomically decreases the allowance granted to `spender` by the caller.
    *
    * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
+   * problems described in {LR_IERC20-approve}.
    *
    * Emits an {Approval} event indicating the updated allowance.
    *
@@ -234,7 +227,7 @@ abstract contract ERC20 is Context, IERC20 {
    */
   function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
     uint256 currentAllowance = _allowances[_msgSender()][spender];
-    require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+    require(currentAllowance >= subtractedValue, "LR_ERC20: decreased allowance below zero");
     unchecked {
       _approve(_msgSender(), spender, currentAllowance - subtractedValue);
     }
@@ -272,7 +265,7 @@ abstract contract ERC20 is Context, IERC20 {
    * - `account` cannot be the zero address.
    */
   function _mint(address account, uint256 amount) internal virtual {
-    require(account != address(0), "ERC20: mint to the zero address");
+    require(account != address(0), "LR_ERC20: mint to the zero address");
 
     _totalSupply += amount;
     _balances[account] += amount;
@@ -291,10 +284,10 @@ abstract contract ERC20 is Context, IERC20 {
    * - `account` must have at least `amount` tokens.
    */
   function _burn(address account, uint256 amount) internal virtual {
-    require(account != address(0), "ERC20: burn from the zero address");
+    require(account != address(0), "LR_ERC20: burn from the zero address");
 
     uint256 accountBalance = _balances[account];
-    require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+    require(accountBalance >= amount, "LR_ERC20: burn amount exceeds balance");
     unchecked {
       _balances[account] = accountBalance - amount;
     }
@@ -321,8 +314,8 @@ abstract contract ERC20 is Context, IERC20 {
     address spender,
     uint256 amount
   ) internal virtual {
-    require(owner != address(0), "ERC20: approve from the zero address");
-    require(spender != address(0), "ERC20: approve to the zero address");
+    require(owner != address(0), "LR_ERC20: approve from the zero address");
+    require(spender != address(0), "LR_ERC20: approve to the zero address");
 
     _allowances[owner][spender] = amount;
     emit Approval(owner, spender, amount);
@@ -331,7 +324,7 @@ abstract contract ERC20 is Context, IERC20 {
   /**
    * @dev Destroys `amount` tokens from the caller.
    *
-   * See {ERC20-_burn}.
+   * See {LR_ERC20-_burn}.
    */
   function burn(uint256 amount) public virtual {
     _burn(_msgSender(), amount);
@@ -341,7 +334,7 @@ abstract contract ERC20 is Context, IERC20 {
    * @dev Destroys `amount` tokens from `account`, deducting from the caller's
    * allowance.
    *
-   * See {ERC20-_burn} and {ERC20-allowance}.
+   * See {LR_ERC20-_burn} and {LR_ERC20-allowance}.
    *
    * Requirements:
    *
@@ -350,7 +343,7 @@ abstract contract ERC20 is Context, IERC20 {
    */
   function burnFrom(address account, uint256 amount) public virtual {
     uint256 currentAllowance = allowance(account, _msgSender());
-    require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+    require(currentAllowance >= amount, "LR_ERC20: burn amount exceeds allowance");
     unchecked {
       _approve(account, _msgSender(), currentAllowance - amount);
     }
@@ -358,7 +351,7 @@ abstract contract ERC20 is Context, IERC20 {
   }
 }
 
-// File @openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol@v4.3.2
+// File @openzeppelin/contracts/token/LR_ERC20/extensions/ERC20Burnable.sol@v4.3.2
 
 // : MIT
 
@@ -395,10 +388,10 @@ abstract contract ReentrancyGuard {
   }
 }
 
-contract PyroToken is ERC20, ReentrancyGuard {
+contract PyroToken is LR_ERC20, ReentrancyGuard {
   struct Configuration {
     address liquidityReceiver;
-    IERC20 baseToken;
+    LR_IERC20 baseToken;
     address loanOfficer;
     bool pullPendingFeeRevenue;
   }
@@ -443,7 +436,7 @@ contract PyroToken is ERC20, ReentrancyGuard {
     string memory name_,
     string memory symbol_
   ) public onlyReceiver {
-    config.baseToken = IERC20(baseToken);
+    config.baseToken = LR_IERC20(baseToken);
     _name = name_;
     _symbol = symbol_;
   }
@@ -546,7 +539,7 @@ contract PyroToken is ERC20, ReentrancyGuard {
     _transfer(sender, recipient, amount);
 
     uint256 currentAllowance = _allowances[sender][_msgSender()];
-    require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+    require(currentAllowance >= amount, "LR_ERC20: transfer amount exceeds allowance");
     unchecked {
       _approve(sender, _msgSender(), currentAllowance - amount);
     }
@@ -639,127 +632,18 @@ contract PyroToken is ERC20, ReentrancyGuard {
 
 // Se-Identifier: MIT
 
-abstract contract LiquidityReceiverLike {
-  function setFeeExemptionStatusOnPyroForContract(
-    address pyroToken,
-    address target,
-    FeeExemption exemption
-  ) public virtual;
-
-  function setPyroTokenLoanOfficer(address pyroToken, address loanOfficer) public virtual;
-
-  function getPyroToken(address baseToken) public view virtual returns (address);
-
-  function registerPyroToken(
-    address baseToken,
-    string memory name,
-    string memory symbol
-  ) public virtual;
-
-  function drain(address baseToken) external virtual returns (uint256);
-}
-
 // File contracts/facades/SnufferCap.sol
 
 // Se-Identifier: MIT
 
 /*Snuffs out fees for given address */
-abstract contract SnufferCap {
-  LiquidityReceiverLike public _liquidityReceiver;
-
-  constructor(address liquidityReceiver) {
-    _liquidityReceiver = LiquidityReceiverLike(liquidityReceiver);
-  }
-
-  function snuff(
-    address pyroToken,
-    address targetContract,
-    FeeExemption exempt
-  ) public virtual returns (bool);
-
-  //after perfroming business logic, call this function
-  function _snuff(
-    address pyroToken,
-    address targetContract,
-    FeeExemption exempt
-  ) internal {
-    _liquidityReceiver.setFeeExemptionStatusOnPyroForContract(pyroToken, targetContract, exempt);
-  }
-}
 
 // File contracts/facades/Ownable.sol
 
 // Se-Identifier: MIT
-
-abstract contract Ownable {
-  address private _owner;
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-  /**
-   * @dev Initializes the contract setting the deployer as the initial owner.
-   */
-  constructor() {
-    _setOwner(msg.sender);
-  }
-
-  /**
-   * @dev Returns the address of the current owner.
-   */
-  function owner() public view virtual returns (address) {
-    return _owner;
-  }
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(owner() == msg.sender, "Ownable: caller is not the owner");
-    _;
-  }
-
-  /**
-   * @dev Leaves the contract without owner. It will not be possible to call
-   * `onlyOwner` functions anymore. Can only be called by the current owner.
-   *
-   * NOTE: Renouncing ownership will leave the contract without an owner,
-   * thereby removing any functionality that is only available to the owner.
-   */
-  function renounceOwnership() public virtual onlyOwner {
-    _setOwner(address(0));
-  }
-
-  /**
-   * @dev Transfers ownership of the contract to a new account (`newOwner`).
-   * Can only be called by the current owner.
-   */
-  function transferOwnership(address newOwner) public virtual onlyOwner {
-    require(newOwner != address(0), "Ownable: new owner is the zero address");
-    _setOwner(newOwner);
-  }
-
-  function _setOwner(address newOwner) private {
-    address oldOwner = _owner;
-    _owner = newOwner;
-    emit OwnershipTransferred(oldOwner, newOwner);
-  }
-}
-
 // File contracts/facades/LachesisLike.sol
 
 // Se-Identifier: MIT
-
-abstract contract LachesisLike {
-  function cut(address token) public view virtual returns (bool, bool);
-
-  function measure(
-    address token,
-    bool valid,
-    bool burnable
-  ) public virtual;
-}
-
-// File contracts/LiquidityReceiver.sol
 
 // Se-Identifier: MIT
 
@@ -826,7 +710,7 @@ contract LiquidityReceiver is Ownable {
 
   function drain(address baseToken) external returns (uint256) {
     address pyroToken = getPyroToken(baseToken);
-    IERC20 reserve = IERC20(baseToken);
+    LR_IERC20 reserve = LR_IERC20(baseToken);
     uint256 amount = reserve.balanceOf(address(this));
     reserve.transfer(pyroToken, amount);
     return amount;

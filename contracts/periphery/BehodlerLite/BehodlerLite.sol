@@ -1,12 +1,12 @@
 // File: contracts/openzeppelin/Ownable.sol
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.16;
 import "hardhat/console.sol";
 import "./CommonIERC20.sol";
 import "../../periphery/Errors.sol";
 
-abstract contract Burnable {
+abstract contract BurnableBehodlerLite {
   function burn(uint256 amount) public virtual;
 
   function symbol() public pure virtual returns (string memory);
@@ -155,7 +155,7 @@ contract ScarcityLite is CommonIERC20 {
     bool proxyBurn
   ) internal returns (uint256) {
     uint256 burnAmount = (config.burnFee * amount) / (1000);
-    Burnable bToken = Burnable(token);
+    BurnableBehodlerLite bToken = BurnableBehodlerLite(token);
     if (proxyBurn) {
       bToken.burn(address(this), burnAmount);
     } else {

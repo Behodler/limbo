@@ -1,0 +1,4 @@
+[
+  "function parameterize(address,bool)",
+  "function params() view returns (address, bool, address, address)"
+]

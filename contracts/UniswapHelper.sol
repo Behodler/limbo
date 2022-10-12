@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.16;
 import "./facades/BehodlerLike.sol";
 import "./DAO/Governable.sol";
 import "./openzeppelin/ERC20Burnable.sol";

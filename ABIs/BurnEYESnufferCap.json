@@ -1,0 +1,5 @@
+[
+  "constructor(address,address)",
+  "function _liquidityReceiver() view returns (address)",
+  "function snuff(address,address,uint8) returns (bool)"
+]

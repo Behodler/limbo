@@ -1,0 +1,12 @@
+[
+  "constructor(address,string)",
+  "error ExecutionFailed()",
+  "error OnlyFactoryOrDAO(address,address)",
+  "error ProposalLocked(address)",
+  "function description() view returns (string)",
+  "function locked() view returns (bool)",
+  "function orchestrateExecute()",
+  "function parameterize(address,address,uint256,address,address)",
+  "function params() view returns (address, address, uint256, address, address)",
+  "function setLocked(bool)"
+]

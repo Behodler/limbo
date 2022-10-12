@@ -1,0 +1,15 @@
+[
+  "function approveFlanMintingPower(address,bool)",
+  "function currentProposalState() view returns (uint256, uint256, address, uint256, address)",
+  "function domainConfig() returns (address, address, address, address, bool, address, address)",
+  "function fateSpenders(address) view returns (bool)",
+  "function fateState(address) view returns (uint256, uint256, uint256)",
+  "function getFlashGoverner() view returns (address)",
+  "function makeProposal(address,address)",
+  "function proposalConfig() view returns (uint256, uint256, address)",
+  "function setApprovedAsset(address,bool,bool,uint256)",
+  "function setFateSpender(address,bool)",
+  "function setProposalConfig(uint256,uint256,address)",
+  "function successfulProposal(address) view returns (bool)",
+  "function transferFate(address,address,uint256)"
+]

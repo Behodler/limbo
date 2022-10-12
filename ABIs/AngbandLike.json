@@ -1,0 +1,6 @@
+[
+  "function POWERREGISTRY() view returns (bytes32)",
+  "function executePower(address)",
+  "function getAddress(bytes32) view returns (address)",
+  "function setBehodler(address,address)"
+]

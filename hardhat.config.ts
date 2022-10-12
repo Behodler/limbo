@@ -6,6 +6,7 @@ import "hardhat-deploy";
 import "./tasks/index";
 import "hardhat-gas-reporter"
 import * as mnemonic from "./private/testmnemonic.json";
+import "hardhat-abi-exporter"
 
 task("accounts", "Prints the list of accounts", async (_, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -16,14 +17,23 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 });
 
 export default {
-  solidity: "0.8.13",
+  solidity: "0.8.16",
   gasReporter: {
     optimizer: true,
-    outputFile:"gasReport.json",
-    disabled:true
+    outputFile: "gasReport.json",
+    disabled: true
+  },
+
+  abiExporter: {
+    path: './ABIs',
+    runOnCompile: true,
+    clear: true,
+    flat: true,
+    spacing: 2,
+    pretty: true
   },
   networks: {
-   
+
     hardhat: {
       // allowUnlimitedContractSize: true,
       chainId: 1337,
@@ -36,7 +46,7 @@ export default {
           runs: 200,
         },
       },
-    
+
       //comment out mining block for non wargame tests
       // mining: {
       //   auto: false,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.13;
+pragma solidity 0.8.16;
 
 interface IUniswapV2Pair {
     event Approval(address indexed owner, address indexed spender, uint value);

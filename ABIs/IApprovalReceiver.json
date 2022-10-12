@@ -1,0 +1,3 @@
+[
+  "function onTokenApproval(address,uint256,bytes) returns (bool)"
+]

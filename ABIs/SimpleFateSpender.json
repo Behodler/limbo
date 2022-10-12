@@ -1,0 +1,5 @@
+[
+  "constructor(address)",
+  "function reduceBalance(address)",
+  "function transfer(address,address,uint256)"
+]

@@ -1,0 +1,5 @@
+[
+  "function buyFlanAndBurn(address,uint256,address)",
+  "function minAPY_to_FPS(uint256,uint256) pure returns (uint256)",
+  "function stabilizeFlan(uint256) returns (uint256)"
+]

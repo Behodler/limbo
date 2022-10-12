@@ -1,0 +1,4 @@
+[
+  "function migrate(address)",
+  "function stakeFor(address,uint256,address)"
+]

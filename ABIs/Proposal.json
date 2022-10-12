@@ -1,0 +1,8 @@
+[
+  "error ExecutionFailed()",
+  "error OnlyFactoryOrDAO(address,address)",
+  "function description() view returns (string)",
+  "function locked() view returns (bool)",
+  "function orchestrateExecute()",
+  "function setLocked(bool)"
+]

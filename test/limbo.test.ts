@@ -474,14 +474,14 @@ describe.only("Limbo", function () {
 
     //governanceApproved:
     //disableProtocol
-    await expect(this.limbo.disableProtocol()).to.be.revertedWith("unrecognized custom error");
+    await expect(this.limbo.disableProtocol()).to.be.revertedWith("AllowanceExceeded(0, 1000)");
     await expect(this.limbo.enableProtocol()).to.be.revertedWith("GovernanceActionFailed");
     //adjustSoul
-    await expect(this.limbo.adjustSoul(this.aave.address, 1, 0, 10)).to.be.revertedWith("unrecognized custom error");
+    await expect(this.limbo.adjustSoul(this.aave.address, 1, 0, 10)).to.be.revertedWith("AllowanceExceeded(0, 1000)");
     //configureCrossingParameters
 
     await expect(this.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010)).to.be.revertedWith(
-      "unrecognized custom error"
+      "AllowanceExceeded(0, 1000)"
     );
   });
 
@@ -647,7 +647,7 @@ describe.only("Limbo", function () {
     await this.limbo.endConfiguration(this.limboDAO.address);
 
     //try to adjust soul and fail
-    await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith("unrecognized custom error");
+    await expect(this.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith("AllowanceExceeded(0, 21000000)");
 
     //stake requisite tokens, try again and succeed.
     await this.eye.approve(this.flashGovernance.address, 21000000);

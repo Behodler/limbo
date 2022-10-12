@@ -1,0 +1,6 @@
+[
+  "error InsufficinetFunds(uint256,uint256)",
+  "error InvocationRewardFailed(address)",
+  "error NotAContract(address)",
+  "error OperationFailure()"
+]

@@ -3,62 +3,13 @@
 // File contracts/openzeppelin/Ownable.sol
 
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
-
-contract Ownable {
-  address private _owner;
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-  constructor() {
-    _owner = msg.sender;
-    emit OwnershipTransferred(address(0), msg.sender);
-  }
-
-  function owner() public view returns (address) {
-    return _owner;
-  }
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(_owner == msg.sender, "Ownable: caller is not the owner");
-    _;
-  }
-
-  /**
-   * @dev Leaves the contract without owner. It will not be possible to call
-   * `onlyOwner` functions anymore. Can only be called by the current owner.
-   *
-   * NOTE: Renouncing ownership will leave the contract without an owner,
-   * thereby removing any functionality that is only available to the owner.
-   */
-  function renounceOwnership() public virtual onlyOwner {
-    emit OwnershipTransferred(_owner, address(0));
-    _owner = address(0);
-  }
-
-  /**
-   * @dev Transfers ownership of the contract to a new account (`newOwner`).
-   * Can only be called by the current owner.
-   */
-  function transferOwnership(address newOwner) public virtual onlyOwner {
-    require(newOwner != address(0), "Ownable: new owner is the zero address");
-    emit OwnershipTransferred(_owner, newOwner);
-    _owner = newOwner;
-  }
-}
+pragma solidity 0.8.16;
+import "../../facades/AngbandLike.sol";
+import "../../facades/LachesisLike.sol";
+import "../../openzeppelin/IERC20.sol";
+import "../../openzeppelin/Ownable.sol";
 
 // File contracts/Powers.sol
-
-abstract contract AngbandLike {
-  function getAddress(bytes32 _key) public view virtual returns (address);
-
-  bytes32 public constant POWERREGISTRY = "POWERREGISTRY";
-
-  function setBehodler(address behodler, address lachesis) public virtual;
-}
 
 struct Power {
   bytes32 name;
@@ -294,44 +245,8 @@ contract PowersRegistry is Empowered {
   }
 }
 
-// File contracts/facades/LachesisLike.sol
-
-abstract contract LachesisLike {
-  function measure(
-    address token,
-    bool valid,
-    bool burnable
-  ) public virtual;
-
-  function updateBehodler(address token) public virtual;
-
-  function setBehodler(address b) public virtual;
-}
 
 // File contracts/openzeppelin/IERC20.sol
-
-interface IERC20 {
-  function totalSupply() external view returns (uint256);
-
-  function balanceOf(address account) external view returns (uint256);
-
-  function decimals() external returns (uint8);
-
-  function transfer(address recipient, uint256 amount) external returns (bool);
-
-  function allowance(address owner, address spender) external view returns (uint256);
-
-  function approve(address spender, uint256 amount) external returns (bool);
-
-  function transferFrom(
-    address sender,
-    address recipient,
-    uint256 amount
-  ) external returns (bool);
-
-  event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval(address indexed owner, address indexed spender, uint256 value);
-}
 
 // File contracts/Limbo/IdempotentPowerInvoker.sol
 
@@ -368,7 +283,7 @@ abstract contract IdempotentPowerInvoker {
 
 // File contracts/Limbo/TokenProxyRegistryLike.sol
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.16;
 
 abstract contract TokenProxyRegistryLike {
   struct TokenConfig {

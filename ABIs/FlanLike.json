@@ -1,0 +1,6 @@
+[
+  "function balanceOf(address) returns (uint256)",
+  "function burn(uint256) returns (bool)",
+  "function mint(address,uint256) returns (bool)",
+  "function setBurnOnTransferFee(uint8)"
+]
