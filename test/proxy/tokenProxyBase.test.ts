@@ -375,6 +375,7 @@ describe("token proxy test", function () {
     expect(redeemRateAfter).to.equal(SET.ONE);
   });
 
+  //TODO: failing
   it("t10. changing R_amp affects marginal and average redeem rate predictably", async function () {
     await SET.RebaseProxy.mint(SET.owner.address, SET.owner.address, SET.ONE);
 
