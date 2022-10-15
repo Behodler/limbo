@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 import "../openzeppelin/SafeERC20.sol";
 import "../openzeppelin/ERC20Burnable.sol";
+import "hardhat/console.sol";
 
 ///@dev Only use this directly for perpetual tokens. For threshold tokens, use BehodlerTokenProxy
 contract TokenProxyBase is ERC20 {
@@ -42,6 +43,7 @@ contract TokenProxyBase is ERC20 {
     uint256 amount
   ) internal returns (uint256 proxy) {
     uint256 _redeemRate = (redeemRate() * R_amp) / initialRedeemRate;
+    console.log('CONTRACT: redeemRate %d',_redeemRate);
     uint256 balanceBefore = IERC20(baseToken).balanceOf(address(this));
 
     IERC20(baseToken).safeTransferFrom(baseSource, address(this), amount);
@@ -55,7 +57,7 @@ contract TokenProxyBase is ERC20 {
     address proxyRecipient,
     address baseSource,
     uint256 amount
-  ) public returns (uint256 proxy) {
+  ) public virtual returns (uint256 proxy) {
     uint256 _redeemRate = redeemRate();
     uint256 balanceBefore = IERC20(baseToken).balanceOf(address(this));
 

@@ -19,11 +19,11 @@ contract VanillaProxy is TokenProxyBase {
     R_amp = _R_amp * 10**15;
   }
 
-  function mintCustom(
+  function mint(
     address proxyRecipient,
     address baseSource,
     uint256 amount
-  ) public returns (uint) {
+  ) public override returns (uint) {
     return mint(R_amp, proxyRecipient, baseSource, amount);
   }
 

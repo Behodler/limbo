@@ -21,7 +21,6 @@
   "function initialRedeemRate() view returns (uint256)",
   "function migrateBaseReserveToNewProxy(address)",
   "function mint(address,address,uint256) returns (uint256)",
-  "function mintCustom(address,address,uint256) returns (uint256)",
   "function name() view returns (string)",
   "function proxyRegistry() view returns (address)",
   "function redeem(address,address,uint256) returns (uint256)",
