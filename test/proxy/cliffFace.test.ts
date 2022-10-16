@@ -278,7 +278,7 @@ describe("cliffFace proxy test", function () {
     CliffFace = "CliffFace",
   }
 
-  const AMMTypes = [AMMType.UniswapPair, AMMType.Behodler, AMMType.CliffFace];
+  const AMMTypes = [ AMMType.Behodler, AMMType.CliffFace];
   AMMTypes.forEach((amm: AMMType) => {
     let description = `${amm.toString()} BENCHMARK: `;
     switch (amm) {

@@ -12,10 +12,4 @@ abstract contract AMMHelper {
         pure
         virtual
         returns (uint256 fps);
-
-    function buyFlanAndBurn(
-        address inputToken,
-        uint256 amount,
-        address recipient
-    ) public virtual;
 }

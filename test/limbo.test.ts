@@ -1,5 +1,5 @@
 import { ContractReceipt } from "ethers";
-import { assertLog, executionResult, numberClose, queryChain } from "./helpers";
+import { assertLog, deploy, executionResult, numberClose, queryChain } from "./helpers";
 
 const { expect, assert } = require("chai");
 const { ethers, network } = require("hardhat");
@@ -216,7 +216,7 @@ describe.only("Limbo", function () {
     await this.limboDAO.makeLive();
 
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
-    this.soulReader = await SoulReaderFactory.deploy();
+    this.soulReader = await SoulReaderFactory.deploy() as Types.SoulReader;
 
     const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
     this.uniswapHelper = await UniswapHelperFactory.deploy(this.limbo.address, this.limboDAO.address);
@@ -999,7 +999,7 @@ describe.only("Limbo", function () {
       this.aave.address, //token
       10000000, //threshold
       1, //type
-      0, //state = calibration
+      0, //state = unset
       0, //index
       10 //fps
     );
@@ -1510,7 +1510,7 @@ describe.only("Limbo", function () {
 
     const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfterThirdMigrate);
 
-    expect(numberClose(ratio2, "23687384")).to.equal(true,ratio2);
+    expect(numberClose(ratio2, "23687384")).to.equal(true, ratio2);
   });
 
   it("t-23. any whitelisted contract can mint flan", async function () {
@@ -1834,56 +1834,99 @@ describe.only("Limbo", function () {
     expect(poolDetails[5]).to.equal("41222729578893962"); //fps
   });
 
-  it("t-27. protocol token buy buck works", async function () {
+
+  async function deployClaimSecondaryRewardsProposal(limboDAO: Types.LimboDAO) {
+    const claimSecondaryRewardsProposalFactory = await ethers.getContractFactory("ClaimSecondaryRewardsProposal")
+    let claimSecondaryRewardsProposal = await deploy<Types.ClaimSecondaryRewardsProposal>(
+      claimSecondaryRewardsProposalFactory, limboDAO.address
+    );
+    return claimSecondaryRewardsProposal
+  }
+
+  async function lodgeAndExecuteClaimSecondaryRewards(claimSecondaryRewardsProposal: Types.ClaimSecondaryRewardsProposal, token: Types.MockToken, eye: Types.MockToken, limboDAO: Types.LimboDAO,
+    proposalFactory: Types.ProposalFactory,  expectError:boolean) {
+
+    //paramterize proposal
+    await claimSecondaryRewardsProposal.parameterize(token.address, owner.address)
+
+
+    //whitelist proposal on LimboDAO
+    await toggleWhiteList(claimSecondaryRewardsProposal.address)
+
+    //acquire enough fate to lodge and vote on proposal
+    const proposalConfig = await limboDAO.proposalConfig();
+    const requiredFate = proposalConfig[1].mul(2);
+    await eye.approve(limboDAO.address, requiredFate);
+    await eye.mint(requiredFate);
+    await limboDAO.burnAsset(eye.address, requiredFate, false);
+
+    //lodge proposal
+  
+   
+    await proposalFactory.lodgeProposal(claimSecondaryRewardsProposal.address);
+    //vote yes on proposal
+    await limboDAO.vote(claimSecondaryRewardsProposal.address, 1000);
+
+    //time travel to when voting period has ended
+    await advanceTime(6048010);
+
+    if(expectError){
+      await expect(limboDAO.executeCurrentProposal())
+      .to.emit(limboDAO, "proposalExecuted")
+      .withArgs(claimSecondaryRewardsProposal.address, false);
+    }
+    //execute proposal. Owner should get 10000 sushi
+    await limboDAO.executeCurrentProposal();
+
+
+  }
+
+  it("t-27.1 Only a proposal can withdraw secondary rewards", async function () {
+
+
+    //create unlisted token and send to limbo
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
     await sushi.mint("10000");
     await sushi.transfer(this.limbo.address, "10000");
-    const UniPair = await ethers.getContractFactory("UniswapV2Pair");
 
-    await this.uniswapFactory.createPair(sushi.address, this.flan.address);
+    //assert token is in unset state on Limbo.
+    const soulReader: Types.SoulReader = this.soulReader as Types.SoulReader
+    let soulState = (await soulReader.getCurrentSoulState(sushi.address, this.limbo.address)).toNumber()
+    expect(soulState).to.equal(0)
 
-    const pairAddress = await this.uniswapFactory.getPair(this.flan.address, sushi.address);
+    //store owner balance before withdrawal
+    const ownerBalanceBefore = await sushi.balanceOf(owner.address)
+    const limboBalanceBefore = await sushi.balanceOf(this.limbo.address)
 
-    await sushi.mint("1000000000");
-    await sushi.transfer(pairAddress, "1000000000");
-    await this.flan.mint(pairAddress, "80000000000");
-    const scxFlanPair = await UniPair.attach(pairAddress);
-    await scxFlanPair.mint(owner.address);
+    let proposal = await deployClaimSecondaryRewardsProposal(this.limboDAO)
+    await lodgeAndExecuteClaimSecondaryRewards(proposal, sushi, this.eye, this.limboDAO, this.proposalFactory,false)
 
-    let result = await executionResult(this.uniOracle.RegisterPair(pairAddress, 1));
-    expect(result.success).to.equal(true, result.error);
+    const ownerBalanceAfter = await sushi.balanceOf(owner.address)
+    const limboBalanceAfter = await sushi.balanceOf(this.limbo.address)
 
-    result = await executionResult(
-      this.uniswapHelper.configure(
-        this.limbo.address,
-        this.mockBehodler.address,
-        this.flan.address,
-        20,
-        0,
-        this.uniOracle.address
-      )
-    );
-    expect(result.success).to.equal(true, result.error);
+    //assert that Limbo has zero balance and owner has an increase of 10000
+    expect(ownerBalanceAfter.sub(ownerBalanceBefore).toNumber()).to.equal(10000)
+    expect(limboBalanceAfter.toNumber()).to.equal(0)
+    expect(limboBalanceBefore.toNumber()).to.equal(10000)
+  })
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
-    await sushi.approve(this.limbo.address, "10000000000");
-    result = await executionResult(this.limbo.claimSecondaryRewards(sushi.address));
-    expect(result.success).to.equal(true, result.error);
+  for (let i = 1; i < 4; i++) {
 
-    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
-    const sushibalanceOnLimboAfter = await sushi.balanceOf(this.limbo.address);
 
-    expect(flanBalanceAfter.gt(flanBalanceBefore)).to.be.true;
-    expect(sushibalanceOnLimboAfter).to.equal(0);
+    it("t-27.2 only unset tokens can be claimed as secondary rewards", async function () {
+      //create new token and list it on Behodler for staking
+      const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
+      await sushi.mint("10000");
+      await sushi.transfer(this.limbo.address, "10000");
 
-    await this.limbo.configureSoul(sushi.address, 10000000, 1, 1, 0, 10000000);
+      await this.limbo.configureSoul(sushi.address, 10000000, 1, i, 0, 10000000);
 
-    await sushi.mint("10000");
-    await sushi.transfer(this.limbo.address, "10000");
-
-    await expect(this.limbo.claimSecondaryRewards(sushi.address)).to.be.revertedWith("TokenAccountedFor");
-  });
-
+      let proposal = await deployClaimSecondaryRewardsProposal(this.limboDAO)
+      console.log('proposal: ' + proposal.address)
+      await lodgeAndExecuteClaimSecondaryRewards(proposal, sushi, this.eye, this.limboDAO, this.proposalFactory,true)
+    })
+  }
+  
   it("t-28. flash governance tolerance enforced for flash loan but not successful proposals or unconfigured", async function () {
     await this.flashGovernance.configureSecurityParameters(10, 100, 3);
 

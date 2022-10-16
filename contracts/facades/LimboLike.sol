@@ -71,4 +71,6 @@ abstract contract LimboLike {
     uint256 amount,
     address holder
   ) public virtual;
+
+  function claimSecondaryRewards(address token) public virtual;
 }

@@ -65,7 +65,7 @@ Note: CBD can be negative. This creates a situation where the initial bonus per 
 For negative CBD, the intent is to create a sense of urgency amongst prospective stakers to push the pool over the threshold. For positive CBD, the intent is to draw marginal stakers into the soul in a desire to receive the crossing bonus while the opportunity still exists.
 A negative CBD benefits from strong communal coordination. For instance, if the token listed has a large, active and well heeled community, a negative CBD might act as a rallying cry to ape in. A positive CBD benefits from individually uncoordinated motivations (classical market setting)
 States of migration:
-1. calibration
+1. unset
 No staking/unstaking.
 2. Staking
 Staking/unstaking. If type is threshold, take threshold into account
@@ -95,7 +95,7 @@ market with too much SCX, this value is known as the Rectangle of Fairness. Whil
 2. CPMMs such as Uniswap impose hyperbolic price slippage so that trying to withdraw the full balance of SCX results in paying an assymptotically high Flan price. As such we can deploy a bit more than 25 SCX per migrations without worrying about added dilution 
 */
 enum SoulState {
-  calibration,
+  unset,
   staking,
   waitingToCross,
   crossedOver
@@ -384,7 +384,7 @@ contract Limbo is Governable {
   ///@dev Unlike with flash governance, variable movements are unguarded
   ///@param crossingThreshold The token balance on Behodler that triggers the soul to enter into waitingToCross state
   ///@param soulType Indicates whether the soul is perpetual or threshold
-  ///@param state a threshold soul can be either staking, waitingToCross, or CrossedOver. Both soul types can be in calibration state.
+  ///@param state a threshold soul can be either staking, waitingToCross, or CrossedOver. Both soul types can be in unset state.
   ///@param index a token could be initially liste as a threshold soul and then later added as perpetual. An index helps distinguish these two events so that user late to claim rewards have no artificial time constraints imposed on their behaviour
   function configureSoul(
     address token,
@@ -397,7 +397,7 @@ contract Limbo is Governable {
     latestIndex[token] = index > latestIndex[token] ? latestIndex[token] + 1 : latestIndex[token];
 
     Soul storage soul = currentSoul(token);
-    bool fallingBack = soul.state != SoulState.calibration && SoulState(state) == SoulState.calibration;
+    bool fallingBack = soul.state != SoulState.unset && SoulState(state) == SoulState.unset;
     soul.set(crossingThreshold, soulType, state, fps);
     if (SoulState(state) == SoulState.staking) {
       tokenCrossingParameters[token][latestIndex[token]].stakingBeginsTimestamp = block.timestamp;
@@ -474,7 +474,7 @@ contract Limbo is Governable {
       unstakeApproval[token][holder][unstaker] -= amount;
     }
     Soul storage soul = currentSoul(token);
-    if (soul.state != SoulState.calibration && soul.state != SoulState.staking) {
+    if (soul.state != SoulState.unset && soul.state != SoulState.staking) {
       revert InvalidSoulState(token, uint256(soul.state));
     }
     updateSoul(token, soul);
@@ -547,19 +547,22 @@ contract Limbo is Governable {
     emit BonusPaid(token, index, msg.sender, flanBonus);
   }
 
-  /**@notice some tokens may be sent to Limbo by mistake or unhandled in some manner. For instance, if a Pooltogether token is listed and Limbo wins,
-  the reward token may not have relevance on Limbo. If the token exists as a pair with Flan on the external AMM
-  this function buys Flan from the AMM and burns it. A small percentage of the purchased Flan is sent to the caller to incentivize 
-  flushing Limbo of stuck tokens. A secondary incentive exists to create new pairs for Flan.
+  /**@notice some tokens may be sent to Limbo by mistake or unhandled in some manner. For example, yield. 
+  Each scenario has its own reason and it is up to governance how they should be handled. If a token that has previously
+  been listed for staking on Limbo is accidentally sent, it is lost forever because any positive balance
+  could be an unclaimed stake. Adding code to account for expected vs actual balances on aggregate and allowing
+  for skimming places a gas burden on regular users for an edge case which is an Eth smell.
+  The alternative is to not place any restrictions on withdrawals, given that only the DAO can execute this function
+  but then this creates an incentive for governance attacks which, even when thwarted, are a form of griefing knwon as Karen attacks.
   */
-  function claimSecondaryRewards(address token) public {
+  function claimSecondaryRewards(address token) public onlySuccessfulProposal {
     SoulState state = currentSoul(token).state;
-    if (state != SoulState.calibration && state != SoulState.crossedOver) {
+    if (state != SoulState.unset) {
       revert TokenAccountedFor(token);
     }
     uint256 balance = IERC20(token).balanceOf(address(this));
-    IERC20(token).safeTransfer(crossingConfig.ammHelper, balance);
-    AMMHelper(crossingConfig.ammHelper).buyFlanAndBurn(token, balance, msg.sender);
+    //proposal must know what to with the sent balance
+    IERC20(token).safeTransfer(msg.sender, balance);
   }
 
   ///@notice migrates threshold token from Limbo to Behodler and orchestrates Flan boosting mechanics. Callers of this function are rewared to compensate for gas expenditure
