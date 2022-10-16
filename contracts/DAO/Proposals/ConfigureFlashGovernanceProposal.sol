@@ -6,7 +6,7 @@ import "../../facades/FlashGovernanceArbiterLike.sol";
 
 contract ConfigureFlashGovernanceProposal is Proposal {
   struct ParameterSet {
- address asset;
+    address asset;
     uint256 amount;
     uint256 unlockTime;
     bool assetBurnable;
@@ -16,10 +16,12 @@ contract ConfigureFlashGovernanceProposal is Proposal {
 
   constructor(address dao, string memory _description) Proposal(dao, description) {}
 
-  function parameterize(address asset,
+  function parameterize(
+    address asset,
     uint256 amount,
     uint256 unlockTime,
-    bool assetBurnable) public lockUntilComplete {
+    bool assetBurnable
+  ) public lockUntilComplete {
     params.asset = asset;
     params.amount = amount;
     params.unlockTime = unlockTime;

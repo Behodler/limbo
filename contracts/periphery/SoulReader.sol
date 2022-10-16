@@ -30,6 +30,16 @@ contract SoulReader {
    *@param token the token contract address
    *@param _limbo the limbo contract address
    */
+  function getCurrentSoulState(address token, address _limbo) public view returns (uint256 state) {
+    LimboLike limbo = getLimbo(_limbo);
+    uint256 latestIndex = limbo.latestIndex(token);
+    (, , , , state, ) = limbo.souls(token, latestIndex);
+  }
+
+  /**
+   *@param token the token contract address
+   *@param _limbo the limbo contract address
+   */
   function SoulStats(address token, address _limbo)
     public
     view

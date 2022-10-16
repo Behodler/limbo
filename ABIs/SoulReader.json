@@ -3,5 +3,6 @@
   "function ExpectedCrossingBonus(address,address,address) view returns (uint256)",
   "function ExpectedCrossingBonusRate(address,address,address) view returns (uint256)",
   "function GetPendingReward(address,address,address) view returns (uint256)",
-  "function SoulStats(address,address) view returns (uint256, uint256, uint256)"
+  "function SoulStats(address,address) view returns (uint256, uint256, uint256)",
+  "function getCurrentSoulState(address,address) view returns (uint256)"
 ]

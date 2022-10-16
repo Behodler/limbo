@@ -10,7 +10,6 @@
   "error PriceOvershootTooHigh(uint8)",
   "function DAO() view returns (address)",
   "function blackHole() view returns (address)",
-  "function buyFlanAndBurn(address,uint256,address)",
   "function configure(address,address,address,uint8,uint8,address)",
   "function configured() view returns (bool)",
   "function endConfiguration(address)",
