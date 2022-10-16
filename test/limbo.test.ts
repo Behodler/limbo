@@ -1926,71 +1926,7 @@ describe.only("Limbo", function () {
       await lodgeAndExecuteClaimSecondaryRewards(proposal, sushi, this.eye, this.limboDAO, this.proposalFactory,true)
     })
   }
-
-
-  // it("t-27.2 waitingToCrossover tokens cannot be claimed as secondary rewards", async function () {
-  //   throw "not implemented";
-  // })
-
-
-  // it("t-27.3 waitingToCrossover tokens cannot be claimed as secondary rewards", async function () {
-  //   throw "not implemented";
-  // })
-
-  // it("t-27.4 crossedOver tokens cannot be claimed as secondary rewards", async function () {
-  //   throw "not implemented";
-  // })
-
-  it("t-27. protocol token buy buck works", async function () {
-    const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
-    await sushi.mint("10000");
-    await sushi.transfer(this.limbo.address, "10000");
-    const UniPair = await ethers.getContractFactory("UniswapV2Pair");
-
-    await this.uniswapFactory.createPair(sushi.address, this.flan.address);
-
-    const pairAddress = await this.uniswapFactory.getPair(this.flan.address, sushi.address);
-
-    await sushi.mint("1000000000");
-    await sushi.transfer(pairAddress, "1000000000");
-    await this.flan.mint(pairAddress, "80000000000");
-    const scxFlanPair = await UniPair.attach(pairAddress);
-    await scxFlanPair.mint(owner.address);
-
-    let result = await executionResult(this.uniOracle.RegisterPair(pairAddress, 1));
-    expect(result.success).to.equal(true, result.error);
-
-    result = await executionResult(
-      this.uniswapHelper.configure(
-        this.limbo.address,
-        this.mockBehodler.address,
-        this.flan.address,
-        20,
-        0,
-        this.uniOracle.address
-      )
-    );
-    expect(result.success).to.equal(true, result.error);
-
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
-    await sushi.approve(this.limbo.address, "10000000000");
-    result = await executionResult(this.limbo.claimSecondaryRewards(sushi.address));
-    expect(result.success).to.equal(true, result.error);
-
-    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
-    const sushibalanceOnLimboAfter = await sushi.balanceOf(this.limbo.address);
-
-    expect(flanBalanceAfter.gt(flanBalanceBefore)).to.be.true;
-    expect(sushibalanceOnLimboAfter).to.equal(0);
-
-    await this.limbo.configureSoul(sushi.address, 10000000, 1, 1, 0, 10000000);
-
-    await sushi.mint("10000");
-    await sushi.transfer(this.limbo.address, "10000");
-
-    await expect(this.limbo.claimSecondaryRewards(sushi.address)).to.be.revertedWith("TokenAccountedFor");
-  });
-
+  
   it("t-28. flash governance tolerance enforced for flash loan but not successful proposals or unconfigured", async function () {
     await this.flashGovernance.configureSecurityParameters(10, 100, 3);
 
