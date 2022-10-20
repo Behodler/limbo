@@ -12,7 +12,7 @@ error TransferToZeroAddress();
 
 //LIMBO
 error InvalidSoul(address token);
-error InvalidSoulState(address token, uint256 state);
+error InvalidSoulState(address token, uint index, uint256 state);
 error InvalidSoulType(address token, uint256 actualType, uint256 expectedType);
 error ExcessiveWithdrawalRequest(address token, uint256 amount, uint256 staked);
 error BonusClaimed(address token, uint256 index);
@@ -23,6 +23,7 @@ error InvocationRewardFailed(address caller);
 error MigrationCoolDownActive(address token, uint256 index, uint256 migrationDelay);
 error FlanBonusMustBePositive(address token, uint256 index, uint256 staked, int256 finalFlanPerTeraToken);
 error ProtocolDisabled();
+error CannotFallBackIntoUnset(address token);
 
 //FLAN
 error MintingNotWhiteListed(address msgSender);
