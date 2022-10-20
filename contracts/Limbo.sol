@@ -135,16 +135,17 @@ struct CrossingConfig {
 
 library SoulLib {
   function set(
-    Soul storage soul,
+    Soul memory soul,
     uint256 crossingThreshold,
     uint256 soulType,
     uint256 state,
     uint256 fps
-  ) external {
+  ) external pure returns (Soul memory) {
     soul.crossingThreshold = crossingThreshold;
     soul.flanPerSecond = fps;
     soul.state = SoulState(state);
     soul.soulType = SoulType(soulType);
+    return soul;
   }
 }
 
@@ -178,15 +179,13 @@ library MigrationLib {
    *@param token to be migrated (or crossed over) from Limbo to Behodler
    *@param power MorgothDAO power is a spell of sorts that can perform a governance action on Morgoth. Powes have validation rules just like proposals in other DAOs. This power is considered to be prevalidated and ready for repeat execution by Limbo only.
    *@param crossingConfig rules for crossing over the token at hand
-   *@param soul is the Limbo specific details of this token
    */
   function migrate(
     address token,
     LimboAddTokenToBehodlerPowerLike power,
     CrossingParameters memory crossingParams,
     CrossingConfig memory crossingConfig,
-    FlanLike flan,
-    Soul storage soul
+    FlanLike flan
   ) external returns (uint256, uint256) {
     power.parameterize(token, crossingParams.burnable);
     //invoke Angband execute on power that migrates token type to Behodler
@@ -208,8 +207,6 @@ library MigrationLib {
     if (change != reward) {
       revert InvocationRewardFailed(msg.sender);
     }
-
-    soul.state = SoulState.crossedOver;
     return (tokenBalance, lpMinted);
   }
 }
@@ -298,25 +295,24 @@ contract Limbo is Governable {
 
   ///@notice refreshes current state of soul.
   function updateSoul(address token) public {
-    Soul storage s = currentSoul(token);
-    updateSoul(token, s);
+    uint256 latest = latestIndex[token];
+    souls[token][latest] = previewSoulUpdate(token, latest);
   }
 
-  function updateSoul(address token, Soul storage soul) internal {
+  function previewSoulUpdate(address token, uint256 index) internal view returns (Soul memory soul) {
+    soul = souls[token][index];
     if (soul.soulType == SoulType.uninitialized) {
       revert InvalidSoul(token);
     }
 
     uint256 finalTimeStamp = block.timestamp;
     if (soul.state != SoulState.staking) {
-      finalTimeStamp = tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp;
+      finalTimeStamp = tokenCrossingParameters[token][index].stakingEndsTimestamp;
     }
     uint256 balance = IERC20(token).balanceOf(address(this));
 
     if (balance > 0) {
-      //console.log("LIMBO: finalTimeStamp %s, soul.lastRewardTimestamp %s, flan per second %s", finalTimeStamp, soul.lastRewardTimestamp, soul.flanPerSecond);
       uint256 flanReward = (finalTimeStamp - soul.lastRewardTimestamp) * soul.flanPerSecond;
-
       soul.accumulatedFlanPerShare = soul.accumulatedFlanPerShare + ((flanReward * TERA) / balance);
     }
     soul.lastRewardTimestamp = finalTimeStamp;
@@ -385,7 +381,7 @@ contract Limbo is Governable {
   ///@param crossingThreshold The token balance on Behodler that triggers the soul to enter into waitingToCross state
   ///@param soulType Indicates whether the soul is perpetual or threshold
   ///@param state a threshold soul can be either staking, waitingToCross, or CrossedOver. Both soul types can be in unset state.
-  ///@param index a token could be initially liste as a threshold soul and then later added as perpetual. An index helps distinguish these two events so that user late to claim rewards have no artificial time constraints imposed on their behaviour
+  ///@param index a token could be initially listed as a threshold soul and then later added as perpetual. An index helps distinguish these two events so that user late to claim rewards have no artificial time constraints imposed on their behaviour
   function configureSoul(
     address token,
     uint256 crossingThreshold,
@@ -396,15 +392,14 @@ contract Limbo is Governable {
   ) public onlySoulUpdateProposal {
     latestIndex[token] = index > latestIndex[token] ? latestIndex[token] + 1 : latestIndex[token];
 
-    Soul storage soul = currentSoul(token);
-    bool fallingBack = soul.state != SoulState.unset && SoulState(state) == SoulState.unset;
-    soul.set(crossingThreshold, soulType, state, fps);
+    Soul memory soul = souls[token][index];
+    if (soul.state != SoulState.unset && SoulState(state) == SoulState.unset) revert CannotFallBackIntoUnset(token);
+    soul = soul.set(crossingThreshold, soulType, state, fps);
     if (SoulState(state) == SoulState.staking) {
       tokenCrossingParameters[token][latestIndex[token]].stakingBeginsTimestamp = block.timestamp;
     }
-    if (fallingBack) {
-      tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
-    }
+
+    souls[token][index] = soul;
 
     emit SoulUpdated(token, fps);
   }
@@ -451,55 +446,63 @@ contract Limbo is Governable {
   ///@param token The soul to unstake
   ///@param amount The amount of tokens to unstake
   function unstake(address token, uint256 amount) public enabled {
-    _unstake(token, amount, msg.sender, msg.sender);
+    _unstake(token, amount, msg.sender, msg.sender, type(uint256).max);
   }
 
   ///@notice Allows for Limbo to be upgraded 1 user at a time without introducing a system wide security risk. Anticipates moving tokens to Limbo2 (wen Limbo2??)
-  ///@dev similar to ERC20.safeTransferFrom, this function allows a user to approve an upgrade contract migrate their staked tokens safely.
+  ///@dev similar to ERC20.safeTransferFrom, this function allows a user to approve an upgrade contract migrate their staked tokens safely. Use this to unstake from prior rounds
+  ///@param index specift which round of staking.
   function unstakeFor(
     address token,
     uint256 amount,
-    address holder
+    address holder,
+    uint256 index
   ) public {
-    _unstake(token, amount, msg.sender, holder);
+    _unstake(token, amount, msg.sender, holder, index);
   }
 
   function _unstake(
     address token,
     uint256 amount,
     address unstaker,
-    address holder
+    address holder,
+    uint256 index
   ) internal {
     if (unstaker != holder) {
       unstakeApproval[token][holder][unstaker] -= amount;
     }
-    Soul storage soul = currentSoul(token);
-    if (soul.state != SoulState.unset && soul.state != SoulState.staking) {
-      revert InvalidSoulState(token, uint256(soul.state));
+    uint256 _latestIndex = latestIndex[token];
+    index = index > _latestIndex ? _latestIndex : index;
+    Soul memory soul = souls[token][index];
+    if (
+      (index == _latestIndex && (soul.state == SoulState.unset || soul.state == SoulState.waitingToCross)) ||
+      (index < _latestIndex && soul.state != SoulState.crossedOver)
+    ) {
+      revert InvalidSoulState(token, index, uint256(soul.state));
     }
-    updateSoul(token, soul);
-    uint256 index = latestIndex[token];
+    soul = previewSoulUpdate(token, index);
+
     User storage user = userInfo[token][holder][index];
     if (user.stakedAmount < amount) {
       revert ExcessiveWithdrawalRequest(token, amount, user.stakedAmount);
     }
 
     uint256 pending = getPending(user, soul);
-    if (pending > 0 && amount > 0) {
+    if (amount > 0) {
       user.stakedAmount = user.stakedAmount - amount;
       IERC20(token).safeTransfer(address(unstaker), amount);
-      rewardAdjustDebt(unstaker, pending, soul.accumulatedFlanPerShare, user);
+      rewardAdjustDebt(holder, pending, soul.accumulatedFlanPerShare, user);
       emit ClaimedReward(unstaker, token, index, pending);
       emit Unstaked(unstaker, token, amount);
     }
+    souls[token][index] = soul;
   }
 
   ///@notice accumulated flan rewards from staking can be claimed
   ///@param token The soul for which to claim rewards
   ///@param index souls no longer listed may still have unclaimed rewards.
   function claimReward(address token, uint256 index) public enabled {
-    Soul storage soul = souls[token][index];
-    updateSoul(token, soul);
+    Soul memory soul = previewSoulUpdate(token, index);
     User storage user = userInfo[token][msg.sender][index];
 
     uint256 pending = getPending(user, soul);
@@ -518,7 +521,7 @@ contract Limbo is Governable {
     Soul storage soul = souls[token][index];
     CrossingParameters storage crossing = tokenCrossingParameters[token][index];
     if (soul.state != SoulState.crossedOver && soul.state != SoulState.waitingToCross) {
-      revert InvalidSoulState(token, uint256(soul.state));
+      revert InvalidSoulState(token, index, uint256(soul.state));
     }
     User storage user = userInfo[token][msg.sender][index];
     if (user.bonusPaid) {
@@ -570,17 +573,23 @@ contract Limbo is Governable {
    * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
    * permission on Morgoth to execute migrations to Behodler. The other big depenency is the AMM helper which contains the bulk of the migration logic.
    */
-  function migrate(address token) public enabled preventFlashLoanMigration(token) {
-    Soul storage soul = currentSoul(token);
-    checkSoul(soul, token, SoulType.threshold, SoulState.waitingToCross);
+  function migrate(address token, uint256 index) public enabled preventFlashLoanMigration(token) {
+    Soul memory soul = souls[token][index];
+
+    if (soul.soulType != SoulType.threshold) {
+      revert InvalidSoulType(token, uint256(soul.soulType), uint256(soul.soulType));
+    }
+    if (soul.state != SoulState.waitingToCross) {
+      revert InvalidSoulState(token, index, uint256(soul.state));
+    }
 
     (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
       LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),
       tokenCrossingParameters[token][latestIndex[token]],
       crossingConfig,
-      Flan,
-      soul
+      Flan
     );
+    souls[token][index].state = SoulState.crossedOver;
     emit TokenListed(token, tokenBalance, lpMinted);
   }
 
@@ -599,12 +608,12 @@ contract Limbo is Governable {
     address payer,
     address recipient
   ) internal {
-    Soul storage soul = currentSoul(token);
-    if (soul.state != SoulState.staking) revert InvalidSoulState(token, uint256(soul.state));
+    uint256 index = latestIndex[token];
+    Soul memory soul = souls[token][index];
+    if (soul.state != SoulState.staking) revert InvalidSoulState(token, index, uint256(soul.state));
 
-    updateSoul(token, soul);
-    uint256 currentIndex = latestIndex[token];
-    User storage user = userInfo[token][recipient][currentIndex];
+    soul = previewSoulUpdate(token, index);
+    User storage user = userInfo[token][recipient][index];
 
     //dish out accumulated rewards.
     uint256 pending = getPending(user, soul);
@@ -621,7 +630,7 @@ contract Limbo is Governable {
       soul.state = SoulState.waitingToCross;
       tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;
     }
-
+    souls[token][index] = soul;
     user.rewardDebt = (user.stakedAmount * soul.accumulatedFlanPerShare) / TERA;
     emit Staked(recipient, token, user.stakedAmount);
   }
@@ -642,20 +651,5 @@ contract Limbo is Governable {
 
   function getPending(User memory user, Soul memory soul) internal pure returns (uint256) {
     return ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
-  }
-
-  //Refactored purely for readability for reduce oversight bugs
-  function checkSoul(
-    Soul storage soul,
-    address token,
-    SoulType soulType,
-    SoulState state
-  ) private view {
-    if (soul.soulType != SoulType.threshold) {
-      revert InvalidSoulType(token, uint256(soul.soulType), uint256(soulType));
-    }
-    if (soul.state != SoulState.waitingToCross) {
-      revert InvalidSoulState(token, uint256(state));
-    }
   }
 }
