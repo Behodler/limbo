@@ -1,6 +1,10 @@
 import { Result } from "@ethersproject/abi/lib/interface";
 import { Contract, ContractFactory, Event } from "ethers";
-export async function executionResult(transaction): Promise<{ success: boolean; error: string }> {
+export interface IExecutionResult {
+  success: boolean; error: string
+}
+export interface IQueryResult { success: boolean; error: string; result: any }
+export async function executionResult(transaction): Promise<IExecutionResult> {
   try {
     await transaction;
     return { success: true, error: "" };
@@ -9,21 +13,23 @@ export async function executionResult(transaction): Promise<{ success: boolean; 
   }
 }
 
-export const queryChain = async (query): Promise<{ success: boolean; error: string; result: any }> => {
+export const queryChain = async (query): Promise<IQueryResult> => {
   let result;
   try {
     result = await query;
-    return { success: true, error: "", result };
+    return { success: true, error: "", result};
   } catch (e) {
     return { success: false, error: e as string, result: null };
   }
 };
 
-export const numberClose = (actual, expected) => {
+export const numberClose = (actual, expected, range?:bigint) => {
+  range  = range || 20n
   let expectedBig = BigInt(expected.toString());
   const actualBig = BigInt(actual.toString());
-  const lower = (expectedBig / 100n) * 80n;
-  const higher = (expectedBig * 120n) / 100n;
+  
+  const lower = (expectedBig / (80n + range)) * 80n;
+  const higher = (expectedBig * (100n+range)) / 100n;
   const condition = lower < actualBig && higher > actualBig;
   if (!condition) {
     const perc = parseFloat(`${(actualBig * 10000n) / expectedBig}`) / 10000;

@@ -87,6 +87,7 @@ contract LimboDAO is Ownable {
   event assetBurnt(address indexed burner, address indexed asset, uint256 fateCreated);
 
   uint256 constant ONE = 1 ether;
+  uint FATE_PRECISION = 1e9;
 
   DomainConfig public domainConfig;
   ProposalConfig public proposalConfig;
@@ -358,8 +359,8 @@ contract LimboDAO is Ownable {
         rootInvariant.rootEYEPlusOneSquared
       );
     }
-    AssetClout storage clout = stakedUserAssetWeight[sender][asset];
-    fateState[sender].fatePerDay -= clout.fateWeight;
+    AssetClout memory clout = stakedUserAssetWeight[sender][asset];
+    fateState[sender].fatePerDay -= clout.fateWeight * FATE_PRECISION;
     rootInvariant.initialBalance = clout.balance;
 
     //EYE
@@ -371,12 +372,12 @@ contract LimboDAO is Ownable {
 
       clout.fateWeight = rootEYE;
       clout.balance = finalAssetBalance;
-      fateState[sender].fatePerDay += rootEYE * 1e9;
+      fateState[sender].fatePerDay += rootEYE * FATE_PRECISION;
     } else if (strategy == FateGrowthStrategy.indirectTwoRootEye) {
       //LP
 
-      clout.fateWeight = (2 * rootEYE) * 1e9;
-      fateState[sender].fatePerDay += clout.fateWeight;
+      clout.fateWeight = (2 * rootEYE);
+      fateState[sender].fatePerDay += (2 * rootEYE) * FATE_PRECISION;
       rootInvariant.eyeEquivalent = EYEEquivalentOfLP(asset, uniswap, finalAssetBalance);
 
       //require oracle deviation <= 10%
@@ -392,6 +393,7 @@ contract LimboDAO is Ownable {
     } else {
       revert("LimboDAO: asset growth strategy not accounted for");
     }
+    stakedUserAssetWeight[sender][asset] = clout;
     int256 netBalance = int256(finalAssetBalance) - int256(rootInvariant.initialBalance);
     IERC20(asset).safeNetTransferFrom(sender, address(this), netBalance);
   }

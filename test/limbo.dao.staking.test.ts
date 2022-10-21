@@ -2,7 +2,7 @@
 const { create } = require("domain");
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
-import { executionResult, numberClose, queryChain } from "./helpers";
+import { executionResult, IExecutionResult, numberClose, queryChain } from "./helpers";
 import * as TypeChainTypes from "../typechain";
 import { BigNumber } from "ethers";
 const requireCondition = (condition, message) => {
@@ -14,7 +14,8 @@ describe("DAO staking", function () {
   let owner, secondPerson, proposalFactory, feeSetter, dai, eye, link, sushi;
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP;
-  let dao, GovernableStubFactory, sushiSwapFactory, uniswapFactory, flashGovernance;
+  let GovernableStubFactory, sushiSwapFactory, uniswapFactory, flashGovernance;
+  let dao: TypeChainTypes.LimboDAO = {} as TypeChainTypes.LimboDAO
   const zero = "0x0000000000000000000000000000000000000000";
   const maxUINT = "1157920892373161954235709850086879078532699846656405640394575840079131296";
   beforeEach(async function () {
@@ -55,7 +56,7 @@ describe("DAO staking", function () {
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {});
 
-    dao = await daoFactory.deploy();
+    dao = await daoFactory.deploy() as TypeChainTypes.LimboDAO;
 
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
     flashGovernance = await flashGovernanceFactory.deploy(dao.address);
@@ -212,6 +213,7 @@ describe("DAO staking", function () {
 
     const userBalanceBefore = await eye.balanceOf(owner.address);
     const balanceOfDAObefore = await eye.balanceOf(dao.address);
+
     await dao.setEYEBasedAssetStake(100, 100, 10, eye.address, false);
     const balanceOfDAOAfter = await eye.balanceOf(dao.address);
     const userBalanceAfter = await eye.balanceOf(owner.address);
@@ -228,8 +230,19 @@ describe("DAO staking", function () {
     const ONE = 1000000000000000000n;
     await dao.makeLive();
 
-    let result = await executionResult(dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false));
-    expect(result.success).to.equal(true, result.error);
+    /*
+    NOTE: in the WatchPug follow up audit, it was found that staking the same amount multiple times allows an attacker to inflate their fate per day.
+    The call should be idempotent. In other words, multiple calls to stake for a given amount should not change the fate per day 
+    (to pedantic readers, multiple calls is included in the definition of idempotent)
+    @dev we use number close for fateBalance because of minor non deterministic timestamp variance
+    */
+    let iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
+    console.log('stake run on first stake ' + iterations + ' times')
+    let result: IExecutionResult = {} as IExecutionResult
+    for (let i = 0; i < iterations; i++) {
+      result = await executionResult(dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false));
+      expect(result.success).to.equal(true, result.error);
+    }
 
     await advanceTime(21600); // 6 hours
 
@@ -237,7 +250,7 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     let fateState = await dao.fateState(owner.address);
-    expect(numberClose(fateState[1], "25001157407")).to.equal(true);
+    expect(numberClose(fateState.fateBalance, "25001157407", 10n)).to.equal(true, `expected close to: ${25001157407}, actual: ${fateState.fateBalance}`);
 
     result = await executionResult(dao.setEYEBasedAssetStake(400n * ONE, 400n * ONE, 20000000000n, eye.address, false));
     expect(result.success).to.equal(true, result.error);
@@ -247,13 +260,17 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     fateState = await dao.fateState(owner.address);
-    expect(fateState[0].toString()).to.equal("20000000099999999900");
-    expect(fateState[1].toString()).to.equal("40000231706484953502");
+    expect(fateState.fatePerDay.toString()).to.equal("20000000000000000000");
+    expect(numberClose(fateState.fateBalance, '40000231706484953502', 10n)).to.equal(true, `expected close to: ${40000231706484953502}, actual: ${fateState.fateBalance}`);
 
-    result = await executionResult(
-      dao.setEYEBasedAssetStake(62500n * ONE, 62500n * ONE, 250000000000n, eye.address, false)
-    );
-    expect(result.success).to.equal(true, result.error);
+    iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
+    console.log('stake run on second stake ' + iterations + ' times')
+    for (let i = 0; i < iterations; i++) {
+      result = await executionResult(
+        dao.setEYEBasedAssetStake(62500n * ONE, 62500n * ONE, 250000000000n, eye.address, false)
+      );
+      expect(result.success).to.equal(true, result.error);
+    }
 
     await advanceTime(28800); //8 hours
 
@@ -261,7 +278,7 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     fateState = await dao.fateState(owner.address);
-    expect(fateState[1].toString()).to.equal("130003588214635184949");
+    expect(numberClose(fateState.fateBalance, '123345601876857638883', 10n)).to.equal(true, `expected close to ${123345601876857638883}, actual: ${fateState.fateBalance}`);
   });
 
   it("5. Staking LP set growth to 2 root eye balance", async function () {
@@ -271,7 +288,7 @@ describe("DAO staking", function () {
     const lpBalanceBefore = await daiEYESLP.balanceOf(owner.address);
     advanceTime(10000);
 
-  
+    await dao.incrementFateFor(owner.address)
     let result = await executionResult(
       dao.setEYEBasedAssetStake(finalAssetBalance, finalEyeBalance.toString(), "5477225575", daiEYESLP.address, false)
     );
@@ -281,7 +298,7 @@ describe("DAO staking", function () {
     expect(lpBalanceBefore.sub(lpBalanceAfter).toString()).to.equal(finalAssetBalance.toString());
 
     let fateState = await dao.fateState(owner.address);
-    expect(fateState[0].toString()).to.equal((5477225575000000000n * 2n).toString());
+    expect(fateState.fatePerDay.toString()).to.equal((5477225575000000000n * 2n).toString());
 
     await this.sushiTrade(dai);
 
@@ -317,13 +334,38 @@ describe("DAO staking", function () {
     let rootEYEOfLP = 5477225575n;
 
     advanceTime(10000);
-    await dao.setEYEBasedAssetStake(
-      finalAssetBalance,
-      finalEyeBalance.toString(),
-      rootEYEOfLP.toString(),
-      daiEYEULP.address,
-      true
-    );
+    /*
+   NOTE: in the WatchPug follow up audit, it was found that staking the same amount multiple times allows an attacker to inflate their fate per day.
+   The call should be idempotent. In other words, multiple calls to stake for a given amount should not change the fate per day 
+   (to pedantic readers, multiple calls is included in the definition of idempotent)
+   @dev we use number close for fateBalance because of minor non deterministic timestamp variance
+   */
+    let iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
+    console.log('stake run on first stake ' + iterations + ' times')
+    let result: IExecutionResult = {} as IExecutionResult
+    for (let i = 0; i < iterations; i++) {
+      const fateBefore = (await dao.fateState(owner.address)).fateBalance
+      const fatePerDayBefore = (await dao.fateState(owner.address)).fatePerDay
+      result = await executionResult(dao.setEYEBasedAssetStake(
+        finalAssetBalance,
+        finalEyeBalance.toString(),
+        rootEYEOfLP.toString(),
+        daiEYEULP.address,
+        true
+      ))
+      expect(result.success).to.equal(true, result.error)
+      const fateAfter = (await dao.fateState(owner.address)).fateBalance
+      const fatePerDayAfter = (await dao.fateState(owner.address)).fatePerDay
+      if (i > 1) {
+        expect(numberClose(fateBefore, fateAfter))
+        expect(numberClose(fatePerDayBefore, fatePerDayAfter, 10n))
+      }
+
+    }
+    await advanceTime(432000) // 5 days
+    await dao.incrementFateFor(owner.address)
+    const fateAfter5Days = (await dao.fateState(owner.address)).fateBalance
+    expect(numberClose(fateAfter5Days, '54772636112887152775', 10n)).to.equal(true, `expected close to ${'54772636112887152775'}, actual ${fateAfter5Days}`)
 
     const balanceOfDaiEYESLPAftertake = await daiEYEULP.balanceOf(owner.address);
 
@@ -338,7 +380,7 @@ describe("DAO staking", function () {
 
     let fateState = await dao.fateState(owner.address);
     let expectedFateWeight = 10n + rootEYEOfLP * 2n * 1000000000n;
-    expect(numberClose(fateState[0], expectedFateWeight)).to.be.true;
+    expect(numberClose(fateState.fatePerDay, expectedFateWeight)).to.be.true;
 
     await dao.setEYEBasedAssetStake(81, 81, 9, eye.address, false);
 
@@ -347,11 +389,12 @@ describe("DAO staking", function () {
 
     fateState = await dao.fateState(owner.address);
     expectedFateWeight -= 1n;
-    expect(numberClose(fateState[0], expectedFateWeight)).to.equal(true);
+    expect(numberClose(fateState.fatePerDay, expectedFateWeight)).to.equal(true);
 
     finalEyeBalance = 21428571428000000000n;
     finalAssetBalance = 3571428571435555566n;
     rootEYEOfLP = 4629100498n;
+
 
     await dao.setEYEBasedAssetStake(
       finalAssetBalance,
@@ -359,15 +402,19 @@ describe("DAO staking", function () {
       rootEYEOfLP.toString(),
       daiEYESLP.address,
       false
-    );
+    )
+
+
 
     const daiEYESLPBalanceAfterReducedStake = await daiEYESLP.balanceOf(owner.address);
     const difference = BigInt(daiEYESLPBalanceAfterReducedStake.sub(balanceOfDaiEYESLPAftertake).toString());
     expect(difference >= 2075527328640318845352n).to.be.true;
 
-    expectedFateWeight = rootEYEOfLP * 2n * 1000000000n;
-    fateState = await dao.stakedUserAssetWeight(owner.address, daiEYESLP.address);
-    expect(fateState[0].toString()).to.equal(expectedFateWeight.toString());
+    expectedFateWeight = rootEYEOfLP * 2n;
+    let clout = await dao.stakedUserAssetWeight(owner.address, daiEYESLP.address);
+    expect(clout.fateWeight.toString()).to.equal(expectedFateWeight.toString());
+
+
   });
 
   it("7. burn eye gives 10x fate", async function () {
@@ -378,6 +425,7 @@ describe("DAO staking", function () {
     const eyeSupplyBefore = await eye.totalSupply();
     const lpBalanceOfDAOBefore = await linkEYEULP.balanceOf(dao.address);
     advanceTime(10000);
+    await dao.incrementFateFor(owner.address)
 
     await dao.burnAsset(eye.address, 1000, false); //1000* 10 => 10000 Fate
     await dao.burnAsset(linkEYEULP.address, 64, true); //14 EYE => 280 FATE
@@ -389,7 +437,7 @@ describe("DAO staking", function () {
 
     const fateAfter = await dao.fateState(owner.address);
 
-    await expect(numberClose(fateAfter[1].sub(fateBefore[1]), "16400")).to.equal(true);
+    await expect(numberClose(fateAfter[1].sub(fateBefore[1]), "16400", 10n)).to.equal(true);
   });
 
   it("8. Fate spender can burn or transfer fate balance", async function () {
