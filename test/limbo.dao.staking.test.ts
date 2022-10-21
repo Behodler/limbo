@@ -1,10 +1,11 @@
 // const { expect, assert } = require("chai");
 const { create } = require("domain");
 import { ethers, network } from "hardhat";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { executionResult, IExecutionResult, numberClose, queryChain } from "./helpers";
 import * as TypeChainTypes from "../typechain";
 import { BigNumber } from "ethers";
+
 const requireCondition = (condition, message) => {
   if (!condition) throw message;
 };
@@ -250,7 +251,8 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     let fateState = await dao.fateState(owner.address);
-    expect(numberClose(fateState.fateBalance, "25001157407", 10n)).to.equal(true, `expected close to: ${25001157407}, actual: ${fateState.fateBalance}`);
+    let numberCloseResult = numberClose(fateState.fateBalance, "25001157407", 10n)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     result = await executionResult(dao.setEYEBasedAssetStake(400n * ONE, 400n * ONE, 20000000000n, eye.address, false));
     expect(result.success).to.equal(true, result.error);
@@ -261,7 +263,8 @@ describe("DAO staking", function () {
 
     fateState = await dao.fateState(owner.address);
     expect(fateState.fatePerDay.toString()).to.equal("20000000000000000000");
-    expect(numberClose(fateState.fateBalance, '40000231706484953502', 10n)).to.equal(true, `expected close to: ${40000231706484953502}, actual: ${fateState.fateBalance}`);
+    numberCloseResult = numberClose(fateState.fateBalance, '40000231706484953502', 10n)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
     console.log('stake run on second stake ' + iterations + ' times')
@@ -278,7 +281,8 @@ describe("DAO staking", function () {
     expect(result.success).to.equal(true, result.error);
 
     fateState = await dao.fateState(owner.address);
-    expect(numberClose(fateState.fateBalance, '123345601876857638883', 10n)).to.equal(true, `expected close to ${123345601876857638883}, actual: ${fateState.fateBalance}`);
+    numberCloseResult = numberClose(fateState.fateBalance, '123345601876857638883', 10n)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
   });
 
   it("5. Staking LP set growth to 2 root eye balance", async function () {
@@ -341,6 +345,7 @@ describe("DAO staking", function () {
    @dev we use number close for fateBalance because of minor non deterministic timestamp variance
    */
     let iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
+    let numberCloseResult
     console.log('stake run on first stake ' + iterations + ' times')
     let result: IExecutionResult = {} as IExecutionResult
     for (let i = 0; i < iterations; i++) {
@@ -357,15 +362,18 @@ describe("DAO staking", function () {
       const fateAfter = (await dao.fateState(owner.address)).fateBalance
       const fatePerDayAfter = (await dao.fateState(owner.address)).fatePerDay
       if (i > 1) {
-        expect(numberClose(fateBefore, fateAfter))
-        expect(numberClose(fatePerDayBefore, fatePerDayAfter, 10n))
+        numberCloseResult = numberClose(fateBefore, fateAfter)
+        assert.isTrue(numberCloseResult.close, numberCloseResult.message)
+        numberCloseResult = numberClose(fatePerDayBefore, fatePerDayAfter)
+        assert.isTrue(numberCloseResult.close, numberCloseResult.message)
       }
 
     }
     await advanceTime(432000) // 5 days
     await dao.incrementFateFor(owner.address)
     const fateAfter5Days = (await dao.fateState(owner.address)).fateBalance
-    expect(numberClose(fateAfter5Days, '54772636112887152775', 10n)).to.equal(true, `expected close to ${'54772636112887152775'}, actual ${fateAfter5Days}`)
+    numberCloseResult = numberClose(fateAfter5Days, '54772636112887152775')
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     const balanceOfDaiEYESLPAftertake = await daiEYEULP.balanceOf(owner.address);
 
@@ -380,7 +388,8 @@ describe("DAO staking", function () {
 
     let fateState = await dao.fateState(owner.address);
     let expectedFateWeight = 10n + rootEYEOfLP * 2n * 1000000000n;
-    expect(numberClose(fateState.fatePerDay, expectedFateWeight)).to.be.true;
+    numberCloseResult = numberClose(fateState.fatePerDay, expectedFateWeight)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message);
 
     await dao.setEYEBasedAssetStake(81, 81, 9, eye.address, false);
 
@@ -389,7 +398,8 @@ describe("DAO staking", function () {
 
     fateState = await dao.fateState(owner.address);
     expectedFateWeight -= 1n;
-    expect(numberClose(fateState.fatePerDay, expectedFateWeight)).to.equal(true);
+    numberCloseResult = numberClose(fateState.fatePerDay, expectedFateWeight)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message);
 
     finalEyeBalance = 21428571428000000000n;
     finalAssetBalance = 3571428571435555566n;
@@ -437,7 +447,8 @@ describe("DAO staking", function () {
 
     const fateAfter = await dao.fateState(owner.address);
 
-    await expect(numberClose(fateAfter[1].sub(fateBefore[1]), "16400", 10n)).to.equal(true);
+    let numberCloseResult = numberClose(fateAfter[1].sub(fateBefore[1]), '16400')
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message);
   });
 
   it("8. Fate spender can burn or transfer fate balance", async function () {

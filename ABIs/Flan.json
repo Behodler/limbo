@@ -27,7 +27,7 @@
   "function governer() view returns (address)",
   "function increaseAllowance(address,uint256) returns (bool)",
   "function mint(address,uint256) returns (bool)",
-  "function mintAllowance(address) view returns (bool)",
+  "function mintAllowed(address) view returns (bool)",
   "function mintConfig() view returns (uint256, uint256, uint128, uint128)",
   "function name() view returns (string)",
   "function owner() view returns (address)",

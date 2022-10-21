@@ -190,10 +190,10 @@ library MigrationLib {
     power.parameterize(token, crossingParams.burnable);
     //invoke Angband execute on power that migrates token type to Behodler
     uint256 tokenBalance = IERC20(token).balanceOf(address(this));
-    IERC20(token).safeTransfer(address(crossingConfig.morgothPower), tokenBalance);
-    IERC20 scx = IERC20(address(crossingConfig.behodler));
+    IERC20(token).safeTransfer(crossingConfig.morgothPower, tokenBalance);
+    IERC20 scx = IERC20(crossingConfig.behodler);
     uint256 scxBalance = scx.balanceOf(address(this));
-    AngbandLike(crossingConfig.angband).executePower(address(crossingConfig.morgothPower));
+    AngbandLike(crossingConfig.angband).executePower(crossingConfig.morgothPower);
     scxBalance = scx.balanceOf(address(this)) - scxBalance;
     //use remaining scx to buy flan and pool it on an external AMM
     IERC20(crossingConfig.behodler).safeTransfer(crossingConfig.ammHelper, scxBalance);
@@ -222,8 +222,8 @@ contract Limbo is Governable {
   using CrossingLib for CrossingParameters;
 
   event SoulUpdated(address indexed soul, uint256 fps);
-  event Staked(address indexed staker, address indexed soul, uint256 amount);
-  event Unstaked(address indexed staker, address indexed soul, uint256 amount);
+  event Staked(address indexed staker, address indexed token, uint256 amount);
+  event Unstaked(address indexed unstaker, address indexed token, uint256 amount);
   event TokenListed(address indexed token, uint256 amount, uint256 scxfln_LP_minted);
 
   event ClaimedReward(address indexed staker, address indexed soul, uint256 index, uint256 amount);
@@ -309,10 +309,15 @@ contract Limbo is Governable {
     if (soul.state != SoulState.staking) {
       finalTimeStamp = tokenCrossingParameters[token][index].stakingEndsTimestamp;
     }
+     uint256 soulLastRewardTimestamp = soul.lastRewardTimestamp;
+    if (finalTimeStamp == soulLastRewardTimestamp) {
+     return soul;
+    }
+
     uint256 balance = IERC20(token).balanceOf(address(this));
 
     if (balance > 0) {
-      uint256 flanReward = (finalTimeStamp - soul.lastRewardTimestamp) * soul.flanPerSecond;
+      uint256 flanReward = (finalTimeStamp - soulLastRewardTimestamp) * soul.flanPerSecond;
       soul.accumulatedFlanPerShare = soul.accumulatedFlanPerShare + ((flanReward * TERA) / balance);
     }
     soul.lastRewardTimestamp = finalTimeStamp;
@@ -492,7 +497,8 @@ contract Limbo is Governable {
       user.stakedAmount = user.stakedAmount - amount;
       IERC20(token).safeTransfer(address(unstaker), amount);
       rewardAdjustDebt(holder, pending, soul.accumulatedFlanPerShare, user);
-      emit ClaimedReward(unstaker, token, index, pending);
+      emit ClaimedReward(holder, token, index, pending);
+      //the token transfer will show the beneficiary. The unstaked event shows the intiator the unstake call
       emit Unstaked(unstaker, token, amount);
     }
     souls[token][index] = soul;
@@ -595,11 +601,11 @@ contract Limbo is Governable {
 
   ///@notice analogous to ERC20 approve, this function gives third party contracts permission to migrate token balances on Limbo. Useful for both upgrades and third party integrations into Limbo
   function approveUnstake(
-    address soul,
+    address token,
     address unstaker,
     uint256 amount
   ) external {
-    unstakeApproval[soul][msg.sender][unstaker] = amount; //soul->owner->unstaker->amount
+    unstakeApproval[token][msg.sender][unstaker] = amount; //token->owner->unstaker->amount
   }
 
   function _stake(
