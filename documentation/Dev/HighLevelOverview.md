@@ -148,10 +148,10 @@ If the prices diverge too much, the migration will fail. Both the spacing and di
 ## Flan
 Implements ERC677 which won't be repeated here.
 ### Properties
-* mintAllowance: an allowance per address for mintable flan. Setting this to uint max will make allowance infinite
+* mintAllowed: an allowance per address for mintable flan. Setting this to uint max will make allowance infinite
 * **setBurnOnTransferFee: Flan is by default not a burn on transfer token but this can be turned on to underpin price**
 * **whiteListMinting: grant infinite minting power to address**
-* **increaseMintAllowance: increase mint allowance for an address**
+* **increasemintAllowed: increase mint allowance for an address**
 * mint: invokable by address with a positive mint allowance
 * safeTransfer: transfer any amount without reverting on invalid amounts. Invalid amounts are just ignored.
 

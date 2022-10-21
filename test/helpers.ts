@@ -23,7 +23,12 @@ export const queryChain = async (query): Promise<IQueryResult> => {
   }
 };
 
-export const numberClose = (actual, expected, range?:bigint) => {
+interface numberCloseResult{
+  close:boolean
+  message:string
+}
+
+export const numberClose = (actual, expected, range?:bigint):numberCloseResult => {
   range  = range || 20n
   let expectedBig = BigInt(expected.toString());
   const actualBig = BigInt(actual.toString());
@@ -33,10 +38,9 @@ export const numberClose = (actual, expected, range?:bigint) => {
   const condition = lower < actualBig && higher > actualBig;
   if (!condition) {
     const perc = parseFloat(`${(actualBig * 10000n) / expectedBig}`) / 10000;
-    console.log("actual percentage of expected: " + perc);
   }
 
-  return condition;
+  return {close:condition,message :`expected close to ${expected}, actual: ${actual}`};
 };
 
 type eventAssertionReasons =

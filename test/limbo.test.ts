@@ -508,9 +508,8 @@ describe.only("Limbo", function () {
     await SET.limbo.stake(this.aave.address, "9990001");
     const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
     const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
-    expect(flanBalanceChangeAgterSecondStake.gt("900000000000") && flanBalanceChangeAgterSecondStake.lt("900050000000"))
-      .to.equal(true, flanBalanceChangeAgterSecondStake.toString())
-
+    assert.isTrue(flanBalanceChangeAgterSecondStake.gt("900000000000") && flanBalanceChangeAgterSecondStake.lt("900050000000"),flanBalanceChangeAgterSecondStake.toString())
+    
     //assert soul state change
     const stats = await this.soulReader.SoulStats(this.aave.address, SET.limbo.address);
     expect(stats[0].toString()).to.equal("2");
@@ -583,7 +582,8 @@ describe.only("Limbo", function () {
 
     const flanBalanceAfter = await this.flan.balanceOf(owner.address);
     const increase = flanBalanceAfter.sub(flanBalanceBefore);
-    expect(numberClose(increase, 900019000410)).to.be.true;
+    let numberCloseResult = numberClose(increase, 900019000410)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
   });
 
   it("t-5. old souls can be bonus claimed from (DELTA < 0)", async function () {
@@ -742,7 +742,8 @@ describe.only("Limbo", function () {
 
     const pendingFlashDecisionBefore = pendingFlashDecisionBeforeQuery.result;
     expect(pendingFlashDecisionBefore[0]).to.equal("21000000");
-    expect(numberClose(pendingFlashDecisionBefore[1], "1754463648")).to.be.true;
+    let numberCloseResult = numberClose(pendingFlashDecisionBefore[1], 1754463648)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
     expect(pendingFlashDecisionBefore[2]).to.equal(this.eye.address);
     expect(pendingFlashDecisionBefore[3]).to.equal(true);
     //assert pendingFlashDecision after
@@ -1382,8 +1383,11 @@ describe.only("Limbo", function () {
 
     const flanPairBalanceBefore = await this.flan.balanceOf(realflanSCX.address);
 
-    expect(numberClose(scxBalanceOfPairBefore, "129565000000000000000"));
-    expect(numberClose(flanPairBalanceBefore, "10615000000000000000000"));
+    let numberCloseResult = numberClose(scxBalanceOfPairBefore, '129565000000000000000')
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
+
+    numberCloseResult = numberClose(flanPairBalanceBefore, '10615000000000000000000')
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     await advanceTime(600000);
     const scxInflanSCXBefore = await realBehodler.balanceOf(realflanSCX.address)
@@ -1399,8 +1403,8 @@ describe.only("Limbo", function () {
     const scxBalanceOfPairAfter = await realBehodler.balanceOf(realflanSCX.address);
 
     const flanToSCXRatio = flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)
-
-    expect(numberClose(flanToSCXRatio, 2713842)).to.equal(true, flanToSCXRatio);
+    numberCloseResult = numberClose(flanToSCXRatio, 2713842)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     //SECOND MIGRATION
 
@@ -1456,7 +1460,8 @@ describe.only("Limbo", function () {
     const ratio = flanBalanceAfterSecondMigrate.mul(1000).div(scxBalanceOfPairAfterSecondMigrate);
 
     //flan strengthens
-    expect(numberClose(ratio, "2379392")).to.equal(true, ratio);
+    numberCloseResult = numberClose(ratio, '2379392')
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     //  THIRD MIGRATION
     const mock2 = await this.TokenFactory.deploy("mock1", "mock1");
@@ -1508,8 +1513,8 @@ describe.only("Limbo", function () {
     const scxBalanceOfPairAfterThirdMigrate = await realBehodler.balanceOf(realflanSCX.address);
 
     const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfterThirdMigrate);
-
-    expect(numberClose(ratio2, "23687384")).to.equal(true, ratio2);
+    numberCloseResult = numberClose(ratio2, 23687384)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
   });
 
   it("t-23. any whitelisted contract can mint flan", async function () {
@@ -2411,7 +2416,8 @@ describe.only("Limbo", function () {
     const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
 
     const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
-    expect(numberClose(flanBalanceChangeAgterSecondStake, "900000000000")).to.be.true;
+    const numberCloseResult = numberClose(flanBalanceChangeAgterSecondStake, "900000000000")
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
   });
 
   it("t-39. Ending configuration with wrong DAO or by wrong user fails. Correct user passes and ends configuration user", async function () {
@@ -2506,7 +2512,7 @@ describe.only("Limbo", function () {
     expect(latestIndex).to.equal(1)
 
     const balanceBefore = await this.aave.balanceOf(owner.address)
-    await SET.limbo.unstakeFor(this.aave.address,10000,owner.address,0)
+    await SET.limbo.unstakeFor(this.aave.address, 10000, owner.address, 0)
     const balanceAfter = await this.aave.balanceOf(owner.address)
 
     expect(balanceAfter.sub(balanceBefore).toString()).to.equal('10000')

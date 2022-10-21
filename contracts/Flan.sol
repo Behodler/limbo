@@ -9,7 +9,7 @@ import "../contracts/DAO/Governable.sol";
  *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on the price of DAI via various external incentives
  */
 contract Flan is ERC677("Flan", "FLN"), Governable {
-  mapping(address => bool) public mintAllowance; //type(uint).max == whitelist
+  mapping(address => bool) public mintAllowed; //type(uint).max == whitelist
 
   struct MintParameters {
     uint256 maxMintPerEpoch;
@@ -29,7 +29,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
   ///@param minter contract to be given unlimited minting power
   ///@param enabled minting power enabled or disabled
   function whiteListMinting(address minter, bool enabled) public onlySuccessfulProposal {
-    mintAllowance[minter] = enabled;
+    mintAllowed[minter] = enabled;
   }
 
   ///@notice sets minting conditions to prevent overminting
@@ -44,7 +44,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
   ///@param recipient address to receive flan
   ///@param amount amount of flan to be minted
   function mint(address recipient, uint256 amount) public returns (bool) {
-    bool allowed = msg.sender == owner() || msg.sender == DAO || mintAllowance[msg.sender];
+    bool allowed = msg.sender == owner() || msg.sender == DAO || mintAllowed[msg.sender];
     if (!allowed) {
       revert MintingNotWhiteListed(msg.sender);
     }

@@ -246,7 +246,7 @@ describe("DAO Proposals", function () {
     };
   };
 
-  it("t0. test",async ()=>{})
+  it("t0. test", async () => { })
 
   it("t1-Insufficient fate to lodge rejected, proposal unlocks", async function () {
     let query;
@@ -465,16 +465,20 @@ describe("DAO Proposals", function () {
 
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-10"); //same direction shouldn't change duration
     const timeRemainingAfterSameDirectionVote = await dao.timeRemainingOnProposal();
-    expect(numberClose(timeRemainingAfterSameDirectionVote, "3535")).to.be.true;
+    let numberCloseResult = numberClose(timeRemainingAfterSameDirectionVote, 3535)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "200");
     const timeRemainingAfterSwingVote = await dao.timeRemainingOnProposal();
-    expect(numberClose(timeRemainingAfterSwingVote, "10734")).to.be.true;
+    numberCloseResult = numberClose(timeRemainingAfterSwingVote, 10734)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
+
     await advanceTime(10000);
 
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100"); //same direction shouldn't change duration
     const timeRemainingAfterSameDirectionVote2 = await dao.timeRemainingOnProposal();
-    expect(numberClose(timeRemainingAfterSameDirectionVote2, "733")).to.be.true;
+    numberCloseResult = numberClose(timeRemainingAfterSameDirectionVote2, 733)
+    assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     await advanceTime(parseInt(timeRemainingAfterSameDirectionVote2.toString()));
     await expect(dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100")).to.be.revertedWith(
@@ -650,9 +654,9 @@ describe("DAO Proposals", function () {
     const ProposalFactory: TypeChainTypes.ProposalFactory = proposalFactory as TypeChainTypes.ProposalFactory;
 
     await expect(ProposalFactory.lodgeProposal(setFateSpenderProposal.address))
-    .to.emit(proposalFactory, "LodgingStatus")
-    .withArgs(setFateSpenderProposal.address, "SUCCESS");
-    
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(setFateSpenderProposal.address, "SUCCESS");
+
 
     const limboDAO = dao as TypeChainTypes.LimboDAO;
     const currentProposal = await limboDAO.currentProposalState();
