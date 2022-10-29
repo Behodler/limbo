@@ -9,6 +9,7 @@ import * as Types from "../typechain";
 interface TestContracts {
   limbo: Types.Limbo
   limboDAO: Types.LimboDAO
+  uniswapHelper: Types.UniswapHelper
 }
 describe.only("Limbo", function () {
   let owner, secondPerson, link, sushi;
@@ -62,7 +63,6 @@ describe.only("Limbo", function () {
     const MockBehodlerFactory = await ethers.getContractFactory("MockBehodler");
     this.mockBehodler = await MockBehodlerFactory.deploy("Scarcity", "SCX");
     this.SCX = this.mockBehodler;
-
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO");
 
@@ -225,20 +225,19 @@ describe.only("Limbo", function () {
     this.soulReader = await SoulReaderFactory.deploy() as Types.SoulReader;
 
     const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
-    this.uniswapHelper = await UniswapHelperFactory.deploy(SET.limbo.address, SET.limboDAO.address);
-    await this.flan.whiteListMinting(this.uniswapHelper.address, true);
+    SET.uniswapHelper = await UniswapHelperFactory.deploy(SET.limbo.address, SET.limboDAO.address) as Types.UniswapHelper
+    await this.flan.whiteListMinting(SET.uniswapHelper.address, true);
 
     const migrationTokenPairFactory = await ethers.getContractFactory("MockMigrationUniPair");
     this.migrationTokenPair = await migrationTokenPairFactory.deploy("uni", "uni");
     await this.migrationTokenPair.setReserves(1000, 3000);
 
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
     await advanceTime(1000);
-    await this.uniswapHelper.configure(
+    await SET.uniswapHelper.configure(
       SET.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      20,
       0,
       this.uniOracle.address
     );
@@ -248,7 +247,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingConfig(
       this.mockBehodler.address,
       this.mockAngband.address,
-      this.uniswapHelper.address,
+      SET.uniswapHelper.address,
       this.addTokenPower.address,
       10000000,
       10000
@@ -310,7 +309,7 @@ describe.only("Limbo", function () {
   const metaPairFactory = async (eye, factory, canLog?: boolean) => {
     const log = logFactory(canLog);
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const uniFactory = await UniswapFactoryFactory.attach(factory.address);
+    const uniFactory = await UniswapFactoryFactory.attach(factory.address) as Types.UniswapV2Factory;
     const nameLogger = printNamedAddress(canLog);
     let eyeBase = 1;
     return async (LP) => {
@@ -320,6 +319,8 @@ describe.only("Limbo", function () {
       const length = await uniFactory.allPairsLength();
       await uniFactory.createPair(eye.address, LP.address);
       const metaPairAddress = await uniFactory.getPair(eye.address, LP.address);
+      if (metaPairAddress.startsWith("0x00000000000000"))
+        throw `metaPair creation failed:meta: ${metaPairAddress}, eye: ${eye.address}, LP:${LP.address}`
       await nameLogger(metaPairAddress, "metapair");
 
       const LPBalance = await LP.balanceOf(owner.address);
@@ -397,7 +398,6 @@ describe.only("Limbo", function () {
       const uniPair = await UniswapPairFactory.attach(baseAddress);
       await inputToken.transfer(baseAddress, "1000000000000000000000");
       await uniPair.swap("0", "10000000000000000000", owner.address, []);
-      //not working from here
 
       //trade metaLP
       const metaPair = await UniswapPairFactory.attach(metaPairAddress);
@@ -424,6 +424,8 @@ describe.only("Limbo", function () {
 
   //TESTS START
 
+  it("t-0. test setup", async function () { })
+
   it("t-1. governance actions free to be invoked until configured set to true", async function () {
     //first invoke all of these successfully, then set config true and try again
 
@@ -440,7 +442,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingConfig(
       this.mockBehodler.address,
       this.mockAngband.address,
-      this.uniswapHelper.address,
+      SET.uniswapHelper.address,
       this.addTokenPower.address,
       10000000,
       10000
@@ -471,7 +473,7 @@ describe.only("Limbo", function () {
       SET.limbo.configureCrossingConfig(
         this.mockBehodler.address,
         this.mockAngband.address,
-        this.uniswapHelper.address,
+        SET.uniswapHelper.address,
         this.addTokenPower.address,
         10000000,
         10000
@@ -508,8 +510,8 @@ describe.only("Limbo", function () {
     await SET.limbo.stake(this.aave.address, "9990001");
     const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
     const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
-    assert.isTrue(flanBalanceChangeAgterSecondStake.gt("900000000000") && flanBalanceChangeAgterSecondStake.lt("900050000000"),flanBalanceChangeAgterSecondStake.toString())
-    
+    assert.isTrue(flanBalanceChangeAgterSecondStake.gt("900000000000") && flanBalanceChangeAgterSecondStake.lt("900050000000"), flanBalanceChangeAgterSecondStake.toString())
+
     //assert soul state change
     const stats = await this.soulReader.SoulStats(this.aave.address, SET.limbo.address);
     expect(stats[0].toString()).to.equal("2");
@@ -1152,20 +1154,19 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingConfig(
       this.mockBehodler.address,
       this.mockAngband.address,
-      this.uniswapHelper.address,
+      SET.uniswapHelper.address,
       this.addTokenPower.address,
       6756,
       1000
       // 20,
       // 105
     );
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
-    await this.uniswapHelper.configure(
+    await SET.uniswapHelper.configure(
       SET.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      20,
       0,
       this.uniOracle.address
     );
@@ -1319,7 +1320,7 @@ describe.only("Limbo", function () {
       SET.limbo.configureCrossingConfig(
         realBehodler.address,
         realAngband.address,
-        this.uniswapHelper.address,
+        SET.uniswapHelper.address,
         realPower.address,
         6756,
         1000
@@ -1329,14 +1330,13 @@ describe.only("Limbo", function () {
     );
 
     expect(result.success).to.equal(true, result.error);
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
     result = await executionResult(
-      this.uniswapHelper.configure(
+      SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
         this.flan.address,
-        20,
         0,
         this.uniOracle.address
       )
@@ -1377,7 +1377,7 @@ describe.only("Limbo", function () {
 
     const scxBalanceOfPairBefore = await realBehodler.balanceOf(realflanSCX.address);
 
-    const blackHoleAddress = await this.uniswapHelper.blackHole();
+    const blackHoleAddress = await SET.uniswapHelper.blackHole();
 
     const blackHoleBalanceBefore = await realflanSCX.balanceOf(blackHoleAddress);
 
@@ -1435,7 +1435,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingConfig(
       realBehodler.address,
       realAngband.address,
-      this.uniswapHelper.address,
+      SET.uniswapHelper.address,
       realPower.address,
       6756,
       1000
@@ -1478,20 +1478,19 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingConfig(
       realBehodler.address,
       realAngband.address,
-      this.uniswapHelper.address,
+      SET.uniswapHelper.address,
       realPower.address,
       6756,
       1000
       // 20,
       // 105
     );
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
-    await this.uniswapHelper.configure(
+    await SET.uniswapHelper.configure(
       SET.limbo.address,
       realBehodler.address,
       this.flan.address,
-      20,
       10, //10% price overshoot on flan means 10% less flan minted,
       this.uniOracle.address
     );
@@ -1612,15 +1611,14 @@ describe.only("Limbo", function () {
     await simpleTrade(realBehodler, realdaiSCX);
     await simpleTrade(this.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
     //configure uniswapHelper
     const result = await executionResult(
-      this.uniswapHelper.configure(
+      SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
         this.flan.address,
-        20,
         0,
         this.uniOracle.address
       )
@@ -1728,17 +1726,16 @@ describe.only("Limbo", function () {
     await simpleTrade(realBehodler, realdaiSCX);
     await simpleTrade(this.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
     //configure uniswapHelper
     let result = await executionResult(
-      this.uniswapHelper.configure(
+      SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
         this.flan.address,
-        20,
         0,
         this.uniOracle.address
       )
@@ -1788,7 +1785,7 @@ describe.only("Limbo", function () {
       SET.limboDAO.address,
       "List many tokens",
       SET.limbo.address,
-      this.uniswapHelper.address,
+      SET.uniswapHelper.address,
       this.morgothTokenApprover.address
     );
 
@@ -2003,15 +2000,14 @@ describe.only("Limbo", function () {
     await simpleTrade(this.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
     //configure uniswapHelper
     const result = await executionResult(
-      this.uniswapHelper.configure(
+      SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
         this.flan.address,
-        20,
         0,
         this.uniOracle.address
       )
@@ -2130,19 +2126,18 @@ describe.only("Limbo", function () {
     await simpleTrade(this.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
     await this.eye.approve(this.flashGovernance.address, "100000000000000000000000000000");
 
-    await this.uniswapHelper.setDAI(this.dai.address);
+    await SET.uniswapHelper.setDAI(this.dai.address);
 
     //configure uniswapHelper
     const result = await executionResult(
-      this.uniswapHelper.configure(
+      SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
         this.flan.address,
-        20,
         0,
         this.uniOracle.address
       )

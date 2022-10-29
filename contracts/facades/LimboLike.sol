@@ -69,8 +69,8 @@ abstract contract LimboLike {
   function unstakeFor(
     address token,
     uint256 amount,
-    address holder
-  ) public virtual;
+    address holder,
+    uint256 index) public virtual;
 
   function claimSecondaryRewards(address token) public virtual;
 }

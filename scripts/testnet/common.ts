@@ -4,6 +4,12 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { BigNumber, Contract, ContractFactory } from "ethers";
 
 type address = string;
+
+export const OutputAddressAdder = <T extends Contract>(store: OutputAddress, name: string, contract: T) => {
+  store[name] = contract.address
+  return store
+}
+
 export interface OutputAddress {
   [key: string]: address;
 }
@@ -72,20 +78,19 @@ export async function broadcast(name: string, transaction: Promise<any>, pauser:
   await pauser();
 }
 
-export async function deploy(
+export async function deploy<T extends Contract>(
   name: string,
   factory: ContractFactory,
   pauser: Function,
-  args?: any[],
-  gasOverride?: boolean
-): Promise<Contract> {
+  ...args: Array<any>
+): Promise<T> {
   let gasArgs = args || [];
   //if (gasOverride) gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
   // gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
 
   gasArgs.push(await getNonce());
 
-  const contract = await factory.deploy(...gasArgs);
+  const contract: T = await factory.deploy(...gasArgs) as T;
   logger("pausing for deployment of " + name + " at " + new Date().toTimeString());
   await pauser();
   //await contract.deployed();
@@ -94,6 +99,8 @@ export async function deploy(
 
 export function nameNetwork(networkId: number) {
   switch (networkId) {
+    case 1:
+      return "mainnet"
     case 1337:
       return "hardhat";
     case 3:

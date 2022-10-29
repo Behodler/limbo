@@ -34,8 +34,8 @@ contract LimboProxy is TokenProxyBase {
     limbo.stakeFor(address(this), minted, msg.sender);
   }
 
-  function unstake(uint256 amount) public {
-    limbo.unstakeFor(address(this), amount, msg.sender);
+  function unstake(uint256 amount, uint index) public {
+    limbo.unstakeFor(address(this), amount, msg.sender,index);
     redeem(address(this), msg.sender, amount);
     flan.safeTransfer(msg.sender, flan.balanceOf(address(this)));
   }

@@ -33,7 +33,7 @@ export const numberClose = (actual, expected, range?:bigint):numberCloseResult =
   let expectedBig = BigInt(expected.toString());
   const actualBig = BigInt(actual.toString());
   
-  const lower = (expectedBig / (80n + range)) * 80n;
+  const lower = (expectedBig * (100n - range)) / 100n;
   const higher = (expectedBig * (100n+range)) / 100n;
   const condition = lower < actualBig && higher > actualBig;
   if (!condition) {

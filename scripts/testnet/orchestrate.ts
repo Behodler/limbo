@@ -1,6 +1,6 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import * as deployments from "./deploymentFunctions";
-import { OutputAddress, AddressFileStructure, logFactory ,getPauser, nameNetwork} from "./common";
+import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork } from "./common";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
@@ -64,8 +64,8 @@ export async function deployTestnet(
 
   const domainUpdater =
     (network: string, persist: boolean) =>
-    (domain: string, newAddresses: OutputAddress, existing: AddressFileStructure) =>
-      updateDomain(network, domain, newAddresses, existing, persist);
+      (domain: string, newAddresses: OutputAddress, existing: AddressFileStructure) =>
+        updateDomain(network, domain, newAddresses, existing, persist);
   const updater = domainUpdater(networkName, persist);
   let existing: AddressFileStructure = {};
 
@@ -205,14 +205,13 @@ export async function deployTestnet(
   existing = loaded.existing;
 
   if (!limboAddresses) {
-    limboAddresses = await deployments.deployLimbo(
-      deployer,
+    limboAddresses = await deployments.deployLimbo(deployer,
       flanAddresses["FLAN"],
-      flanAddresses["flanSCX"],
       tokens["DAI"],
       tokens["SCX"],
       limboDaoAddresses["dao"],
-      limboDaoAddresses["safeERC20"],
+      uniswapAddresses["uniswapRouter"],
+      chainId,
       pauser
     );
     updater("deployLimbo", limboAddresses, existing);
@@ -248,10 +247,9 @@ export async function deployTestnet(
     flanAddresses["FLAN"],
     tokens["EYE"],
     proposalFactoryAddresses["proposalFactory"],
-    uniswapAddresses["uniswapFactory"],
+    limboAddresses["uniswapOracle"],
     [uniswapAddresses["EYEDAI"], uniswapAddresses["EYESCX"]],
-    limboDaoAddresses["safeERC20"],
-    pauser
+      pauser
   );
 
   loaded = addressLoader("deployMorgothDAO", existing);
@@ -311,7 +309,7 @@ export async function deployTestnet(
     updater("TestTokens", testTokens, existing);
   }
 
-   const flatOutput: OutputAddress = {};
+  const flatOutput: OutputAddress = {};
 
   for (const key in behodler) {
     flatOutput[key] = behodler[key];

@@ -275,7 +275,7 @@ describe("limbo proxy test", function () {
     this.soulReader = await SoulReaderFactory.deploy();
 
     const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
-    this.uniswapHelper = await UniswapHelperFactory.deploy(this.limbo.address, this.limboDAO.address);
+    this.uniswapHelper = await UniswapHelperFactory.deploy(this.limbo.address, this.limboDAO.address) as Types.UniswapHelper
     await this.flan.whiteListMinting(this.uniswapHelper.address, true);
 
     const migrationTokenPairFactory = await ethers.getContractFactory("MockMigrationUniPair");
@@ -288,7 +288,6 @@ describe("limbo proxy test", function () {
       this.limbo.address,
       this.mockBehodler.address,
       this.flan.address,
-      20,
       0,
       this.uniOracle.address
     );
@@ -484,7 +483,7 @@ describe("limbo proxy test", function () {
 
     await SET.Limbo.approveUnstake(SET.LimboProxy.address, SET.LimboProxy.address, SET.TWO);
 
-    await SET.LimboProxy.unstake(SET.ONE);
+    await SET.LimboProxy.unstake(SET.ONE,0);
     const baseTokenBalanceAfterUnstake = await SET.BaseToken.balanceOf(SET.owner.address);
     expect(baseTokenBalanceAfterUnstake.sub(baseTokenBalanceAfterStake).toString()).to.equal(SET.ONE.toString());
 
@@ -509,7 +508,7 @@ describe("limbo proxy test", function () {
     await advanceTime(100000);
 
     await SET.Limbo.approveUnstake(SET.LimboProxy.address, SET.LimboProxy.address, SET.TWO);
-    await SET.LimboProxy.unstake(SET.ONE);
+    await SET.LimboProxy.unstake(SET.ONE,0);
 
     const flanBalanceAfterUnstake = await SET.Flan.balanceOf(SET.owner.address);
     expect(flanBalanceAfterUnstake.gt(flanBalanceAfterClaim)).to.be.true;
