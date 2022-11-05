@@ -2,6 +2,8 @@
   "function addLiquidity(address,uint256) payable returns (uint256)",
   "function burn(uint256) returns (bool)",
   "function config() view returns (uint256, uint256, address)",
+  "function setSafetParameters(uint8,uint8)",
+  "function setValidToken(address,bool,bool)",
   "function swap(address,address,uint256,uint256) payable returns (bool)",
   "function totalSupply() returns (uint256)",
   "function transfer(address,uint256) returns (bool)",

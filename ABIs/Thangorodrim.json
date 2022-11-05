@@ -1,0 +1,8 @@
+[
+  "function ANGBAND() view returns (bytes32)",
+  "function BEHODLER() view returns (bytes32)",
+  "function IRON_CROWN() view returns (bytes32)",
+  "function LACHESIS() view returns (bytes32)",
+  "function POWERREGISTRY() view returns (bytes32)",
+  "function getAddress(bytes32) view returns (address)"
+]

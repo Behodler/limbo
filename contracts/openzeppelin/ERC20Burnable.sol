@@ -75,8 +75,8 @@ contract ERC20 is IERC20, IERC20Metadata {
 
   uint256 internal _totalSupply;
 
-  string private _name;
-  string private _symbol;
+  string internal _name;
+  string internal _symbol;
 
   /**
    * @dev Sets the values for {name} and {symbol}.

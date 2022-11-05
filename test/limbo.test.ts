@@ -1215,7 +1215,7 @@ describe.only("Limbo", function () {
     await realBehodler.setLachesis(lachesis.address);
     await (lachesis as Types.LachesisLite).setBehodler(realBehodler.address);
 
-    const RealAngband = await ethers.getContractFactory("Angband");
+    const RealAngband = await ethers.getContractFactory("TestAngband");
     const realAngband = await RealAngband.deploy();
 
     const proxyRegistryFactory = await ethers.getContractFactory("TokenProxyRegistry");

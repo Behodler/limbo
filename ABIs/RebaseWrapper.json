@@ -1,0 +1,20 @@
+[
+  "constructor(address)",
+  "error AllowanceExceeded(uint256,uint256)",
+  "error InvalidPyroToken()",
+  "event Approval(address indexed,address indexed,uint256)",
+  "event Transfer(address indexed,address indexed,uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+  "function balanceOf(address) view returns (uint256)",
+  "function burn(uint256) returns (bool)",
+  "function convertFromPyro(address,uint256) returns (bool)",
+  "function convertToPyro(address,uint256) returns (bool)",
+  "function decimals() view returns (uint8)",
+  "function name() view returns (string)",
+  "function pyroToken() view returns (address)",
+  "function symbol() view returns (string)",
+  "function totalSupply() view returns (uint256)",
+  "function transfer(address,uint256) returns (bool)",
+  "function transferFrom(address,address,uint256) returns (bool)"
+]

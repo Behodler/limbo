@@ -1,0 +1,5 @@
+[
+  "constructor()",
+  "function PYROTOKEN_BYTECODE() view returns (bytes)",
+  "function deployRebaseWrapper(address) returns (address)"
+]

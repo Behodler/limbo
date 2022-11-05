@@ -1,0 +1,9 @@
+[
+  "constructor(address,address)",
+  "event PowerInvoked(address,bytes32,bytes32)",
+  "function angband() view returns (address)",
+  "function destruct()",
+  "function invoke(bytes32,address)",
+  "function power() view returns (bytes32, bytes32, bool, bool)",
+  "function registry() view returns (address)"
+]

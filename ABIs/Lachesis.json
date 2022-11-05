@@ -1,0 +1,14 @@
+[
+  "constructor(address,address)",
+  "error OnlyOwner(address,address)",
+  "error TransferToZeroAddress()",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "function behodler() view returns (address)",
+  "function cut(address) view returns (bool, bool)",
+  "function measure(address,bool,bool)",
+  "function measureLP(address,address)",
+  "function owner() view returns (address)",
+  "function setBehodler(address)",
+  "function transferOwnership(address)",
+  "function updateBehodler(address)"
+]

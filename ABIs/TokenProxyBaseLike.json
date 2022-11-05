@@ -1,0 +1,6 @@
+[
+  "function baseToken() view returns (address)",
+  "function mint(address,address,uint256) returns (uint256)",
+  "function redeem(address,address,uint256) returns (uint256)",
+  "function redeemRate() view returns (uint256)"
+]

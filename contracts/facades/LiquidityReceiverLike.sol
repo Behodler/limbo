@@ -1,23 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
-
-enum FeeExemption{
-    NO_EXEMPTIONS,
-    
-    SENDER_EXEMPT,
-    SENDER_AND_RECEIVER_EXEMPT,
-    REDEEM_EXEMPT_AND_SENDER_EXEMPT,
-    
-    REDEEM_EXEMPT_AND_SENDER_AND_RECEIVER_EXEMPT,
-
-    RECEIVER_EXEMPT,
-    REDEEM_EXEMPT_AND_RECEIVER_EXEMPT,
-    REDEEM_EXEMPT_ONLY
-}
-
+import "./BigConstantsLike.sol";
+import "./Enums.sol";
 
 abstract contract LiquidityReceiverLike{
  
+  BigConstantsLike public bigConstants;
 
     function setFeeExemptionStatusOnPyroForContract(
         address pyroToken,

@@ -1,0 +1,6 @@
+[
+  "function approvePyroTokenForProxy(address) returns (bool)",
+  "function baseRedeemRate(address) view returns (uint256)",
+  "function mintPyroFromBase(address,uint256) returns (uint256)",
+  "function redeemFromPyro(address,uint256) returns (uint256)"
+]

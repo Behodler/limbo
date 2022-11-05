@@ -1,0 +1,12 @@
+[
+  "constructor(address)",
+  "error OnlyOwner(address,address)",
+  "error TransferToZeroAddress()",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "function baseTokenMapping(address) view returns (address)",
+  "function drain(address)",
+  "function owner() view returns (address)",
+  "function registerPyroToken(address)",
+  "function setLachesis(address)",
+  "function transferOwnership(address)"
+]

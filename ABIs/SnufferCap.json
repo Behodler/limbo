@@ -1,4 +1,5 @@
 [
+  "event Snuffed(address indexed,address indexed,uint8)",
   "function _liquidityReceiver() view returns (address)",
   "function snuff(address,address,uint8) returns (bool)"
 ]

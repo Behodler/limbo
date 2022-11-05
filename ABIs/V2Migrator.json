@@ -1,0 +1,14 @@
+[
+  "constructor(address,address)",
+  "error AddressPredictionInvariant(address,address)",
+  "error ApproveToNonZero(address,address,uint256)",
+  "error InsufficinetFunds(uint256,uint256)",
+  "error LachesisValidationFailed(address,bool,bool)",
+  "error NotAContract(address)",
+  "error OperationFailure()",
+  "error P3AmountInvariant(uint256,uint256,uint256)",
+  "event SuccessfulMigration(address indexed,address indexed,uint256,uint256)",
+  "function config() view returns (address, address)",
+  "function migrate(address,address,uint256,uint256)",
+  "function migrateMany(address[],address[],uint256[],uint256[])"
+]

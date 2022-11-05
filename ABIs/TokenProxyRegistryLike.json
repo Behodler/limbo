@@ -1,4 +1,0 @@
-[
-  "function TransferFromLimboTokenToBehodlerToken(address) returns (bool)",
-  "function tokenProxy(address) returns (address, address)"
-]

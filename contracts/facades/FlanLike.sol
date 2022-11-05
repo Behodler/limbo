@@ -12,4 +12,6 @@ abstract contract FlanLike {
     function burn(uint256 amount) public virtual returns (bool); 
 
     function balanceOf(address holder) public virtual returns (uint);
+
+     function approve(address spender, uint256 amount) public virtual returns (bool);
 }

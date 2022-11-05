@@ -1,27 +1,16 @@
-Last updated Oct 29 03:56
-# UniswapHelper
-Removed unused variables
-Stop update from reverting on too recent an update to prevent migration griefing
+Last updated ```insert date```
+# RealEcosystem
+A perfect testnet environment will have the real behodler ecosystem contracts, not lite versions. The RealEcosytem folder is an attempt to create a perfect ecosystem representation of Limbo so that the testnet can reflect real chain realities AND so that the script can be used to deploy to more than one chain.
 
-# LimboOracle
-Added helper function for front end token sorting
+Each directory in contracst/periphery/RealEcosystem represents an aspect of the Behodler ecosystem that Limbo relies on existing. Each part was initially deployed under a lower version of solidity and so some changes are made:
+    1. Solidity versions brought to same version of Limbo. Breaking upgrades to solidity attended to. Example uint(-1) becomes type(uint).max
+    2.  Name collisions have to be resolved. contracts like PyroToken appear in many places. Thankfully, a hardhat tool which flattens ABIS into one directory cannot tolerate name collisions. So on every compile, the final step is to flatten the ABIs and this step fails while there are duplicates.
+    Many conflicts are interfaces like IERC20. So the code is changed in those places to all reference the same IERC20.sol in the openzeppelin directory. Where real contract name collisions happen, the newest most complete version is given precedence. Such as PyroToken V3 will be PyroToken and prior versions will be V2 as an example. Finally where a contract in BehodlerLite conflicts with Behodler in RealEcosystem, Behodler Real wins and the BehodlerLite instance is deleted.
 
-Removed old deployment files
+No logic has been changed for obvious reasons. SafeMath has been removed as modern solidity no longer requires it. It is left intact in Uniswap.
 
-# common.ts
-Static typing of address accumulation for reduced errors
-deploy function easier to use
+# Code Quality
+Named imports to prevent polluting the global namespace have being used where appropriate.
 
-# deploymentFunction
-Added oracle deployment and liquidity adding and trade on all necessary pairs
-Statically typed everything
-
-# orchestrate
-Updated to comform to new requirements of deploymentFunction
-
-# tests
-changed ABIs requires changes to compile and pass
-corrected some assertion logic
-
-# final words
-The deployment script has been generalized to work across all networks so that we can go to mainnet, polygon, testnets etc. But it needs to be verified that it can handle mainnet's existing contracts.
+# Not in this commit
+Update to deployment script to replace Lite versions
