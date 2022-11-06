@@ -10,6 +10,7 @@ import "../../../../facades/Enums.sol";
  *The SnufferCap is asigned on the LiquidityReceiverV2 level which means all PyroTokens conform to the same snuffer cap at any one time
  */
 abstract contract SnufferCap {
+     bool public constant REAL = true;
     /**
      *@param pyroToken contract of pyroToken for which the fee exemption applies
      *@param target contract that will not pay fee.

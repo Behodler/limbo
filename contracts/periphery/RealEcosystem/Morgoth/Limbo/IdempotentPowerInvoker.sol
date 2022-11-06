@@ -6,6 +6,7 @@ import "../../../../openzeppelin/IERC20.sol";
 import "../../../../openzeppelin/Ownable.sol";
 
 abstract contract IdempotentPowerInvoker {
+     bool public constant REAL = true;
     event PowerInvoked(address user, bytes32 minion, bytes32 domain);
 
     Power public power;

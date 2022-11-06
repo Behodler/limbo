@@ -12,6 +12,7 @@
   "event Transfer(address indexed,address indexed,uint256)",
   "function Lachesis() view returns (address)",
   "function MIN_LIQUIDITY() view returns (uint256)",
+  "function REAL() view returns (bool)",
   "function Weth() view returns (address)",
   "function addLiquidity(address,uint256) payable returns (uint256)",
   "function allowance(address,address) view returns (uint256)",

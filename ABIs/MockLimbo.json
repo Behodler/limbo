@@ -1,4 +1,5 @@
 [
+  "function REAL() view returns (bool)",
   "function parameterizePower(address,bool)",
   "function setPower(address)"
 ]

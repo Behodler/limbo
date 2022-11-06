@@ -43,6 +43,7 @@ abstract contract LRNew {
  *@author Justin Goro
  */
 contract V2Migrator {
+     bool public constant REAL = true;
     using SafeERC20 for PyroToken2;
     using SafeERC20 for IERC20;
     /**

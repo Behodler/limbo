@@ -16,6 +16,7 @@ import * as Error from "./Errors.sol";
  *@dev RebaseTokens do not need to ERC20.approve their corresponding pyroToken.
  */
 contract RebaseWrapper is IERC20 {
+     bool public constant REAL = true;
     PyroTokenLike public immutable pyroToken;
     string private _name;
     string private _symbol;

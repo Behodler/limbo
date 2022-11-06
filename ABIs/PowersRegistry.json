@@ -15,6 +15,7 @@
   "function NULL() view returns (bytes32)",
   "function ORDER66() view returns (bytes32)",
   "function POINT_TO_BEHODLER() view returns (bytes32)",
+  "function REAL() view returns (bool)",
   "function SEIZE_POWER() view returns (bytes32)",
   "function SET_DISPUTE_TIMEOUT() view returns (bytes32)",
   "function TREASURER() view returns (bytes32)",

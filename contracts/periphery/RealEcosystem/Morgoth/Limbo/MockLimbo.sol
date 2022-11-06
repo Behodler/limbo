@@ -6,6 +6,7 @@ abstract contract LimboAddTokenToBehodlerLike {
 }
 
 contract MockLimbo {
+     bool public constant REAL = true;
     LimboAddTokenToBehodlerLike power;
 
     function setPower(address p) public {

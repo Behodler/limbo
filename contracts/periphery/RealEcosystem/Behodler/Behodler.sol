@@ -7,11 +7,13 @@ import "./WETH10.sol";
 import "../../../facades/LachesisLike.sol";
 import "../../../facades/Burnable.sol";
 import "../../../facades/FlashLoanArbiterLike.sol";
+
 /*
     Scarcity is the bonding curve token that underpins Behodler functionality
     Scarcity burns on transfer and also exacts a fee outside of Behodler.
  */
 contract Scarcity is IERC20, Ownable {
+  bool public constant REAL = true;
   event Mint(address sender, address recipient, uint256 value);
   event Burn(uint256 value);
 
@@ -95,11 +97,7 @@ contract Scarcity is IERC20, Ownable {
     uint256 amount
   ) external override returns (bool) {
     _transfer(sender, recipient, amount);
-    _approve(
-      sender,
-      msg.sender,
-      _allowances[sender][msg.sender] - amount
-    );
+    _approve(sender, msg.sender, _allowances[sender][msg.sender] - amount);
     return true;
   }
 
@@ -146,8 +144,8 @@ contract Scarcity is IERC20, Ownable {
     require(sender != address(0), "Scarcity: transfer from the zero address");
     require(recipient != address(0), "Scarcity: transfer to the zero address");
 
-    uint256 feeComponent = (config.transferFee*amount)/1000;
-    uint256 burnComponent = (config.burnFee*amount)/1000;
+    uint256 feeComponent = (config.transferFee * amount) / 1000;
+    uint256 burnComponent = (config.burnFee * amount) / 1000;
     _totalSupply = _totalSupply - burnComponent;
     emit Burn(burnComponent);
 
@@ -164,7 +162,7 @@ contract Scarcity is IERC20, Ownable {
     uint256 amount,
     bool proxyBurn
   ) internal returns (uint256) {
-    uint256 burnAmount = (config.burnFee*amount)/1000;
+    uint256 burnAmount = (config.burnFee * amount) / 1000;
     Burnable bToken = Burnable(token);
     if (proxyBurn) {
       bToken.burn(address(this), burnAmount);
@@ -442,7 +440,7 @@ contract Behodler is Scarcity {
     uint256 netInputAmount = inputAmount - burnToken(inputToken, inputAmount);
     uint256 initialOutputBalance = outputToken.tokenBalance();
     require(
-      (outputAmount*100)/initialOutputBalance <= safetyParameters.maxLiquidityExit,
+      (outputAmount * 100) / initialOutputBalance <= safetyParameters.maxLiquidityExit,
       "BEHODLER: liquidity withdrawal too large."
     );
     uint256 finalInputBalance = initialInputBalance + netInputAmount;
@@ -496,7 +494,7 @@ contract Behodler is Scarcity {
     } else {
       inputToken.transferIn(inputSender, amount);
     }
-    uint netInputAmount = uint(uint128(((amount - burnToken(inputToken, amount))/MIN_LIQUIDITY).fromUInt()));
+    uint256 netInputAmount = uint256(uint128(((amount - burnToken(inputToken, amount)) / MIN_LIQUIDITY).fromUInt()));
 
     uint256 finalBalance = initialBalance + netInputAmount;
     require(uint256(finalBalance) >= MIN_LIQUIDITY, "BEHODLER: min liquidity.");
@@ -527,7 +525,7 @@ contract Behodler is Scarcity {
     uint256 finalBalance = initialBalance - tokensToRelease;
     require(finalBalance > MIN_LIQUIDITY, "BEHODLER: min liquidity");
     require(
-      (tokensToRelease*100)/initialBalance <= safetyParameters.maxLiquidityExit,
+      (tokensToRelease * 100) / initialBalance <= safetyParameters.maxLiquidityExit,
       "BEHODLER: liquidity withdrawal too large."
     );
 
@@ -574,7 +572,7 @@ contract Behodler is Scarcity {
 
     for (uint256 i = 0; i < passes; i++) {
       uint256 initialBalance = outputToken.tokenBalance();
-      uint256 finalBalance = initialBalance -tokensToRelease;
+      uint256 finalBalance = initialBalance - tokensToRelease;
 
       uint256 logInitial = initialBalance.log_2();
       uint256 logFinal = finalBalance.log_2();
@@ -621,10 +619,10 @@ contract Behodler is Scarcity {
       burnt = applyBurnFee(token, amount, true);
     } else if (tokenBurnable[token]) burnt = applyBurnFee(token, amount, false);
     else if (token == WD.dai) {
-      burnt = (config.burnFee - amount)/1000;
+      burnt = (config.burnFee - amount) / 1000;
       token.transferOut(WD.reserve, burnt);
     } else {
-      burnt = (config.burnFee * amount)/1000;
+      burnt = (config.burnFee * amount) / 1000;
       token.transferOut(pyroTokenLiquidityReceiver, burnt);
     }
   }

@@ -3,6 +3,7 @@
   "event Burn(uint256)",
   "event Mint(address,address,uint256)",
   "event Transfer(address indexed,address indexed,uint256)",
+  "function REAL() view returns (bool)",
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)",
   "function balanceOf(address) view returns (uint256)",

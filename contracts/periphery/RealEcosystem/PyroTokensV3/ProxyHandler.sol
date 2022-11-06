@@ -13,6 +13,7 @@ This contract performs single transaction wrapping and unwrapping analogous to P
 *@dev On deploy, remember to exempt this from FOT and REdeem fees
 */
 contract ProxyHandler {
+     bool public constant REAL = true;
     uint256 constant ONE = 1e18;
 
     /**

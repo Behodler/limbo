@@ -9,6 +9,7 @@
   "function IRON_CROWN() view returns (bytes32)",
   "function LACHESIS() view returns (bytes32)",
   "function POWERREGISTRY() view returns (bytes32)",
+  "function REAL() view returns (bool)",
   "function authorizeInvoker(address,bool)",
   "function authorizedInvokers(address) view returns (bool)",
   "function changePower(address)",

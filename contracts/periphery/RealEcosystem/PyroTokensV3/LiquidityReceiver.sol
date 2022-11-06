@@ -66,7 +66,8 @@ library Create2 {
  *@title LiquidityReceiverV2
  *@dev owner is MorgothDao
  */
-contract LiquidityReceiverV2 is Ownable {
+contract LiquidityReceiver is Ownable {
+     bool public constant REAL = true;
     /**
      *@param pyroToken address of new PyroToken
      *@param baseToken address of underlying base token

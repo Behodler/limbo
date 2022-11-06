@@ -15,6 +15,7 @@ abstract contract MintRedeem {
 }
 
 contract PyroWeth10Proxy is Ownable, MintRedeem {
+  bool public constant REAL = true;
   // address public baseToken;
   IWETH10 public weth10;
   uint256 constant ONE = 1e18;

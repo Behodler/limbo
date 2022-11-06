@@ -5,6 +5,7 @@
   "error Reantrancy()",
   "error TransferToZeroAddress()",
   "event OwnershipTransferred(address indexed,address indexed)",
+  "function REAL() view returns (bool)",
   "function balanceOf(address) view returns (uint256)",
   "function mint(uint256) payable returns (uint256)",
   "function owner() view returns (address)",

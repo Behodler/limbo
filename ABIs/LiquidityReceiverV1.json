@@ -3,6 +3,7 @@
   "error OnlyOwner(address,address)",
   "error TransferToZeroAddress()",
   "event OwnershipTransferred(address indexed,address indexed)",
+  "function REAL() view returns (bool)",
   "function baseTokenMapping(address) view returns (address)",
   "function drain(address)",
   "function owner() view returns (address)",

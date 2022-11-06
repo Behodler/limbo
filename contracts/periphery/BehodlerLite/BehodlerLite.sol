@@ -16,6 +16,7 @@ abstract contract BurnableBehodlerLite {
 }
 
 contract ScarcityLite is CommonIERC20 {
+  bool public constant REAL = false;
   event Mint(address sender, address recipient, uint256 value);
   event Burn(uint256 value);
 
@@ -358,7 +359,7 @@ contract BehodlerLite is ScarcityLite {
       uint256 difference = deltaSCX - scxBalance;
       if ((difference * 10000) / deltaSCX == 0) deltaSCX = scxBalance;
     }
-    if(deltaSCX>balances[msg.sender]){
+    if (deltaSCX > balances[msg.sender]) {
       revert SCXBalanceTooLow(deltaSCX, balances[msg.sender]);
     }
     burn(msg.sender, deltaSCX);

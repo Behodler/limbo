@@ -24,6 +24,7 @@ import * as LR from "../../../facades/LiquidityReceiverLike.sol";
  */
 
 abstract contract PyroERC20 is IERC20 {
+     bool public constant REAL = true;
     mapping(address => uint256) internal _balances;
 
     mapping(address => mapping(address => uint256)) internal _allowances;

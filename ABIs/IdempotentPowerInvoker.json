@@ -1,5 +1,6 @@
 [
   "event PowerInvoked(address,bytes32,bytes32)",
+  "function REAL() view returns (bool)",
   "function angband() view returns (address)",
   "function invoke(bytes32,address)",
   "function power() view returns (bytes32, bytes32, bool, bool)",

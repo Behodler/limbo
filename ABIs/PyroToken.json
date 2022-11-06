@@ -16,6 +16,7 @@
   "event LoadOfficerAssigned(address indexed)",
   "event LoanObligationSet(address,uint256,uint256,uint256,uint256)",
   "event Transfer(address indexed,address indexed,uint256)",
+  "function REAL() view returns (bool)",
   "function aggregateBaseCredit() view returns (uint256)",
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)",

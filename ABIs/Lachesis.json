@@ -3,6 +3,7 @@
   "error OnlyOwner(address,address)",
   "error TransferToZeroAddress()",
   "event OwnershipTransferred(address indexed,address indexed)",
+  "function REAL() view returns (bool)",
   "function behodler() view returns (address)",
   "function cut(address) view returns (bool, bool)",
   "function measure(address,bool,bool)",

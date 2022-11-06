@@ -10,6 +10,7 @@
   "error TransferToZeroAddress()",
   "event OwnershipTransferred(address indexed,address indexed)",
   "event PyroTokenDeployed(address,address,string,string)",
+  "function REAL() view returns (bool)",
   "function bigConstants() view returns (address)",
   "function config() view returns (address, address, address, address)",
   "function drain(address) returns (uint256)",
