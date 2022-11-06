@@ -1224,7 +1224,7 @@ describe.only("Limbo", function () {
       realBehodler.address
     );
 
-    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
+    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodlerTest");
     const realPower = await RealPower.deploy(
       realAngband.address,
       SET.limbo.address,
