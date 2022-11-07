@@ -9,12 +9,6 @@ import * as Types from "../../typechain";
 
 const logger = logFactory(true);
 
-interface Token {
-  name: string;
-  instance: Contract;
-  burnable: boolean;
-}
-
 export async function deployMultiCall(pauser: Function): Promise<OutputAddress> {
   const Multicall = await ethers.getContractFactory("Multicall");
   const multicall = await deploy<Types.Multicall>("Multicall", Multicall, pauser, []);
@@ -196,7 +190,7 @@ export async function deployLimbo(
   addressList = OutputAddressAdder<Types.SoulLib>(addressList, "soulLib", soulLib)
   addressList = OutputAddressAdder(addressList, "crossingLib", crossingLib)
   addressList = OutputAddressAdder(addressList, "migrationLib", migrationLib)
-  addressList = OutputAddressAdder(addressList,"uniswapOracle",oracle)
+  addressList = OutputAddressAdder(addressList, "uniswapOracle", oracle)
   return addressList;
 }
 
@@ -347,7 +341,7 @@ export async function seedLimboDAO(
   });
   const dao = await LimboDAOFactory.attach(daoAddress) as Types.LimboDAO;
   await pauser();
-  await dao.seed(limbo, flan, eye, proposalFactory, nullAddress,uniOracle, [], uniLPs);
+  await dao.seed(limbo, flan, eye, proposalFactory, nullAddress, uniOracle, [], uniLPs);
   await pauser();
 
   await dao.makeLive();
@@ -451,7 +445,7 @@ export async function deployFlan(
 
   await broadcast(
     "registerPyro",
-    liquidityReceiver.registerPyroToken(flan.address, "PyroFlan", "PyroFLN", await getNonce()),
+    liquidityReceiver.registerPyroToken(flan.address, "PyroFlan", "PyroFLN", 18, await getNonce()),
     pauser
   );
 
@@ -594,6 +588,7 @@ export async function deployLiquidityReceiver(
           address,
           `Pyro${tokenKeys[i]}`,
           `KPyro${tokenKeys[i].substring(2)}`,
+          18,
           await getNonce()
         ),
         pauser
@@ -632,7 +627,7 @@ export async function deployWeth(
 
   await broadcast(
     "register pyroweth",
-    liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "KPyroWETH", await getNonce()),
+    liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "KPyroWETH", 18, await getNonce()),
     pauser
   );
 

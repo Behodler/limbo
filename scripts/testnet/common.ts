@@ -91,6 +91,11 @@ export async function deploy<T extends Contract>(
   gasArgs.push(await getNonce());
 
   const contract: T = await factory.deploy(...gasArgs) as T;
+  try{
+    let real = await (contract as any).REAL()
+    if(!real)
+    throw "Test Contract detected."
+  }catch{}
   logger("pausing for deployment of " + name + " at " + new Date().toTimeString());
   await pauser();
   //await contract.deployed();
