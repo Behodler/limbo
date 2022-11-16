@@ -77,14 +77,14 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
     _;
   }
 
-  constructor(address _angband, address powers) IdempotentPowerInvoker("00000000CONFIGURE_TOKEN_APPROVER", _angband) {
+  constructor(address _angband, address powers) IdempotentPowerInvoker("CONFIGURE_TOKEN_APPROVER", _angband) {
     powersRegistry = PowersRegistry(powers);
     initialized = true;
   }
 
   function setApprove(address[] memory tokens, bool[] memory approved)
     public
-    requiresPower("00000000CONFIGURE_TOKEN_APPROVER")
+    requiresPower("CONFIGURE_TOKEN_APPROVER")
     setChoice(ExecutionChoice.Approve)
   {
     approveParams.tokensToApprove = tokens;
@@ -97,7 +97,7 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
     address behodler,
     address limbo,
     address flan
-  ) public requiresPower("00000000CONFIGURE_TOKEN_APPROVER") setChoice(ExecutionChoice.UpdateConfig) {
+  ) public requiresPower("CONFIGURE_TOKEN_APPROVER") setChoice(ExecutionChoice.UpdateConfig) {
     updateConfigParams.behodler = behodler;
     updateConfigParams.referenceToken = referenceToken;
     updateConfigParams.proxyRegistry = proxyRegistry;
@@ -107,7 +107,7 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
 
   function setUnmapParams(address[] memory tokensToUnmap)
     public
-    requiresPower("00000000CONFIGURE_TOKEN_APPROVER")
+    requiresPower("CONFIGURE_TOKEN_APPROVER")
     setChoice(ExecutionChoice.Unmap)
   {
     unmapParams.tokensToUnmap = tokensToUnmap;

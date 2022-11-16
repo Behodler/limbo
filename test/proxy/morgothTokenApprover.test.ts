@@ -15,19 +15,20 @@ interface TestSet {
   powers: Types.PowersRegistry
   morgothTokenApprover: Types.MorgothTokenApprover
   configureTokenApproverPower: Types.ConfigureTokenApproverPower
-  powerName: Uint8Array
-  domainName: Uint8Array
-  TA_Minion: Uint8Array
+  powerName: string
+  domainName: string
+  TA_Minion: string
 }
 
-const stringToBytes = (s: string): Uint8Array => {
-  let padded = s.padStart(32, "0")
-  return ethers.utils.arrayify(web3.utils.fromAscii(padded))
+const stringToBytes = (s: string): string => {
+  let padded = s.padEnd(32, "\0")
+  return ethers.utils.hexlify(ethers.utils.arrayify(web3.utils.fromAscii(padded)))
 }
 
 describe("Morgoth Token Approver Integration test", function () {
   let SET = {} as TestSet;
   SET.powerName = stringToBytes("CONFIGURE_TOKEN_APPROVER")
+  console.log('CONFIGURE_TOKEN_APPROVER: ' + SET.powerName)
   SET.domainName = stringToBytes("TOKEN_APPROVER")
   SET.TA_Minion = stringToBytes("TA_Minion")
   this.beforeEach(async function () {
