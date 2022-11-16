@@ -19,7 +19,6 @@
   "function VETO_BAD_OUTCOME() view returns (bytes32)",
   "function WIRE_ANGBAND() view returns (bytes32)",
   "function bondUserToMinion(address,bytes32)",
-  "function bytes32ToString(bytes32) pure returns (string)",
   "function castIntoVoid(address,bytes32)",
   "function changePower(address)",
   "function create(bytes32,bytes32,bool,bool)",

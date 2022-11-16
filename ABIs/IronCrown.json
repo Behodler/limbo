@@ -1,7 +1,6 @@
 [
   "constructor(address)",
   "event OwnershipTransferred(address indexed,address indexed)",
-  "function bytes32ToString(bytes32) pure returns (string)",
   "function changePower(address)",
   "function dev() view returns (uint8)",
   "function getSilmaril(uint8) view returns (uint16, address)",

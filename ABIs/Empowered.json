@@ -1,6 +1,5 @@
 [
   "event OwnershipTransferred(address indexed,address indexed)",
-  "function bytes32ToString(bytes32) pure returns (string)",
   "function changePower(address)",
   "function owner() view returns (address)",
   "function renounceOwnership()",

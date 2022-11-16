@@ -3,7 +3,6 @@
   "event OwnershipTransferred(address indexed,address indexed)",
   "event PowerInvoked(address,bytes32,bytes32)",
   "function angband() view returns (address)",
-  "function bytes32ToString(bytes32) pure returns (string)",
   "function changePower(address)",
   "function choice() view returns (uint8)",
   "function getChoice() view returns (uint256)",

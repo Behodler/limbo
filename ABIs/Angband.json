@@ -9,7 +9,6 @@
   "function POWERREGISTRY() view returns (bytes32)",
   "function authorizeInvoker(address,bool)",
   "function authorizedInvokers(address) view returns (bool)",
-  "function bytes32ToString(bytes32) pure returns (string)",
   "function changePower(address)",
   "function executeOrder66()",
   "function executePower(address)",
