@@ -142,3 +142,7 @@ scripts/testnet/addresses/orig*
 *.pdf
 gasResults/
 gasReport*
+
+contracts/remix/
+
+*.zip

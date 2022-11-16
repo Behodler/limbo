@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
-import "../../../../facades/LachesisLike.sol";
+import "../facades/LachesisLike.sol";
 
 contract AddTokenToBehodlerPower is PowerInvoker {
     address token;
@@ -18,7 +18,7 @@ contract AddTokenToBehodlerPower is PowerInvoker {
 
     function orchestrate() internal override returns (bool) {
         address _lachesis = angband.getAddress(power.domain);
-        LachesisLike lachesis = LachesisLike(_lachesis);
+        Lachesis_071Like lachesis = Lachesis_071Like(_lachesis);
         lachesis.measure(token, true, burnable);
         lachesis.updateBehodler(token);
         

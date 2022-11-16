@@ -6,6 +6,7 @@
 pragma solidity 0.8.16;
 import "../../facades/AngbandLike.sol";
 import "../../facades/LachesisLike.sol";
+import "../../facades/TokenProxyRegistryLike.sol";
 import "../../openzeppelin/IERC20.sol";
 import "../../openzeppelin/Ownable.sol";
 
@@ -281,24 +282,10 @@ abstract contract IdempotentPowerInvokerTest {
   }
 }
 
-// File contracts/Limbo/TokenProxyRegistryLike.sol
 
-pragma solidity 0.8.16;
-
-abstract contract TokenProxyRegistryLike {
-  struct TokenConfig {
-    address limboProxy;
-    address behodlerProxy;
-  }
-
-  function tokenProxy(address baseToken) public virtual returns (address, address);
-
-  function TransferFromLimboTokenToBehodlerToken(address token) public virtual returns (bool);
-}
 
 // File contracts/Limbo/LimboAddTokenToBehodler.sol
 
-//TODO: this needs to be tested properly in morgoth
 contract LimboAddTokenToBehodlerTest {
   struct Parameters {
     address soul;

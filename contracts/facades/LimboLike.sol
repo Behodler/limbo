@@ -52,6 +52,14 @@ abstract contract LimboLike {
     uint256 fps
   ) public virtual;
 
+  function configureCrossingParameters(
+    address token,
+    uint256 initialCrossingBonus,
+    int256 crossingBonusDelta,
+    bool burnable,
+    uint256 crossingThreshold
+  ) public  virtual;
+
   function withdrawERC20(address token, address destination) public virtual;
 
   function userTokenBalance(address token) public virtual returns (uint256);

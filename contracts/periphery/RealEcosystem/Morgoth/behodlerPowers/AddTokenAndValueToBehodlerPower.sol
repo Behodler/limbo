@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
-import "../../../../facades/LachesisLike.sol";
-import "../../../../openzeppelin/IERC20.sol";
-import "../../../../facades/BehodlerLike.sol";
+import "../facades/LachesisLike.sol";
+import "../openzeppelin/IERC20.sol";
+import "../facades/BehodlerLike.sol";
 
 
 contract AddTokenAndValueToBehodlerPower is PowerInvoker {
@@ -25,14 +25,14 @@ contract AddTokenAndValueToBehodlerPower is PowerInvoker {
     function orchestrate() internal override returns (bool) {
         address _lachesis = angband.getAddress(power.domain);
         address behodler = angband.getAddress("BEHODLER");
-        LachesisLike lachesis = LachesisLike(_lachesis);
+        Lachesis_071Like lachesis = Lachesis_071Like(_lachesis);
         lachesis.measure(token, true, burnable);
         lachesis.updateBehodler(token);
-        uint balanceOfToken = IERC20(token).balanceOf(address(this));
+        uint balanceOfToken = IERC20_071(token).balanceOf(address(this));
         require(balanceOfToken>0, "remember to seed contract");
-        BehodlerLike(behodler).addLiquidity(token,balanceOfToken);
-        uint scxBal = IERC20(behodler).balanceOf(address(this));
-        IERC20(behodler).transfer(rewardContract,scxBal);
+        Behodler_071Like(behodler).addLiquidity(token,balanceOfToken);
+        uint scxBal = IERC20_071(behodler).balanceOf(address(this));
+        IERC20_071(behodler).transfer(rewardContract,scxBal);
         return true;
     }
 }

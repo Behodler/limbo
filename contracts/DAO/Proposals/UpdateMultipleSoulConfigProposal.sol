@@ -13,12 +13,15 @@ import "../../periphery/Errors.sol";
 contract UpdateMultipleSoulConfigProposal is Proposal {
   struct Parameters {
     address token;
-    uint256 crossingThreshold;
     uint256 soulType;
     uint256 state;
     uint256 index;
     uint256 targetAPY;
     uint256 daiThreshold;
+    uint256 crossingThreshold;
+    uint256 initialCrossingBonus;
+    int256 crossingBonusDelta;
+    bool burnable;
   }
 
   Parameters[] params;
@@ -45,9 +48,12 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     uint256 state,
     uint256 index,
     uint256 targetAPY,
-    uint256 daiThreshold
+    uint256 daiThreshold,
+    uint256 initialCrossingBonus,
+    int256 crossingBonusDelta,
+    bool burnable
   ) public {
-    if (!morgothApprover.approved(token) && soulType < 2) {
+    if (soulType < 2 && !morgothApprover.approved(token)) {
       revert TokenNotApproved(token);
     }
     params.push(
@@ -58,7 +64,10 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
         state: state,
         index: index,
         targetAPY: targetAPY,
-        daiThreshold: daiThreshold
+        daiThreshold: daiThreshold,
+        initialCrossingBonus:initialCrossingBonus,
+        crossingBonusDelta:crossingBonusDelta,
+        burnable:burnable
       })
     );
   }
@@ -67,18 +76,30 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
   function lockDown() public lockUntilComplete {}
 
   function execute() internal override returns (bool) {
-    for (uint256 i = 0; i < params.length; i++) {
-      uint256 fps = ammHelper.minAPY_to_FPS(params[i].targetAPY, params[i].daiThreshold);
+    Parameters[] memory localParams = params;
+    for (uint256 i = 0; i < localParams.length; i++) {
+      //second check to catch any blacklisted cliffFace tokens.
+      if (localParams[i].soulType < 2 && !morgothApprover.approved(localParams[i].token)) {
+        revert TokenNotApproved(localParams[i].token);
+      }
+      uint256 fps = ammHelper.minAPY_to_FPS(localParams[i].targetAPY, localParams[i].daiThreshold);
       limbo.configureSoul(
-        params[i].token,
-        params[i].crossingThreshold,
-        params[i].soulType,
-        params[i].state,
-        params[i].index,
+        localParams[i].token,
+        localParams[i].crossingThreshold,
+        localParams[i].soulType,
+        localParams[i].state,
+        localParams[i].index,
         fps
       );
+
+      limbo.configureCrossingParameters(
+        localParams[i].token,
+        localParams[i].initialCrossingBonus,
+        localParams[i].crossingBonusDelta,
+        localParams[i].burnable,
+        localParams[i].crossingThreshold
+      );
     }
-    //TODO: add configure crossing config
     return true;
   }
 }

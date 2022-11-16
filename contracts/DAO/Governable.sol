@@ -52,7 +52,6 @@ abstract contract Governable {
 
   function assertSoulUpdateProposal(address sender) internal view {
     (, , address proposalFactory) = LimboDAOLike(DAO).proposalConfig();
-    //TODO: is this if statement logic complete?
     if (configured() && sender != ProposalFactoryLike(proposalFactory).soulUpdateProposal()) {
       revert GovernanceActionFailed(configured(), sender);
     }

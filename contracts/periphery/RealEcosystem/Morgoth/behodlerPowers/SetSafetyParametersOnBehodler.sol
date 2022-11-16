@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
-import "../../../../facades/BehodlerLike.sol";
+
+abstract contract Behodler_071 {
+     function setSafetParameters(
+        uint8 swapPrecisionFactor,
+        uint8 maxLiquidityExit
+    ) external virtual;
+}
 
 contract SetSafetyParametersOnBehodler is PowerInvoker {
 
@@ -12,7 +18,7 @@ contract SetSafetyParametersOnBehodler is PowerInvoker {
     function orchestrate() internal override returns (bool) {
 
         address b = angband.getAddress(power.domain);
-        BehodlerLike behodler = BehodlerLike(b);
+        Behodler_071 behodler = Behodler_071(b);
         behodler.setSafetParameters(30,40);
         return true;
     }

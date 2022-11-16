@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
 
 abstract contract BehodlerWithSeedLike {
@@ -14,7 +14,7 @@ abstract contract BehodlerWithSeedLike {
     ) external virtual;
 }
 
-contract PointBehodlerToNewLachesis is PowerInvoker {
+contract PointBehodlerToNewLachesis_071 is PowerInvoker {
     address _weth;
     address _lachesis;
     address _flashLoanArbiter;

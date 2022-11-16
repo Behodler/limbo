@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
-import "../../../../facades/LachesisLike.sol";
-import "../../../../openzeppelin/IERC20.sol";
-import "../../../../openzeppelin/Ownable.sol";
+import "../facades/LachesisLike.sol";
+import "../openzeppelin/IERC20.sol";
 
 abstract contract IdempotentPowerInvoker {
-     bool public constant REAL = true;
     event PowerInvoked(address user, bytes32 minion, bytes32 domain);
 
     Power public power;
     PowersRegistry public registry;
-    AngbandLike public angband;
+    AngbandLike_071 public angband;
 
     constructor(bytes32 _power, address _angband) {
-        angband = AngbandLike(_angband);
+        angband = AngbandLike_071(_angband);
         address _registry = angband.getAddress(angband.POWERREGISTRY());
         registry = PowersRegistry(_registry);
         (bytes32 name, bytes32 domain, bool transferrable, bool unique) =
@@ -26,7 +24,7 @@ abstract contract IdempotentPowerInvoker {
         _;
         address ownableContract = angband.getAddress(power.domain);
         if (ownableContract != address(angband))
-            Ownable(ownableContract).transferOwnership(address(angband));
+            Ownable_071(ownableContract).transferOwnership(address(angband));
     }
 
     function orchestrate() internal virtual returns (bool);

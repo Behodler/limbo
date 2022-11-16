@@ -40,6 +40,7 @@ abstract contract Ownable {
        if(newOwner==address(0)){
            revert TransferToZeroAddress();
        }
+       _transferOwnership(newOwner);
     }
 
     /**

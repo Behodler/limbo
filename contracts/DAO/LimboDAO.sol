@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 import "../openzeppelin/Ownable.sol";
-import "../openzeppelin/ERC677.sol";
+import "../facades/Burnable.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
@@ -87,7 +87,7 @@ contract LimboDAO is Ownable {
   event assetBurnt(address indexed burner, address indexed asset, uint256 fateCreated);
 
   uint256 constant ONE = 1 ether;
-  uint FATE_PRECISION = 1e9;
+  uint256 FATE_PRECISION = 1e9;
 
   DomainConfig public domainConfig;
   ProposalConfig public proposalConfig;
@@ -308,6 +308,10 @@ contract LimboDAO is Ownable {
     uint256 requiredFateStake,
     address proposalFactory
   ) public onlySuccessfulProposal {
+    (, uint256 unlockTime, , ) = FlashGovernanceArbiterLike(domainConfig.flashGoverner).flashGovernanceConfig();
+    if (unlockTime < votingDuration) {
+      revert FlashGovLockTimeMustExceedVoting(unlockTime, votingDuration);
+    }
     proposalConfig.votingDuration = votingDuration;
     proposalConfig.requiredFateStake = requiredFateStake;
     proposalConfig.proposalFactory = proposalFactory;
@@ -419,7 +423,7 @@ contract LimboDAO is Ownable {
     uint256 fateCreated = fateState[msg.sender].fateBalance;
     if (asset == domainConfig.eye) {
       fateCreated = amount * 10;
-      ERC677(domainConfig.eye).burn(amount);
+      Burnable(domainConfig.eye).burn(amount);
     } else {
       uint256 impliedEye = EYEEquivalentOfLP(asset, uniswap, amount);
       fateCreated = impliedEye * 20;
@@ -444,15 +448,6 @@ contract LimboDAO is Ownable {
   ///@notice if the DAO is being dismantled, it's necessary to transfer any owned items
   function transferOwnershipOfThing(address thing, address destination) public onlySuccessfulProposal {
     Ownable(thing).transferOwnership(destination);
-  }
-
-  ///@notice for proposals in voting state, how much longer until voting closes.
-  function timeRemainingOnProposal() public view returns (uint256) {
-    if (currentProposalState.decision != ProposalDecision.voting)
-      revert ProposalNotInVoting(address(currentProposalState.proposal));
-    uint256 elapsed = block.timestamp - currentProposalState.start;
-    if (elapsed > proposalConfig.votingDuration) return 0;
-    return proposalConfig.votingDuration - elapsed;
   }
 
   /**

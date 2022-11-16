@@ -74,6 +74,10 @@ error InvalidChangeTolerance(uint8 tolerance);
 error FlashDecisionPending(address target, address msgSender);
 error FlashToleranceViolated(uint256 v1, uint256 v2);
 error OnlyFateSpender(address msgSender);
+error FlashGovLockTimeMustExceedVoting(uint lock, uint voting);
+error TokenAlreadyRegistered(address token);
+error CliffFaceGenerationBlocked(address token);
+error ContractNotInitialized();
 
 //PROPOSALS
 error OnlyFactoryOrDAO(address dao, address factory);
@@ -94,7 +98,6 @@ error WaitPeriodTooSmall(uint256 timeElapsed, uint256 period);
 //Proxy
 error OnlyProxy(address sender, address proxy);
 error SlippageManipulationPrevention(uint256 blockNumber, uint256 priorBlockNumber);
-error AmplificationTooLow(uint256 R_amp);
 error BehodlerSwapOutInvariantViolated(address inputToken, uint256 actualAmount, uint256 expectedAmount);
 error NotMorgothPower(address sender,address power);
 

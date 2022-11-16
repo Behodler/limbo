@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "./Powers.sol";
-import "../../../facades/Burnable.sol";
+
+interface BurnableERC20 {
+    function transfer(address recipient, uint256 value) external returns (bool);
+
+    function balanceOf(address holder) external returns (uint256);
+
+    function burn(uint256 amount) external;
+}
 
 contract IronCrown is Empowered {
-    Burnable public scx;
+    BurnableERC20 public scx;
     struct Silmaril {
         uint16 percentage; //0-1000
         address exit;
@@ -28,7 +35,7 @@ contract IronCrown is Empowered {
     }
 
     function setSCX(address _scx) public onlyOwner {
-        scx = Burnable(_scx);
+        scx = BurnableERC20(_scx);
     }
 
     function settlePayments() public {

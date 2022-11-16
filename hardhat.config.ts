@@ -17,7 +17,17 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 });
 
 export default {
-  solidity: "0.8.16",
+  solidity: 
+  {
+    compilers: [
+        {
+            version: "0.8.16"
+        },
+        {
+            version: "0.7.1"
+        }
+    ]
+  },
   gasReporter: {
     optimizer: true,
     outputFile: "gasReport.json",

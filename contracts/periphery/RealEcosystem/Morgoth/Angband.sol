@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "./Powers.sol";
 import "./Thangorodrim.sol";
-import "../../../openzeppelin/Ownable.sol";
+import "./openzeppelin/Ownable.sol";
 import "./IronCrown.sol";
-import "../../../openzeppelin/IERC20.sol";
+import "./openzeppelin/IERC20.sol";
 
 contract Angband is Empowered, Thangorodrim {
     event EmergencyShutdownTriggered(address newOwner);
@@ -41,7 +41,7 @@ contract Angband is Empowered, Thangorodrim {
 
         require(
             ownable == address(this) ||
-                Ownable(ownable).owner() == address(this),
+                Ownable_071(ownable).owner() == address(this),
             "MORGOTH: power invoker failed to return ownership"
         );
     }
@@ -66,7 +66,7 @@ contract Angband is Empowered, Thangorodrim {
         requiresPower(powersRegistry.WIRE_ANGBAND())
     {
         require(
-            domain == "ANGBAND" || Ownable(location).owner() == address(this),
+            domain == "ANGBAND" || Ownable_071(location).owner() == address(this),
             "MORGOTH: transfer domain ownership."
         );
         _setAddress(domain, location);
@@ -77,7 +77,7 @@ contract Angband is Empowered, Thangorodrim {
         requiresPower(powersRegistry.WIRE_ANGBAND())
     {
         address domainContract = getAddress(domain);
-        Ownable(domainContract).transferOwnership(msg.sender);
+        Ownable_071(domainContract).transferOwnership(msg.sender);
     }
 
     function setBehodler(address behodler, address lachesis)
@@ -88,12 +88,12 @@ contract Angband is Empowered, Thangorodrim {
         _setAddress(BEHODLER, behodler);
         _setAddress(LACHESIS, lachesis);
         require(
-            Ownable(behodler).owner() == self,
+            Ownable_071(behodler).owner() == self,
             "MORGOTH: transfer Behodler ownership to Angband"
         );
         require(
-            Ownable(lachesis).owner() == self,
-            "MORGOTH: transfer Lachesis ownership to Angband"
+            Ownable_071(lachesis).owner() == self,
+            "MORGOTH: transfer Lachesis_071 ownership to Angband"
         );
         ironCrown.setSCX(behodler);
     }
@@ -110,7 +110,7 @@ contract Angband is Empowered, Thangorodrim {
         PowerInvoker invoker = PowerInvoker(powerInvoker);
         (, bytes32 domain, , ) = invoker.power();
         address domainContract = getAddress(domain);
-        Ownable ownable = Ownable(domainContract);
+        Ownable_071 ownable = Ownable_071(domainContract);
         address self = address(this);
         require(
             domainContract == address(this) || ownable.owner() == address(this),
@@ -130,8 +130,8 @@ contract Angband is Empowered, Thangorodrim {
         address behodler = getAddress(BEHODLER);
         address lachesis = getAddress(LACHESIS);
 
-        Ownable(behodler).transferOwnership(deployer);
-        Ownable(lachesis).transferOwnership(deployer);
+        Ownable_071(behodler).transferOwnership(deployer);
+        Ownable_071(lachesis).transferOwnership(deployer);
         emit EmergencyShutdownTriggered(deployer);
     }
 
@@ -141,6 +141,6 @@ contract Angband is Empowered, Thangorodrim {
     {
         ironCrown.settlePayments();
         address scx = getAddress(BEHODLER);
-        IERC20(scx).transfer(msg.sender, amount);
+        IERC20_071(scx).transfer(msg.sender, amount);
     }
 }

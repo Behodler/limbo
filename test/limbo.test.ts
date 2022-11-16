@@ -10,12 +10,18 @@ interface TestContracts {
   limbo: Types.Limbo
   limboDAO: Types.LimboDAO
   uniswapHelper: Types.UniswapHelper
+  proxyRegistry:Types.TokenProxyRegistry
+  behodler: Types.Behodler,
+  lachesis:Types.Lachesis,
+  angband:Types.Angband
 }
+
 describe.only("Limbo", function () {
   let owner, secondPerson, link, sushi;
   let daieyeSLP, linkeyeSLP, sushieyeSLP, daiSushiSLP;
   let daieyeULP, linkeyeULP, sushieyeULP, daiSushiULP;
   let proposalFactory;
+  let flashGovernance: Types.FlashGovernanceArbiter
   let toggleWhiteList;
   let SET: TestContracts = {} as TestContracts
   const zero = "0x0000000000000000000000000000000000000000";
@@ -68,15 +74,15 @@ describe.only("Limbo", function () {
 
     SET.limboDAO = await daoFactory.deploy() as Types.LimboDAO;
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
-    this.flashGovernance = await flashGovernanceFactory.deploy(SET.limboDAO.address);
+    flashGovernance = await flashGovernanceFactory.deploy(SET.limboDAO.address) as Types.FlashGovernanceArbiter;
 
-    await SET.limboDAO.setFlashGoverner(this.flashGovernance.address);
-    const tempConfigLord = await this.flashGovernance.temporaryConfigurationLord();
+    await SET.limboDAO.setFlashGoverner(flashGovernance.address);
+    const tempConfigLord = await flashGovernance.temporaryConfigurationLord();
 
-    await this.flashGovernance.configureSecurityParameters(10, 100, 30);
+    await flashGovernance.configureSecurityParameters(10, 100, 30);
 
     // await this.eye.approve(SET.limbo.address, 2000);
-    await this.flashGovernance.configureFlashGovernance(this.eye.address, 1000, 10, true);
+    await flashGovernance.configureFlashGovernance(this.eye.address, 1000, 10, true);
 
     const FlanFactory = await ethers.getContractFactory("Flan");
     this.flan = await FlanFactory.deploy(SET.limboDAO.address);
@@ -121,7 +127,7 @@ describe.only("Limbo", function () {
     ) as Types.Limbo;
 
     //enable flash governance on Limbo
-    await this.flashGovernance.setGoverned([SET.limbo.address], [true]);
+    await flashGovernance.setGoverned([SET.limbo.address], [true]);
 
     await this.flan.whiteListMinting(SET.limbo.address, true);
     await this.flan.whiteListMinting(owner.address, true);
@@ -256,10 +262,11 @@ describe.only("Limbo", function () {
     toggleWhiteList = toggleWhiteListFactory(this.eye, SET.limboDAO, this.whiteListingProposal, this.proposalFactory);
 
     const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
-    this.registry = await TokenProxyRegistry.deploy(
+    SET.proxyRegistry = await TokenProxyRegistry.deploy(
       SET.limboDAO.address,
       this.mockBehodler.address
-    );
+    ) as Types.TokenProxyRegistry
+
     console.log("end of setup");
   });
 
@@ -644,13 +651,13 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
     //set flash loan params
-    await this.flashGovernance.configureFlashGovernance(
+    await flashGovernance.configureFlashGovernance(
       this.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    await this.flashGovernance.endConfiguration(SET.limboDAO.address);
+    await flashGovernance.endConfiguration(SET.limboDAO.address);
     //end configuration
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
@@ -658,7 +665,7 @@ describe.only("Limbo", function () {
     await expect(SET.limbo.adjustSoul(this.aave.address, 1, 10, 200)).to.be.revertedWith("AllowanceExceeded(0, 21000000)");
 
     //stake requisite tokens, try again and succeed.
-    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.eye.approve(flashGovernance.address, 21000000);
     await SET.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001);
 
     const newStates = await this.soulReader.CrossingParameters(this.aave.address, SET.limbo.address);
@@ -669,28 +676,91 @@ describe.only("Limbo", function () {
     expect(stringNewStates[1]).to.equal("-1001");
   });
 
+  it("t-7.1 flashGovernance lock window must be greater than proposal duration, both when setting through Arbiter or LimboDAO", async function () {
+
+    await expect(flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      172800 - 1, //1 second less than 2 days.
+      true // asset is burnable
+    )).to.be.revertedWith(`FlashGovLockTimeMustExceedVoting(172799, 172800)`)
+
+
+    flashGovernance.configureFlashGovernance(
+      this.eye.address,
+      21000000, //amount to stake
+      172800 + 1, //1 second more than 2 days.
+      true // asset is burnable
+    )
+
+    const UpdateProposalConfigFactory = await ethers.getContractFactory("UpdateProposalConfigProposal")
+    const proposal = await deploy<Types.UpdateProposalConfigProposal>(UpdateProposalConfigFactory, SET.limboDAO.address, "prop")
+    await toggleWhiteList(proposal.address)
+    await proposal.parameterize(
+      172800 + 2, 100, this.proposalFactory.address)
+
+    const requireFate = (await SET.limboDAO.proposalConfig())[1];
+    await this.eye.mint(requireFate.mul("1000000000000"));
+    await this.eye.approve(
+      SET.limboDAO.address,
+      "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    );
+    await SET.limboDAO.burnAsset(this.eye.address, requireFate, false)
+
+    await this.proposalFactory.lodgeProposal(proposal.address)
+    await SET.limboDAO.vote(proposal.address, 1000)
+
+    let configBefore = await SET.limboDAO.proposalConfig()
+    await advanceTime(100000000);
+    await SET.limboDAO.executeCurrentProposal();
+
+    let configAfter = await SET.limboDAO.proposalConfig()
+    expect(configAfter.votingDuration.toNumber()).to.equal(
+      configBefore.votingDuration.toNumber())
+
+    await proposal.parameterize(
+      171800, 100, this.proposalFactory.address)
+
+    await this.eye.mint(requireFate.mul("1000000000000"));
+    await this.eye.approve(
+      SET.limboDAO.address,
+      "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+    );
+    await SET.limboDAO.burnAsset(this.eye.address, requireFate, false)
+
+    await this.proposalFactory.lodgeProposal(proposal.address)
+    await SET.limboDAO.vote(proposal.address, 1000)
+
+    configBefore = await SET.limboDAO.proposalConfig()
+    await advanceTime(100000000);
+    await SET.limboDAO.executeCurrentProposal();
+
+    configAfter = await SET.limboDAO.proposalConfig()
+    expect(configAfter.votingDuration.toNumber() < configBefore.votingDuration.toNumber())
+  })
+
   it("t-8. flashGovernance adjust configureCrossingParameters", async function () {
     //set flash loan params
-    await this.flashGovernance.configureFlashGovernance(
+    await flashGovernance.configureFlashGovernance(
       this.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    await this.flashGovernance.endConfiguration(SET.limboDAO.address);
+    await flashGovernance.endConfiguration(SET.limboDAO.address);
     //end configuration
     await SET.limbo.endConfiguration(SET.limboDAO.address);
-    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.eye.approve(flashGovernance.address, 21000000);
     await SET.limbo.configureCrossingParameters(this.aave.address, 1, 1, true, 10000010);
 
-    await expect(this.flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address)).to.be.revertedWith(
+    await expect(flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address)).to.be.revertedWith(
       "FlashDecisionPending"
     );
 
     await advanceTime(604801);
 
     this.eyeBalanceBefore = await this.eye.balanceOf(owner.address);
-    await this.flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address);
+    await flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address);
     this.eyeBalanceAfter = await this.eye.balanceOf(owner.address);
 
     expect(this.eyeBalanceAfter.sub(this.eyeBalanceBefore).toString()).to.equal("21000000");
@@ -698,18 +768,18 @@ describe.only("Limbo", function () {
 
   it("t-9. burn asset for flashGov decision", async function () {
     //set flash loan params
-    await this.flashGovernance.configureFlashGovernance(
+    await flashGovernance.configureFlashGovernance(
       this.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
-    await this.flashGovernance.endConfiguration(SET.limboDAO.address);
+    await flashGovernance.endConfiguration(SET.limboDAO.address);
     //end configuration
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
     //make flashgovernance decision.
-    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.eye.approve(flashGovernance.address, 21000000);
 
     // //we need fate to lodge proposal.
     const requiredFate = (await SET.limboDAO.proposalConfig())[1];
@@ -724,7 +794,7 @@ describe.only("Limbo", function () {
       owner.address,
       this.eye.address,
       "21000000",
-      this.flashGovernance.address,
+      flashGovernance.address,
       SET.limbo.address
     );
 
@@ -738,7 +808,7 @@ describe.only("Limbo", function () {
 
     //assert pendingFlashDecision before
     const pendingFlashDecisionBeforeQuery = await queryChain(
-      this.flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address)
+      flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address)
     );
     expect(pendingFlashDecisionBeforeQuery.success).to.equal(true, pendingFlashDecisionBeforeQuery.error);
 
@@ -760,28 +830,28 @@ describe.only("Limbo", function () {
     //vote on proposal
     await SET.limboDAO.vote(burnFlashStakeProposal.address, "10000");
 
-    const flashGovConfig = await this.flashGovernance.flashGovernanceConfig();
+    const flashGovConfig = await flashGovernance.flashGovernanceConfig();
     const advancement = flashGovConfig[1].sub(1000);
     //fast forward time to after voting round finishes but before flash asset unlocked
     await advanceTime(advancement.toNumber()); //more time
 
     //assert this.eye locked for user
-    const pendingBeforeAttempt = await this.flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address);
+    const pendingBeforeAttempt = await flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address);
     expect(pendingBeforeAttempt[0].toString()).to.equal("21000000");
 
     //try to withdraw flash gov asset and fail. Assert money still there
-    await expect(this.flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address)).to.be.revertedWith(
+    await expect(flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address)).to.be.revertedWith(
       "FlashDecisionPending"
     );
 
     //execute burn proposal
 
     this.eyeTotalsupplyBefore = await this.eye.totalSupply();
-    this.eyeInFlashGovBefore = await this.eye.balanceOf(this.flashGovernance.address);
+    this.eyeInFlashGovBefore = await this.eye.balanceOf(flashGovernance.address);
 
     await SET.limboDAO.executeCurrentProposal();
 
-    this.eyeInFlashGovAfter = await this.eye.balanceOf(this.flashGovernance.address);
+    this.eyeInFlashGovAfter = await this.eye.balanceOf(flashGovernance.address);
     this.eyeTotalsupplyAfter = await this.eye.totalSupply();
 
     //assert this.eye has declined by 21000000
@@ -790,7 +860,7 @@ describe.only("Limbo", function () {
 
     //assert pendingFlashDecision after
     const pendingFlashDecisionAfterQuery = await queryChain(
-      this.flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address)
+      flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address)
     );
     expect(pendingFlashDecisionAfterQuery.success).to.equal(true, pendingFlashDecisionAfterQuery.error);
 
@@ -1781,16 +1851,16 @@ describe.only("Limbo", function () {
     //initiatialize proposal
     const updateMultipleSoulConfigProposalFactory = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
     await this.morgothTokenApprover.toggleManyTokens([this.aave.address, sushi.address, pool.address], true);
-    const updateMultiSoulConfigProposal = await updateMultipleSoulConfigProposalFactory.deploy(
+    const updateMultiSoulConfigProposal:Types.UpdateMultipleSoulConfigProposal = await updateMultipleSoulConfigProposalFactory.deploy(
       SET.limboDAO.address,
       "List many tokens",
       SET.limbo.address,
       SET.uniswapHelper.address,
       this.morgothTokenApprover.address
-    );
+    ) as Types.UpdateMultipleSoulConfigProposal;
 
-    await updateMultiSoulConfigProposal.parameterize(sushi.address, 0, 2, 0, 0, 2600, "5000000000000000000000000");
-    await updateMultiSoulConfigProposal.parameterize(pool.address, 123456, 1, 0, 0, 1300, "10000000000000000000000000");
+    await updateMultiSoulConfigProposal.parameterize(sushi.address, 0, 2, 0, 0, 2600, "5000000000000000000000000","5000000000000000000000000","10000000",false);
+    await updateMultiSoulConfigProposal.parameterize(pool.address, 123456, 1, 0, 0, 1300, "10000000000000000000000000","5000000000000000000000000","10000000",false);
     await updateMultiSoulConfigProposal.lockDown();
 
     //lodge
@@ -1825,101 +1895,8 @@ describe.only("Limbo", function () {
     expect(poolDetails[5]).to.equal("41222729578893962"); //fps
   });
 
-
-  async function deployClaimSecondaryRewardsProposal(limboDAO: Types.LimboDAO) {
-    const claimSecondaryRewardsProposalFactory = await ethers.getContractFactory("ClaimSecondaryRewardsProposal")
-    let claimSecondaryRewardsProposal = await deploy<Types.ClaimSecondaryRewardsProposal>(
-      claimSecondaryRewardsProposalFactory, limboDAO.address
-    );
-    return claimSecondaryRewardsProposal
-  }
-
-  async function lodgeAndExecuteClaimSecondaryRewards(claimSecondaryRewardsProposal: Types.ClaimSecondaryRewardsProposal, token: Types.MockToken, eye: Types.MockToken, limboDAO: Types.LimboDAO,
-    proposalFactory: Types.ProposalFactory, expectError: boolean) {
-
-    //paramterize proposal
-    await claimSecondaryRewardsProposal.parameterize(token.address, owner.address)
-
-
-    //whitelist proposal on LimboDAO
-    await toggleWhiteList(claimSecondaryRewardsProposal.address)
-
-    //acquire enough fate to lodge and vote on proposal
-    const proposalConfig = await limboDAO.proposalConfig();
-    const requiredFate = proposalConfig[1].mul(2);
-    await eye.approve(limboDAO.address, requiredFate);
-    await eye.mint(requiredFate);
-    await limboDAO.burnAsset(eye.address, requiredFate, false);
-
-    //lodge proposal
-
-
-    await proposalFactory.lodgeProposal(claimSecondaryRewardsProposal.address);
-    //vote yes on proposal
-    await limboDAO.vote(claimSecondaryRewardsProposal.address, 1000);
-
-    //time travel to when voting period has ended
-    await advanceTime(6048010);
-
-    if (expectError) {
-      await expect(limboDAO.executeCurrentProposal())
-        .to.emit(limboDAO, "proposalExecuted")
-        .withArgs(claimSecondaryRewardsProposal.address, false);
-    }
-    //execute proposal. Owner should get 10000 sushi
-    await limboDAO.executeCurrentProposal();
-
-
-  }
-
-  it("t-27.1 Only a proposal can withdraw secondary rewards", async function () {
-
-
-    //create unlisted token and send to limbo
-    const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
-    await sushi.mint("10000");
-    await sushi.transfer(SET.limbo.address, "10000");
-
-    //assert token is in unset state on Limbo.
-    const soulReader: Types.SoulReader = this.soulReader as Types.SoulReader
-    let soulState = (await soulReader.getCurrentSoulState(sushi.address, SET.limbo.address)).toNumber()
-    expect(soulState).to.equal(0)
-
-    //store owner balance before withdrawal
-    const ownerBalanceBefore = await sushi.balanceOf(owner.address)
-    const limboBalanceBefore = await sushi.balanceOf(SET.limbo.address)
-
-    let proposal = await deployClaimSecondaryRewardsProposal(SET.limboDAO)
-    await lodgeAndExecuteClaimSecondaryRewards(proposal, sushi, this.eye, SET.limboDAO, this.proposalFactory, false)
-
-    const ownerBalanceAfter = await sushi.balanceOf(owner.address)
-    const limboBalanceAfter = await sushi.balanceOf(SET.limbo.address)
-
-    //assert that Limbo has zero balance and owner has an increase of 10000
-    expect(ownerBalanceAfter.sub(ownerBalanceBefore).toNumber()).to.equal(10000)
-    expect(limboBalanceAfter.toNumber()).to.equal(0)
-    expect(limboBalanceBefore.toNumber()).to.equal(10000)
-  })
-
-  for (let i = 1; i < 4; i++) {
-
-
-    it("t-27.2 only unset tokens can be claimed as secondary rewards", async function () {
-      //create new token and list it on Behodler for staking
-      const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
-      await sushi.mint("10000");
-      await sushi.transfer(SET.limbo.address, "10000");
-
-      await SET.limbo.configureSoul(sushi.address, 10000000, 1, i, 0, 10000000);
-
-      let proposal = await deployClaimSecondaryRewardsProposal(SET.limboDAO)
-      console.log('proposal: ' + proposal.address)
-      await lodgeAndExecuteClaimSecondaryRewards(proposal, sushi, this.eye, SET.limboDAO, this.proposalFactory, true)
-    })
-  }
-
   it("t-28. flash governance tolerance enforced for flash loan but not successful proposals or unconfigured", async function () {
-    await this.flashGovernance.configureSecurityParameters(10, 100, 3);
+    await flashGovernance.configureSecurityParameters(10, 100, 3);
 
     await SET.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
@@ -2045,7 +2022,7 @@ describe.only("Limbo", function () {
   });
 
   it("t-29. flash governance enforcement works immediately after configuring", async function () {
-    await this.flashGovernance.configureSecurityParameters(10, 100, 3);
+    await flashGovernance.configureSecurityParameters(10, 100, 3);
 
     await SET.limbo.configureSoul(this.aave.address, 10000000, 1, 1, 0, 10000000);
 
@@ -2128,7 +2105,7 @@ describe.only("Limbo", function () {
 
     await SET.uniswapHelper.setDAI(this.dai.address);
 
-    await this.eye.approve(this.flashGovernance.address, "100000000000000000000000000000");
+    await this.eye.approve(flashGovernance.address, "100000000000000000000000000000");
 
     await SET.uniswapHelper.setDAI(this.dai.address);
 
@@ -2214,20 +2191,20 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
     //set flash loan params
-    await this.flashGovernance.configureFlashGovernance(
+    await flashGovernance.configureFlashGovernance(
       this.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
     );
 
-    await this.flashGovernance.setGoverned([SET.limbo.address], [false]);
-    await this.flashGovernance.endConfiguration(SET.limboDAO.address);
+    await flashGovernance.setGoverned([SET.limbo.address], [false]);
+    await flashGovernance.endConfiguration(SET.limboDAO.address);
     //end configuration
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
     //stake requisite tokens, try again and succeed.
-    await this.eye.approve(this.flashGovernance.address, 21000000);
+    await this.eye.approve(flashGovernance.address, 21000000);
     await expect(SET.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001)).to.be.revertedWith(
       "FlashGovernanceDisabled"
     );
@@ -2240,7 +2217,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureCrossingParameters(this.aave.address, 20000000000, "-1000", true, 10000000);
 
     //set flash loan params
-    await this.flashGovernance.configureFlashGovernance(
+    await flashGovernance.configureFlashGovernance(
       this.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
@@ -2250,8 +2227,8 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
 
     //stake requisite tokens, try again and succeed.
-    await this.eye.approve(this.flashGovernance.address, 42000000);
-    const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(this.flashGovernance.address);
+    await this.eye.approve(flashGovernance.address, 42000000);
+    const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(flashGovernance.address);
     console.log("eyeBalanceBeforeEveryThing", eyeBalanceBeforeEveryThing.toString());
     const userBalanceBeforeFirstCall = await this.eye.balanceOf(owner.address);
     await SET.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001);
@@ -2259,13 +2236,13 @@ describe.only("Limbo", function () {
     expect(userBalanceAfterFirstCall.toString()).to.equal(userBalanceBeforeFirstCall.sub(21000000).toString());
 
     await advanceTime(605800); // more than enough time.
-    const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+    const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
 
     result = await executionResult(SET.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001));
     expect(result.success).to.equal(true, result.error);
 
     const userBalanceAfterSecondCall = await this.eye.balanceOf(owner.address);
-    const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+    const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
 
     expect(userBalanceAfterSecondCall.toString()).to.equal(userBalanceAfterFirstCall.toString());
 
@@ -2301,7 +2278,7 @@ describe.only("Limbo", function () {
 
       //set flash loan params
       result = await executionResult(
-        this.flashGovernance.configureFlashGovernance(
+        flashGovernance.configureFlashGovernance(
           this.eye.address,
           21000000, //amount to stake
           604800, //lock duration = 1 week,
@@ -2315,10 +2292,10 @@ describe.only("Limbo", function () {
 
       //stake requisite tokens, try again and succeed.
       await this.eye.approve(
-        this.flashGovernance.address,
+        flashGovernance.address,
         "115792089237316195423570985008687907853269984665640564039457584007913129639935"
       );
-      const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(this.flashGovernance.address);
+      const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(flashGovernance.address);
       console.log("eyeBalanceBeforeEveryThing", eyeBalanceBeforeEveryThing.toString());
       const userBalanceBeforeFirstCall = await this.eye.balanceOf(owner.address);
       await SET.limbo.adjustSoul(this.aave.address, 20000000001, -1001, 10000001);
@@ -2373,7 +2350,7 @@ describe.only("Limbo", function () {
       await advanceTime(100000000);
       await SET.limboDAO.executeCurrentProposal();
 
-      const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+      const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
       const userBalanceBeforeSecondCall = await this.eye.balanceOf(owner.address);
       console.log("JS: userBalanceBeforeSecondCall ", userBalanceBeforeSecondCall.toString());
       console.log("JS: contractBalanceBeforeSecondCall ", eyeBalanceBeforeSecondJudgment.toString());
@@ -2381,7 +2358,7 @@ describe.only("Limbo", function () {
       expect(result.success).to.equal(true, result.error);
 
       const userBalanceAfterSecondCall = await this.eye.balanceOf(owner.address);
-      const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(this.flashGovernance.address);
+      const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
 
       const netAmount = newDepositRequirement - initialStakeAmount;
       console.log("netAmount " + netAmount);
@@ -2512,5 +2489,7 @@ describe.only("Limbo", function () {
 
     expect(balanceAfter.sub(balanceBefore).toString()).to.equal('10000')
   })
+
+  // })
   //TESTS END
 });

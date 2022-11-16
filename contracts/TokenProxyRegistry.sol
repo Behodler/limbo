@@ -26,6 +26,7 @@ contract TokenProxyRegistry is Governable {
     address behodlerProxy;
   }
 
+  address tokenApprover;
   address limboAddTokenToBehodlerPower;
   BehodlerLike immutable behodler;
 
@@ -35,20 +36,31 @@ contract TokenProxyRegistry is Governable {
     behodler = BehodlerLike(_behodler);
   }
 
+  modifier proposalOrApprover() {
+    if (msg.sender != tokenApprover && configured() && !LimboDAOLike(DAO).successfulProposal(msg.sender)) {
+      revert GovernanceActionFailed(configured(), msg.sender);
+    }
+    _;
+  }
+
   function setPower(address _power) public onlySuccessfulProposal {
     limboAddTokenToBehodlerPower = _power;
+  }
+
+  function setTokenApprover(address approver) public onlySuccessfulProposal {
+    tokenApprover = approver;
   }
 
   function setProxy(
     address baseToken,
     address limboProxy,
     address behodlerProxy
-  ) public onlySuccessfulProposal returns (bool ownershipClaimed) {
+  ) public proposalOrApprover returns (bool ownershipClaimed) {
     tokenProxy[baseToken] = TokenConfig(limboProxy, behodlerProxy);
     ownershipClaimed = true;
   }
 
-  /**@dev this a decision tree and should not revert on logic, lest it griefs migrations
+  /**@dev this is a decision tree and should not revert on logic, lest it griefs migrations
    * Remember to transfer the held token for this contract.
    */
   function TransferFromLimboTokenToBehodlerToken(address token) public returns (bool) {
@@ -74,8 +86,7 @@ contract TokenProxyRegistry is Governable {
     if (config.behodlerProxy != address(0)) {
       IERC20(baseToken).safeApprove(config.behodlerProxy, type(uint256).max);
       BehodlerTokenProxy(config.behodlerProxy).seedBehodler(balance, msg.sender);
-    } 
-    else {
+    } else {
       IERC20(baseToken).safeApprove(address(behodler), type(uint256).max);
       uint256 scx = behodler.addLiquidity(baseToken, balance);
       behodler.transfer(msg.sender, scx);

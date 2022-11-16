@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
-import "../../../../facades/LachesisLike.sol";
-import "../../../../facades/FlashLoanArbiterLike.sol";
+import "../facades/LachesisLike.sol";
+
+abstract contract FlashLoanArbiter {
+    function canBorrow (address borrower) public virtual returns (bool);
+}
 
 //stand in until a better scheme enabled.
-contract ClosedArbiter is FlashLoanArbiterLike{
+contract ClosedArbiter is FlashLoanArbiter{
     function canBorrow (address borrower) public pure override returns (bool){
         return false;
     }

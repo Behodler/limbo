@@ -35,7 +35,9 @@ contract FlashGovernanceArbiter is Governable {
 
   mapping(address => bool) enforceLimitsActive;
 
-  constructor(address dao) Governable(dao) {}
+  constructor(address dao) Governable(dao) {
+    flashGovernanceConfig.unlockTime = 6 days; //defaulted to 3 times proposal voting window
+  }
 
   struct FlashGovernanceConfig {
     uint256 amount;
@@ -135,6 +137,10 @@ contract FlashGovernanceArbiter is Governable {
   ) public virtual onlySuccessfulProposal {
     flashGovernanceConfig.asset = IERC20(asset);
     flashGovernanceConfig.amount = amount;
+    (uint256 votingDuration, , ) = LimboDAOLike(DAO).proposalConfig();
+    if (unlockTime < votingDuration) {
+      revert FlashGovLockTimeMustExceedVoting(unlockTime, votingDuration);
+    }
     flashGovernanceConfig.unlockTime = unlockTime;
     flashGovernanceConfig.assetBurnable = assetBurnable;
   }
@@ -222,11 +228,11 @@ contract FlashGovernanceArbiter is Governable {
     //bonus points for readability
     if (v1 > v2) {
       if ((v2 == 0 && v1 > 1) || (v1 - v2) * 100 >= security.changeTolerance * v1) {
-        revert FlashToleranceViolated(v1,v2);
+        revert FlashToleranceViolated(v1, v2);
       }
     } else {
       if ((v1 == 0 && v2 > 1) || ((v2 - v1) * 100) >= security.changeTolerance * v1) {
-            revert FlashToleranceViolated(v1,v2);
+        revert FlashToleranceViolated(v1, v2);
       }
     }
   }

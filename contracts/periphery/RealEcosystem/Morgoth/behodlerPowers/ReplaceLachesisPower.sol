@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
 
-contract ReplaceLachesisPower is PowerInvoker {
-    address newLachesis;
+contract ReplaceLachesis_071Power is PowerInvoker {
+    address newLachesis_071;
     address existingBehodler;
 
     constructor(
         address _angband,
-        address _newLachesis,
+        address _newLachesis_071,
         address _existingBehodler
     ) PowerInvoker("TREASURER", _angband) {
-        newLachesis = _newLachesis;
+        newLachesis_071 = _newLachesis_071;
         existingBehodler = _existingBehodler;
     }
 
     function orchestrate() internal override returns (bool) {
-        angband.setBehodler(existingBehodler, newLachesis);
+        angband.setBehodler(existingBehodler, newLachesis_071);
         return true;
     }
 }

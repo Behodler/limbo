@@ -13,7 +13,7 @@ describe("DAO Proposals", function () {
   let owner, secondPerson, feeSetter, dai, eye, link, sushi;
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP;
-  let dao, proposalFactory, updateProposalConfigProposal;
+  let dao, proposalFactory, updateProposalConfigProposal,flashGovernance;
   const zero = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async function () {
@@ -53,11 +53,11 @@ describe("DAO Proposals", function () {
     const SafeERC20Factory = await ethers.getContractFactory("SafeERC20");
     const daoFactory = await ethers.getContractFactory("LimboDAO", {});
 
-    dao = await daoFactory.deploy();
+    dao = await daoFactory.deploy() as TypeChainTypes.LimboDAO
 
     const flashGovernanceFactory = await ethers.getContractFactory("FlashGovernanceArbiter");
-    this.flashGovernance = await flashGovernanceFactory.deploy(dao.address);
-    await dao.setFlashGoverner(this.flashGovernance.address);
+    flashGovernance = await flashGovernanceFactory.deploy(dao.address) as TypeChainTypes.FlashGovernanceArbiter
+    await dao.setFlashGoverner(flashGovernance.address);
 
     const GovernableStubFactory = await ethers.getContractFactory("GovernableStub");
     this.limbo = await GovernableStubFactory.deploy(dao.address);
@@ -65,8 +65,9 @@ describe("DAO Proposals", function () {
     const LimboOracleFactory = await ethers.getContractFactory("LimboOracle");
     this.sushiOracle = await LimboOracleFactory.deploy(this.sushiSwapFactory.address, dao.address);
     this.uniOracle = await LimboOracleFactory.deploy(this.uniswapFactory.address, dao.address);
-
+    
     const sushiMetaPairCreator = await metaPairFactory(eye, this.sushiSwapFactory, false);
+    
     this.metaDaiEYESLP = await sushiMetaPairCreator(daiEYESLP);
     this.metaLinkEYESLP = await sushiMetaPairCreator(linkEYESLP);
     this.metaSushiEYESLP = await sushiMetaPairCreator(sushiEYESLP);
@@ -125,7 +126,7 @@ describe("DAO Proposals", function () {
       [this.metaDaiEYEULP.address, this.metaLinkEYEULP.address, this.metaSushiEYEULP.address]
     );
 
-    await dao.setFlashGoverner(this.flashGovernance.address);
+    await dao.setFlashGoverner(flashGovernance.address);
 
     await dao.makeLive();
     await proposalFactory.setDAO(dao.address);

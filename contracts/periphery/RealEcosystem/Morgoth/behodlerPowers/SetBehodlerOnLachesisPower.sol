@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.16;
+pragma solidity ^0.7.1;
 import "../Powers.sol";
-import "../../../../facades/LachesisLike.sol";
+import "../facades/LachesisLike.sol";
 
-contract SetBehodlerOnLachesisPower is PowerInvoker {
+contract SetBehodlerOnLachesis_071Power is PowerInvoker {
     address behodler;
 
     constructor(
@@ -15,7 +15,7 @@ contract SetBehodlerOnLachesisPower is PowerInvoker {
 
     function orchestrate() internal override returns (bool) {
         address _lachesis = angband.getAddress(power.domain);
-        LachesisLike lachesis = LachesisLike(_lachesis);
+        Lachesis_071Like lachesis = Lachesis_071Like(_lachesis);
         lachesis.setBehodler(behodler);
         return true;
     }
