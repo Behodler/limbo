@@ -1,6 +1,0 @@
-[
-  "function baseTokenMapping(address) view returns (address)",
-  "function drain(address)",
-  "function registerPyroToken(address)",
-  "function setLachesis(address)"
-]

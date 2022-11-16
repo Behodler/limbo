@@ -5,6 +5,7 @@
   "error BackrunDetected(address,address)",
   "error ExistingFlashGovernanceDecisionUnderReview(address,address)",
   "error FlashDecisionPending(address,address)",
+  "error FlashGovLockTimeMustExceedVoting(uint256,uint256)",
   "error FlashGovernanceDisabled(address)",
   "error FlashGovernanceEpochFull(uint256,uint256)",
   "error FlashToleranceViolated(uint256,uint256)",

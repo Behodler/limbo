@@ -4,6 +4,7 @@
   "function configureFlashGovernance(address,uint256,uint256,bool)",
   "function enforceTolerance(uint256,uint256) view",
   "function enforceToleranceInt(int256,int256) view",
+  "function flashGovernanceConfig() view returns (uint256, uint256, address, bool)",
   "function setEnforcement(bool)",
   "function setGoverned(address[],bool[])"
 ]

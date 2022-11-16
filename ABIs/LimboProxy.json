@@ -12,6 +12,7 @@
   "event Approval(address indexed,address indexed,uint256)",
   "event Transfer(address indexed,address indexed,uint256)",
   "function IS_PROXY() view returns (bool)",
+  "function ONE() view returns (uint256)",
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)",
   "function approveLimbo()",

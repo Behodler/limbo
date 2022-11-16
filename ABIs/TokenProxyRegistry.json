@@ -17,6 +17,7 @@
   "function setDAO(address)",
   "function setPower(address)",
   "function setProxy(address,address,address) returns (bool)",
+  "function setTokenApprover(address)",
   "function temporaryConfigurationLord() view returns (address)",
   "function tokenProxy(address) view returns (address, address)"
 ]

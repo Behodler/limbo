@@ -1,0 +1,8 @@
+[
+  "function cliffFaceMapping(address) view returns (address)",
+  "function config() view returns (address, address, address)",
+  "function morgothApprove(address,bool)",
+  "function morgothApproved(address) view returns (address)",
+  "function unmapCliffFace(address)",
+  "function updateConfig(address,address,address,address,address)"
+]

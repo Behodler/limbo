@@ -1,0 +1,20 @@
+[
+  "error CliffFaceGenerationBlocked(address)",
+  "error ContractNotInitialized()",
+  "error OnlyOwner(address,address)",
+  "error TokenAlreadyRegistered(address)",
+  "error TransferToZeroAddress()",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "function approved(address) view returns (bool)",
+  "function blockBaseToken(address,bool)",
+  "function blockedBaseTokens(address) view returns (bool)",
+  "function cliffFaceMapping(address) view returns (address)",
+  "function config() view returns (address, address, address, address, address)",
+  "function generateCliffFaceProxy(address,uint256,bool)",
+  "function morgothApprove(address,bool)",
+  "function morgothApproved(address) view returns (bool)",
+  "function owner() view returns (address)",
+  "function transferOwnership(address)",
+  "function unmapCliffFace(address)",
+  "function updateConfig(address,address,address,address,address)"
+]

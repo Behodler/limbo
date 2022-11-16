@@ -8,6 +8,6 @@
   "function lockDown()",
   "function locked() view returns (bool)",
   "function orchestrateExecute()",
-  "function parameterize(address,uint256,uint256,uint256,uint256,uint256,uint256)",
+  "function parameterize(address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,int256,bool)",
   "function setLocked(bool)"
 ]
