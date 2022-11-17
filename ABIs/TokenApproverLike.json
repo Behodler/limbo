@@ -1,4 +1,5 @@
 [
+  "function blockBaseToken(address,bool)",
   "function cliffFaceMapping(address) view returns (address)",
   "function config() view returns (address, address, address)",
   "function morgothApprove(address,bool)",

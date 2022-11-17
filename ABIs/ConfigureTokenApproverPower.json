@@ -12,6 +12,7 @@
   "function registry() view returns (address)",
   "function renounceOwnership()",
   "function setApprove(address[],bool[])",
+  "function setBlockBaseToken(address[],bool[])",
   "function setUnmapParams(address[])",
   "function setUpdateConfig(address,address,address,address,address)",
   "function transferOwnership(address)"

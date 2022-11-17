@@ -10,6 +10,7 @@ import "../libraries/AddressToString.sol";
 import * as Deployer from "../libraries/ProxyDeployer.sol";
 import "../libraries/ERC20MetadataHelper.sol";
 import "../facades/LimboProxyLike.sol";
+
 /**
 @author Justin Goro
 @notice Behodler needs protecting from malicious token listing or open listing of questionable projects. 
@@ -74,6 +75,9 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
   ///@notice in the event of botched generation
   function unmapCliffFace(address baseToken) public onlyOwner {
     cliffFaceMapping[baseToken] = address(0);
+    TokenProxyRegistryLike registry = TokenProxyRegistryLike(config.proxyRegistry);
+   (address limboProxy, ) =  registry.tokenProxy(baseToken);
+    TokenProxyRegistryLike(config.proxyRegistry).setProxy(baseToken,limboProxy,address(0));
   }
 
   /**
@@ -131,10 +135,10 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
     cliffFaceMapping[token] = cliffFaceAddress;
 
     //Clearer error speeds up deployment debugging
-    if (address(config.proxyRegistry) != address(0)) {
-  revert ContractNotInitialized();
+    if (address(config.proxyRegistry) == address(0)) {
+       revert ContractNotInitialized();
     }
-    TokenProxyRegistryLike(config.proxyRegistry).setProxy(token, cliffFaceAddress, limboToken);
+    TokenProxyRegistryLike(config.proxyRegistry).setProxy(token, limboToken,cliffFaceAddress);
   }
 
   function approved(address token) public view override returns (bool) {

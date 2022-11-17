@@ -1,7 +1,8 @@
 import { executionResult, numberClose, queryChain } from "./helpers";
 
 const { expect, assert } = require("chai");
-const { ethers, network } = require("hardhat");
+import { ethers, network } from "hardhat";
+import { BigNumber } from "ethers";
 const web3 = require("web3");
 import * as TypeChainTypes from "../typechain";
 
@@ -13,7 +14,7 @@ describe("DAO Proposals", function () {
   let owner, secondPerson, feeSetter, dai, eye, link, sushi;
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP;
-  let dao, proposalFactory, updateProposalConfigProposal,flashGovernance;
+  let dao: TypeChainTypes.LimboDAO, proposalFactory, updateProposalConfigProposal, flashGovernance;
   const zero = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async function () {
@@ -65,9 +66,9 @@ describe("DAO Proposals", function () {
     const LimboOracleFactory = await ethers.getContractFactory("LimboOracle");
     this.sushiOracle = await LimboOracleFactory.deploy(this.sushiSwapFactory.address, dao.address);
     this.uniOracle = await LimboOracleFactory.deploy(this.uniswapFactory.address, dao.address);
-    
+
     const sushiMetaPairCreator = await metaPairFactory(eye, this.sushiSwapFactory, false);
-    
+
     this.metaDaiEYESLP = await sushiMetaPairCreator(daiEYESLP);
     this.metaLinkEYESLP = await sushiMetaPairCreator(linkEYESLP);
     this.metaSushiEYESLP = await sushiMetaPairCreator(sushiEYESLP);
@@ -426,6 +427,25 @@ describe("DAO Proposals", function () {
     expect(assetApprovedAfter).to.be.false;
   });
 
+
+  async function timeRemainingOnProposal(): Promise<BigNumber> {
+    let currentProposalState = await dao.currentProposalState()
+
+    if (currentProposalState.decision != 0)
+      throw `ProposalNotInVoting(${currentProposalState.proposal})`
+
+    const latestBlockNumber = await ethers.provider.getBlockNumber()
+    const latestBlock = await ethers.provider.getBlock(latestBlockNumber)
+    const elapsed = BigNumber.from(latestBlock.timestamp).sub(currentProposalState.start)
+    // uint256 elapsed = block.timestamp - currentProposalState.start;
+    const votingDuration = (await dao.proposalConfig()).votingDuration
+    if (elapsed.gt(votingDuration)) {
+      return BigNumber.from(0)
+    }
+    else return votingDuration.sub(elapsed);
+
+  }
+
   it("t8. vote that flips decision in last hour extends voting for 2 hours, invalid votes revert", async function () {
     //lodge, parameterize and assert
     const requiredFate = (await dao.proposalConfig())[1];
@@ -452,7 +472,7 @@ describe("DAO Proposals", function () {
     //47*60*60+60  =169260
     await advanceTime(169260);
 
-    const timeRemainingBeforeSwingVote = (await dao.timeRemainingOnProposal()).toNumber();
+    const timeRemainingBeforeSwingVote = (await timeRemainingOnProposal()).toNumber()
     expect(timeRemainingBeforeSwingVote).to.be.greaterThan(3534);
     expect(timeRemainingBeforeSwingVote).to.be.lessThan(3537);
 
@@ -465,19 +485,19 @@ describe("DAO Proposals", function () {
     );
 
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "-10"); //same direction shouldn't change duration
-    const timeRemainingAfterSameDirectionVote = await dao.timeRemainingOnProposal();
+    const timeRemainingAfterSameDirectionVote = await timeRemainingOnProposal();
     let numberCloseResult = numberClose(timeRemainingAfterSameDirectionVote, 3535)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "200");
-    const timeRemainingAfterSwingVote = await dao.timeRemainingOnProposal();
+    const timeRemainingAfterSwingVote = await timeRemainingOnProposal();
     numberCloseResult = numberClose(timeRemainingAfterSwingVote, 10734)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     await advanceTime(10000);
 
     await dao.connect(secondPerson).vote(updateProposalConfigProposal.address, "100"); //same direction shouldn't change duration
-    const timeRemainingAfterSameDirectionVote2 = await dao.timeRemainingOnProposal();
+    const timeRemainingAfterSameDirectionVote2 = await timeRemainingOnProposal();
     numberCloseResult = numberClose(timeRemainingAfterSameDirectionVote2, 733)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 

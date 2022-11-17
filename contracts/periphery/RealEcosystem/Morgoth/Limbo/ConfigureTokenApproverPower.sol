@@ -31,6 +31,8 @@ abstract contract TokenApproverLike {
 
   ///@notice in the event of botched generation
   function unmapCliffFace(address baseToken) public virtual;
+
+  function blockBaseToken(address token, bool blocked) public virtual;
 }
 
 contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
@@ -51,15 +53,22 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
     address[] tokensToUnmap;
   }
 
+  struct BlockParams {
+    address[] tokensToBlock;
+    bool[] blockToken;
+  }
+
   ApproveParams approveParams;
   UpdateConfigParams updateConfigParams;
   UnmapParams unmapParams;
+  BlockParams blockParams;
 
   enum ExecutionChoice {
     Nothing,
     Approve,
     UpdateConfig,
-    Unmap
+    Unmap,
+    BlockBaseToken
   }
   ExecutionChoice public choice;
 
@@ -89,6 +98,15 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
   {
     approveParams.tokensToApprove = tokens;
     approveParams.approved = approved;
+  }
+
+  function setBlockBaseToken(address[] memory tokens, bool[] memory blockToken)
+    public
+    requiresPower("CONFIGURE_TOKEN_APPROVER")
+    setChoice(ExecutionChoice.BlockBaseToken)
+  {
+    blockParams.tokensToBlock = tokens;
+    blockParams.blockToken = blockToken;
   }
 
   function setUpdateConfig(
@@ -133,6 +151,11 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
       UnmapParams memory UP = unmapParams;
       for (uint256 i = 0; i < UP.tokensToUnmap.length; i++) {
         tokenApprover.unmapCliffFace(UP.tokensToUnmap[i]);
+      }
+    } else if (choice == ExecutionChoice.BlockBaseToken) {
+      BlockParams memory blocked = blockParams;
+      for (uint256 i = 0; i < blocked.tokensToBlock.length; i++) {
+        tokenApprover.blockBaseToken(blocked.tokensToBlock[i], blocked.blockToken[i]);
       }
     } else {
       return false;
