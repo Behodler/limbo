@@ -98,7 +98,8 @@ enum SoulState {
   unset,
   staking,
   waitingToCross,
-  crossedOver
+  crossedOver,
+  perpetualTerminated
 }
 enum SoulType {
   uninitialized,
@@ -113,6 +114,7 @@ struct Soul {
   SoulType soulType;
   SoulState state;
   uint256 flanPerSecond; // fps: we use a helper function to convert min APY into fps
+  uint256 aggregateStakedBalance; // this allows for crossOver to occur after perpetual, eliminating an attack vector
 }
 
 struct CrossingParameters {
@@ -143,6 +145,9 @@ library SoulLib {
   ) external pure returns (Soul memory) {
     soul.crossingThreshold = crossingThreshold;
     soul.flanPerSecond = fps;
+    if (SoulState(state) == SoulState.perpetualTerminated && SoulType(soulType) != SoulType.perpetual) {
+      revert ConflictingStateAndType(state, soulType);
+    }
     soul.state = SoulState(state);
     soul.soulType = SoulType(soulType);
     return soul;
@@ -175,13 +180,14 @@ library MigrationLib {
   using SafeERC20 for IERC20;
 
   /**
-   *@dev This lib serves to circumvent EIP 170 while also improving readability by ringfencing MorgothDAo logic from Limbo logic
+   *@dev This lib serves to circumvent EIP 170 while also improving readability by ringfencing MorgothDAO logic from Limbo logic
    *@param token to be migrated (or crossed over) from Limbo to Behodler
    *@param power MorgothDAO power is a spell of sorts that can perform a governance action on Morgoth. Powes have validation rules just like proposals in other DAOs. This power is considered to be prevalidated and ready for repeat execution by Limbo only.
    *@param crossingConfig rules for crossing over the token at hand
    */
   function migrate(
     address token,
+    uint256 aggregateStakedBalance,
     LimboAddTokenToBehodlerPowerLike power,
     CrossingParameters memory crossingParams,
     CrossingConfig memory crossingConfig,
@@ -190,6 +196,10 @@ library MigrationLib {
     power.parameterize(token, crossingParams.burnable);
     //invoke Angband execute on power that migrates token type to Behodler
     uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+
+    //prevents migrating perpetual stakers and errs on the side of security
+    tokenBalance = tokenBalance < aggregateStakedBalance ? tokenBalance : aggregateStakedBalance;
+
     IERC20(token).safeTransfer(crossingConfig.morgothPower, tokenBalance);
     IERC20 scx = IERC20(crossingConfig.behodler);
     uint256 scxBalance = scx.balanceOf(address(this));
@@ -306,12 +316,12 @@ contract Limbo is Governable {
     }
 
     uint256 finalTimeStamp = block.timestamp;
-    if (soul.state != SoulState.staking) {
+    if (soul.state != SoulState.staking && soul.soulType == SoulType.threshold) {
       finalTimeStamp = tokenCrossingParameters[token][index].stakingEndsTimestamp;
     }
-     uint256 soulLastRewardTimestamp = soul.lastRewardTimestamp;
+    uint256 soulLastRewardTimestamp = soul.lastRewardTimestamp;
     if (finalTimeStamp == soulLastRewardTimestamp) {
-     return soul;
+      return soul;
     }
 
     uint256 balance = IERC20(token).balanceOf(address(this));
@@ -395,7 +405,15 @@ contract Limbo is Governable {
     uint256 index,
     uint256 fps
   ) public onlySoulUpdateProposal {
-    latestIndex[token] = index > latestIndex[token] ? latestIndex[token] + 1 : latestIndex[token];
+    uint256 current = latestIndex[token];
+    if (index < current) {
+      revert ConfiguringOldSoulsForbidden(token, current, index);
+    }
+    if (index > current && souls[token][current].state == SoulState.staking) {
+      revert StakingInProgress(token, current);
+    }
+
+    latestIndex[token] = index > current ? current + 1 : current;
 
     Soul memory soul = souls[token][index];
     if (soul.state != SoulState.unset && SoulState(state) == SoulState.unset) revert CannotFallBackIntoUnset(token);
@@ -479,18 +497,16 @@ contract Limbo is Governable {
     uint256 _latestIndex = latestIndex[token];
     index = index > _latestIndex ? _latestIndex : index;
     Soul memory soul = souls[token][index];
-    if (
-      (index == _latestIndex && (soul.state == SoulState.unset || soul.state == SoulState.waitingToCross)) ||
-      (index < _latestIndex && soul.state != SoulState.crossedOver)
-    ) {
+    if (soul.state == SoulState.crossedOver || soul.state == SoulState.waitingToCross) {
       revert InvalidSoulState(token, index, uint256(soul.state));
     }
-    soul = previewSoulUpdate(token, index);
 
+    soul = previewSoulUpdate(token, index);
     User storage user = userInfo[token][holder][index];
     if (user.stakedAmount < amount) {
       revert ExcessiveWithdrawalRequest(token, amount, user.stakedAmount);
     }
+    soul.aggregateStakedBalance -= amount;
 
     uint256 pending = getPending(user, soul);
     if (amount > 0) {
@@ -590,6 +606,7 @@ contract Limbo is Governable {
     }
 
     (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
+      soul.aggregateStakedBalance,
       LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),
       tokenCrossingParameters[token][latestIndex[token]],
       crossingConfig,
@@ -632,6 +649,7 @@ contract Limbo is Governable {
     uint256 newBalance = IERC20(token).balanceOf(address(this));
 
     user.stakedAmount = user.stakedAmount + amount;
+    soul.aggregateStakedBalance += amount;
     if (soul.soulType == SoulType.threshold && newBalance > soul.crossingThreshold) {
       soul.state = SoulState.waitingToCross;
       tokenCrossingParameters[token][latestIndex[token]].stakingEndsTimestamp = block.timestamp;

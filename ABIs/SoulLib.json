@@ -1,3 +1,4 @@
 [
-  "function set(tuple(uint256,uint256,uint256,SoulType,SoulState,uint256),uint256,uint256,uint256,uint256) pure returns (tuple(uint256,uint256,uint256,SoulType,SoulState,uint256))"
+  "error ConflictingStateAndType(uint256,uint256)",
+  "function set(tuple(uint256,uint256,uint256,SoulType,SoulState,uint256,uint256),uint256,uint256,uint256,uint256) pure returns (tuple(uint256,uint256,uint256,SoulType,SoulState,uint256,uint256))"
 ]

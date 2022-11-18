@@ -1,14 +1,11 @@
-# Morgoth Token Approver
-Fully tested. 
-Functionality:
-On Morgoth, there's a power called ConfigureTokenApprover. It gives the ability to configure the token approver and requires a new power to be conferred to the desired minion. In this test, we're assinging the power to a new minion and so functionality of Morgoth is tested here as well. This constitutes a partial integration test.
+# Limbo.sol
+## Attack vector opened by perpetual leniancy
+Suppose we have a token listed as perpetual and want to list a token as threshold. If we bring perpetual staking to a close (new state added to SoulState enum), then we can propose a new round of staking for a threshold version. The problem is that in migration logic, the entire balance of the token on Limbo is migrated which would steal all the perpetual tokens not yet unstaked. 
+Soul now has an aggregateStakedBalance for migration logic so that perpetual pools are left unaffected.
+This technically allows for having the same token in staking state multiple times concurrently. However, this isn't permitted simply to protect Limbo from griefing or unforeseen attack vectors.
 
-The following avenue exist for the community to list new tokens on Limbo:
-1. Propose a token which is whitelisted by MorgothTokenApprover
-2. Wrap any token which isn't blacklisted on MorgothTokenApprover
-3. Perpetual tokens are all fair game. This means that if a user stakes in a perpetual token pool, they should beware of evil tokens. It is as permissionless as Uniswap but requires a proposal to pass.
-Thought: I wonder if proposers should be required to stake EYE which the community can burn like with flash governance. In other words, intentionally bad proposals can be slashed.
+So for now the governance flow for transitioning from perpetual to threshold must be:
+1. Change latest token state to perpetual terminated
+2. Set higher index to threshold
 
-# EIP 170 strikes again 
-Some deadwood code was cut away from LimboDAO because of that annoyingly arbitrary EIP 170
-Tests fail which rely on it. What was a helper method on LimboDAO has been moved into the tests as an in test helper function
+New tests have been added to limbo.test.ts and some static typing has been added to assist with speed of testing.

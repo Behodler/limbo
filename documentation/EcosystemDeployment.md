@@ -149,3 +149,5 @@ Default lock time 6 days.
 4. ProposalFactory
 5. Morgoth.mapDomain SoulConfigUpdateProposal
 ....
+
+TODO: make limbo a morgoth minion so that it can migrate
