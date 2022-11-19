@@ -144,11 +144,7 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
   function approved(address token) public view override returns (bool) {
     if (morgothApproved[token]) return true;
 
-    //if this is a registered cliffFace token, else return false
-    try TokenProxyBase(token).baseToken() returns (address base) {
-      return cliffFaceMapping[token] == base;
-    } catch {
-      return false;
-    }
+    return cliffFaceMapping[token] !=address(0);
+   
   }
 }

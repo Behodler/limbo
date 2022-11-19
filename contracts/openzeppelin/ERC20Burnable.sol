@@ -8,14 +8,6 @@ pragma solidity 0.8.16;
 import "./IERC20.sol";
 import "./Ownable.sol";
 import "../periphery/Errors.sol";
-
-// import "hardhat/console.sol";
-
-// import "hardhat/console.sol";
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
- */
-
 // File temp/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
 /**
@@ -191,7 +183,7 @@ contract ERC20 is IERC20, IERC20Metadata {
     _transfer(sender, recipient, amount);
     uint256 currentAllowance = _allowances[sender][msg.sender];
 
-    if (currentAllowance != type(uint).max && amount > currentAllowance) {
+    if (currentAllowance != type(uint256).max && amount > currentAllowance) {
       revert AllowanceExceeded(currentAllowance, amount);
     }
     _approve(sender, msg.sender, currentAllowance - amount);

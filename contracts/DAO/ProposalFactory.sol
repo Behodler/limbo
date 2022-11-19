@@ -29,6 +29,12 @@ abstract contract Proposal {
     _;
   }
 
+  modifier unlocked {
+    if(locked)
+    revert ProposalLocked(address(this));
+    _;
+  }
+
   //decorate parameterization functions with this to prevent MEV calibration attacks
   modifier lockUntilComplete() {
     if(locked){

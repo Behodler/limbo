@@ -14,6 +14,9 @@ interface TestContracts {
   behodler: Types.Behodler,
   lachesis: Types.Lachesis,
   angband: Types.Angband
+  flan: Types.Flan
+  eye: Types.MockToken
+  proposalFactory: Types.ProposalFactory
 }
 
 enum SoulType {
@@ -60,9 +63,9 @@ describe.only("Limbo", function () {
     aave = await this.TokenFactory.deploy("aave", "aave") as Types.MockToken
     link = await this.TokenFactory.deploy("LINK", "LINK");
     sushi = await this.TokenFactory.deploy("SUSHI", "SUSHI");
-    this.eye = (await this.TokenFactory.deploy("this.eye", "this.eye")) as Types.ERC20Burnable;
+    SET.eye = (await this.TokenFactory.deploy("SET.eye", "SET.eye")) as Types.MockToken;
 
-    const createSLP = await metaPairFactory(this.eye, this.sushiSwapFactory, false);
+    const createSLP = await metaPairFactory(SET.eye, this.sushiSwapFactory, false);
     daieyeSLP = await createSLP(this.dai);
     linkeyeSLP = await createSLP(link);
     sushieyeSLP = await createSLP(sushi);
@@ -70,7 +73,7 @@ describe.only("Limbo", function () {
     const createDAISLP = await metaPairFactory(this.dai, this.sushiSwapFactory);
     daiSushiSLP = await createDAISLP(sushi);
 
-    const createULP = await metaPairFactory(this.eye, this.uniswapFactory);
+    const createULP = await metaPairFactory(SET.eye, this.uniswapFactory);
     daieyeULP = await createULP(this.dai);
     linkeyeULP = await createULP(link);
     sushieyeULP = await createULP(sushi);
@@ -96,16 +99,16 @@ describe.only("Limbo", function () {
 
     await flashGovernance.configureSecurityParameters(10, 100, 30);
 
-    // await this.eye.approve(SET.limbo.address, 2000);
-    await flashGovernance.configureFlashGovernance(this.eye.address, 1000, 10, true);
+    // await SET.eye.approve(SET.limbo.address, 2000);
+    await flashGovernance.configureFlashGovernance(SET.eye.address, 1000, 10, true);
 
     const FlanFactory = await ethers.getContractFactory("Flan");
-    this.flan = await FlanFactory.deploy(SET.limboDAO.address);
-    await this.flan.setMintConfig("100000000000000000000000000000000000", 0);
+    SET.flan = await FlanFactory.deploy(SET.limboDAO.address) as Types.Flan
+    await SET.flan.setMintConfig("100000000000000000000000000000000000", 0);
     const createGov = await metaPairFactory(this.SCX, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000000");
+    await SET.flan.mint(owner.address, "100000000000000000000000");
     //we need Dai/SCX, FLN/SCX and SCX/(FLN/SCX)
-    this.flanSCX = await createGov(this.flan);
+    this.flanSCX = await createGov(SET.flan);
     this.daiSCX = await createGov(this.dai);
 
     const CreateMetaflanSCX = await metaPairFactory(this.flanSCX, this.uniswapFactory, false);
@@ -136,7 +139,7 @@ describe.only("Limbo", function () {
       },
     });
     SET.limbo = await LimboFactory.deploy(
-      this.flan.address,
+      SET.flan.address,
       //  10000000,
       SET.limboDAO.address
     ) as Types.Limbo;
@@ -144,9 +147,9 @@ describe.only("Limbo", function () {
     //enable flash governance on Limbo
     await flashGovernance.setGoverned([SET.limbo.address], [true]);
 
-    await this.flan.whiteListMinting(SET.limbo.address, true);
-    await this.flan.whiteListMinting(owner.address, true);
-    // await this.flan.endConfiguration(SET.limboDAO.address);
+    await SET.flan.whiteListMinting(SET.limbo.address, true);
+    await SET.flan.whiteListMinting(owner.address, true);
+    // await SET.flan.endConfiguration(SET.limboDAO.address);
 
     const addTokenPowerFactory = await ethers.getContractFactory("MockAddTokenPower");
     this.addTokenPower = await addTokenPowerFactory.deploy(
@@ -169,22 +172,22 @@ describe.only("Limbo", function () {
     await this.uniOracle.RegisterPair(this.daiSCX.address, 1);
     await this.uniOracle.RegisterPair(SCX_fln_scx.address, 1);
 
-    const sushiMetaPairCreator = await metaPairFactory(this.eye, this.sushiSwapFactory, false);
+    const sushiMetaPairCreator = await metaPairFactory(SET.eye, this.sushiSwapFactory, false);
     this.metadaieyeSLP = await sushiMetaPairCreator(daieyeSLP);
     this.metalinkeyeSLP = await sushiMetaPairCreator(linkeyeSLP);
     this.metasushieyeSLP = await sushiMetaPairCreator(sushieyeSLP);
 
-    const uniMetaPairCreator = await metaPairFactory(this.eye, this.uniswapFactory);
+    const uniMetaPairCreator = await metaPairFactory(SET.eye, this.uniswapFactory);
     this.metadaieyeULP = await uniMetaPairCreator(daieyeULP);
     this.metalinkeyeULP = await uniMetaPairCreator(linkeyeULP);
     this.metasushieyeULP = await uniMetaPairCreator(sushieyeULP);
 
-    this.sushiTrade = await tradeOn(sushiRouter, this.eye);
+    this.sushiTrade = await tradeOn(sushiRouter, SET.eye);
     await this.sushiTrade(this.dai);
     await this.sushiTrade(link);
     await this.sushiTrade(sushi);
 
-    this.uniTrade = await tradeOn(uniRouter, this.eye);
+    this.uniTrade = await tradeOn(uniRouter, SET.eye);
     await this.uniTrade(this.dai);
     await this.uniTrade(link);
     await this.uniTrade(sushi);
@@ -204,7 +207,7 @@ describe.only("Limbo", function () {
 
     //  const flanSCXPair = await this.sushiSwapFactory.
     this.ProposalFactoryFactory = await ethers.getContractFactory("ProposalFactory");
-    this.proposalFactory = await this.ProposalFactoryFactory.deploy(
+    SET.proposalFactory = await this.ProposalFactoryFactory.deploy(
       SET.limboDAO.address,
       this.whiteListingProposal.address,
       this.soulUpdateProposal.address
@@ -212,9 +215,9 @@ describe.only("Limbo", function () {
 
     await SET.limboDAO.seed(
       SET.limbo.address,
-      this.flan.address,
-      this.eye.address,
-      this.proposalFactory.address,
+      SET.flan.address,
+      SET.eye.address,
+      SET.proposalFactory.address,
       this.sushiOracle.address,
       this.uniOracle.address,
       [this.metadaieyeSLP.address, this.metalinkeyeSLP.address, this.metasushieyeSLP.address],
@@ -230,7 +233,7 @@ describe.only("Limbo", function () {
       linkeyeULP,
       sushieyeULP,
       daiSushiULP,
-      this.eye,
+      SET.eye,
     ];
     for (let i = 0; i < allAssets.length; i++) {
       await allAssets[i].approve(
@@ -247,7 +250,7 @@ describe.only("Limbo", function () {
 
     const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
     SET.uniswapHelper = await UniswapHelperFactory.deploy(SET.limbo.address, SET.limboDAO.address) as Types.UniswapHelper
-    await this.flan.whiteListMinting(SET.uniswapHelper.address, true);
+    await SET.flan.whiteListMinting(SET.uniswapHelper.address, true);
 
     const migrationTokenPairFactory = await ethers.getContractFactory("MockMigrationUniPair");
     this.migrationTokenPair = await migrationTokenPairFactory.deploy("uni", "uni");
@@ -258,7 +261,7 @@ describe.only("Limbo", function () {
     await SET.uniswapHelper.configure(
       SET.limbo.address,
       this.mockBehodler.address,
-      this.flan.address,
+      SET.flan.address,
       0,
       this.uniOracle.address
     );
@@ -274,7 +277,7 @@ describe.only("Limbo", function () {
       10000
     );
 
-    toggleWhiteList = toggleWhiteListFactory(this.eye, SET.limboDAO, this.whiteListingProposal, this.proposalFactory);
+    toggleWhiteList = toggleWhiteListFactory(SET.eye, SET.limboDAO, this.whiteListingProposal, SET.proposalFactory);
 
     const TokenProxyRegistry = await ethers.getContractFactory("TokenProxyRegistry");
     SET.proxyRegistry = await TokenProxyRegistry.deploy(
@@ -285,7 +288,7 @@ describe.only("Limbo", function () {
     console.log("end of setup");
   });
 
-  const advanceTime = async (seconds) => {
+  const advanceTime = async (seconds: number) => {
     await network.provider.send("evm_increaseTime", [seconds]); //6 hours
     await network.provider.send("evm_mine");
   };
@@ -520,7 +523,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureSoul(aave.address, 10000000, 1, 1, 0, 10000000);
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const flanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     //stake tokens
     await aave.approve(SET.limbo.address, "10000001");
@@ -530,7 +533,7 @@ describe.only("Limbo", function () {
 
     //stake enough tokens to cross threshold
     await SET.limbo.stake(aave.address, "9990001");
-    const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
+    const flanImmediatelyAfterSecondStake = await SET.flan.balanceOf(owner.address);
     const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
     assert.isTrue(flanBalanceChangeAgterSecondStake.gt("900000000000") && flanBalanceChangeAgterSecondStake.lt("900050000000"), flanBalanceChangeAgterSecondStake.toString())
 
@@ -541,7 +544,7 @@ describe.only("Limbo", function () {
     //claim
 
     await SET.limbo.claimReward(aave.address, 0);
-    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const flanBalanceAfter = await SET.flan.balanceOf(owner.address);
 
     expect(flanBalanceAfter.sub(flanImmediatelyAfterSecondStake).toString()).to.equal("0");
   });
@@ -554,7 +557,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const flanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     //stake tokens
     await aave.approve(SET.limbo.address, "10000001");
@@ -573,7 +576,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.claimBonus(aave.address, 0);
 
-    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const flanBalanceAfter = await SET.flan.balanceOf(owner.address);
     const lowerLimit = BigInt("900000000210");
     const upperLimit = BigInt("900020000210");
     const difference = BigInt(flanBalanceAfter.sub(flanBalanceBefore).toString());
@@ -588,7 +591,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const flanBalanceBefore = await SET.flan.balanceOf(owner.address);
     //stake tokens
     await aave.approve(SET.limbo.address, "10000001");
     await SET.limbo.stake(aave.address, "10000");
@@ -604,7 +607,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.claimBonus(aave.address, 0);
 
-    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const flanBalanceAfter = await SET.flan.balanceOf(owner.address);
     const increase = flanBalanceAfter.sub(flanBalanceBefore);
     let numberCloseResult = numberClose(increase, 900019000410)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
@@ -618,7 +621,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const flanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     //stake tokens
     await aave.approve(SET.limbo.address, "10000001");
@@ -635,7 +638,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.claimBonus(aave.address, 0);
 
-    const flanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const flanBalanceAfter = await SET.flan.balanceOf(owner.address);
     const lowerBound = "440010199559";
     const upperBound = "440030199559";
     const change = flanBalanceAfter.sub(flanBalanceBefore);
@@ -667,7 +670,7 @@ describe.only("Limbo", function () {
 
     //set flash loan params
     await flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
@@ -680,7 +683,7 @@ describe.only("Limbo", function () {
     await expect(SET.limbo.adjustSoul(aave.address, 1, 10, 200)).to.be.revertedWith("AllowanceExceeded(0, 21000000)");
 
     //stake requisite tokens, try again and succeed.
-    await this.eye.approve(flashGovernance.address, 21000000);
+    await SET.eye.approve(flashGovernance.address, 21000000);
     await SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001);
 
     const newStates = await this.soulReader.CrossingParameters(aave.address, SET.limbo.address);
@@ -694,7 +697,7 @@ describe.only("Limbo", function () {
   it("t-7.1 flashGovernance lock window must be greater than proposal duration, both when setting through Arbiter or LimboDAO", async function () {
 
     await expect(flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       172800 - 1, //1 second less than 2 days.
       true // asset is burnable
@@ -702,7 +705,7 @@ describe.only("Limbo", function () {
 
 
     flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       172800 + 1, //1 second more than 2 days.
       true // asset is burnable
@@ -712,17 +715,17 @@ describe.only("Limbo", function () {
     const proposal = await deploy<Types.UpdateProposalConfigProposal>(UpdateProposalConfigFactory, SET.limboDAO.address, "prop")
     await toggleWhiteList(proposal.address)
     await proposal.parameterize(
-      172800 + 2, 100, this.proposalFactory.address)
+      172800 + 2, 100, SET.proposalFactory.address)
 
     const requireFate = (await SET.limboDAO.proposalConfig())[1];
-    await this.eye.mint(requireFate.mul("1000000000000"));
-    await this.eye.approve(
+    await SET.eye.mint(requireFate.mul("1000000000000"));
+    await SET.eye.approve(
       SET.limboDAO.address,
       "115792089237316195423570985008687907853269984665640564039457584007913129639935"
     );
-    await SET.limboDAO.burnAsset(this.eye.address, requireFate, false)
+    await SET.limboDAO.burnAsset(SET.eye.address, requireFate, false)
 
-    await this.proposalFactory.lodgeProposal(proposal.address)
+    await SET.proposalFactory.lodgeProposal(proposal.address)
     await SET.limboDAO.vote(proposal.address, 1000)
 
     let configBefore = await SET.limboDAO.proposalConfig()
@@ -734,16 +737,16 @@ describe.only("Limbo", function () {
       configBefore.votingDuration.toNumber())
 
     await proposal.parameterize(
-      171800, 100, this.proposalFactory.address)
+      171800, 100, SET.proposalFactory.address)
 
-    await this.eye.mint(requireFate.mul("1000000000000"));
-    await this.eye.approve(
+    await SET.eye.mint(requireFate.mul("1000000000000"));
+    await SET.eye.approve(
       SET.limboDAO.address,
       "115792089237316195423570985008687907853269984665640564039457584007913129639935"
     );
-    await SET.limboDAO.burnAsset(this.eye.address, requireFate, false)
+    await SET.limboDAO.burnAsset(SET.eye.address, requireFate, false)
 
-    await this.proposalFactory.lodgeProposal(proposal.address)
+    await SET.proposalFactory.lodgeProposal(proposal.address)
     await SET.limboDAO.vote(proposal.address, 1000)
 
     configBefore = await SET.limboDAO.proposalConfig()
@@ -757,7 +760,7 @@ describe.only("Limbo", function () {
   it("t-8. flashGovernance adjust configureCrossingParameters", async function () {
     //set flash loan params
     await flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
@@ -765,18 +768,18 @@ describe.only("Limbo", function () {
     await flashGovernance.endConfiguration(SET.limboDAO.address);
     //end configuration
     await SET.limbo.endConfiguration(SET.limboDAO.address);
-    await this.eye.approve(flashGovernance.address, 21000000);
+    await SET.eye.approve(flashGovernance.address, 21000000);
     await SET.limbo.configureCrossingParameters(aave.address, 1, 1, true, 10000010);
 
-    await expect(flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address)).to.be.revertedWith(
+    await expect(flashGovernance.withdrawGovernanceAsset(SET.limbo.address, SET.eye.address)).to.be.revertedWith(
       "FlashDecisionPending"
     );
 
     await advanceTime(604801);
 
-    this.eyeBalanceBefore = await this.eye.balanceOf(owner.address);
-    await flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address);
-    this.eyeBalanceAfter = await this.eye.balanceOf(owner.address);
+    this.eyeBalanceBefore = await SET.eye.balanceOf(owner.address);
+    await flashGovernance.withdrawGovernanceAsset(SET.limbo.address, SET.eye.address);
+    this.eyeBalanceAfter = await SET.eye.balanceOf(owner.address);
 
     expect(this.eyeBalanceAfter.sub(this.eyeBalanceBefore).toString()).to.equal("21000000");
   });
@@ -784,7 +787,7 @@ describe.only("Limbo", function () {
   it("t-9. burn asset for flashGov decision", async function () {
     //set flash loan params
     await flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
@@ -794,20 +797,20 @@ describe.only("Limbo", function () {
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
     //make flashgovernance decision.
-    await this.eye.approve(flashGovernance.address, 21000000);
+    await SET.eye.approve(flashGovernance.address, 21000000);
 
     // //we need fate to lodge proposal.
     const requiredFate = (await SET.limboDAO.proposalConfig())[1];
     this.eyeToBurn = requiredFate.mul(2).div(10).add(1);
-    await this.eye.approve(SET.limboDAO.address, this.eyeToBurn.mul(100));
-    await SET.limboDAO.burnAsset(this.eye.address, this.eyeToBurn, false);
+    await SET.eye.approve(SET.limboDAO.address, this.eyeToBurn.mul(100));
+    await SET.limboDAO.burnAsset(SET.eye.address, this.eyeToBurn, false);
 
     //configure and lodge proposal
     const burnFlashStakeProposalFactory = await ethers.getContractFactory("BurnFlashStakeDeposit");
     const burnFlashStakeProposal = await burnFlashStakeProposalFactory.deploy(SET.limboDAO.address, "burnFlash");
     await burnFlashStakeProposal.parameterize(
       owner.address,
-      this.eye.address,
+      SET.eye.address,
       "21000000",
       flashGovernance.address,
       SET.limbo.address
@@ -815,9 +818,9 @@ describe.only("Limbo", function () {
 
     await toggleWhiteList(burnFlashStakeProposal.address);
 
-    this.eyeBefore = await this.eye.balanceOf(owner.address);
+    this.eyeBefore = await SET.eye.balanceOf(owner.address);
     await SET.limbo.configureCrossingParameters(aave.address, 1, 1, true, 10000010);
-    this.eyeAfter = await this.eye.balanceOf(owner.address);
+    this.eyeAfter = await SET.eye.balanceOf(owner.address);
 
     expect(this.eyeBefore.sub(this.eyeAfter).toString()).to.equal("21000000");
 
@@ -831,16 +834,16 @@ describe.only("Limbo", function () {
     expect(pendingFlashDecisionBefore[0]).to.equal("21000000");
     let numberCloseResult = numberClose(pendingFlashDecisionBefore[1], 1754463648)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
-    expect(pendingFlashDecisionBefore[2]).to.equal(this.eye.address);
+    expect(pendingFlashDecisionBefore[2]).to.equal(SET.eye.address);
     expect(pendingFlashDecisionBefore[3]).to.equal(true);
     //assert pendingFlashDecision after
 
-    await this.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
+    await SET.proposalFactory.lodgeProposal(burnFlashStakeProposal.address);
     let currentProposal = (await SET.limboDAO.currentProposalState())[4];
     expect(currentProposal.toString() !== "0x0000000000000000000000000000000000000000").to.be.true;
 
     //get more fate to vote
-    await SET.limboDAO.burnAsset(this.eye.address, "10000", false);
+    await SET.limboDAO.burnAsset(SET.eye.address, "10000", false);
 
     //vote on proposal
     await SET.limboDAO.vote(burnFlashStakeProposal.address, "10000");
@@ -850,26 +853,26 @@ describe.only("Limbo", function () {
     //fast forward time to after voting round finishes but before flash asset unlocked
     await advanceTime(advancement.toNumber()); //more time
 
-    //assert this.eye locked for user
+    //assert SET.eye locked for user
     const pendingBeforeAttempt = await flashGovernance.pendingFlashDecision(SET.limbo.address, owner.address);
     expect(pendingBeforeAttempt[0].toString()).to.equal("21000000");
 
     //try to withdraw flash gov asset and fail. Assert money still there
-    await expect(flashGovernance.withdrawGovernanceAsset(SET.limbo.address, this.eye.address)).to.be.revertedWith(
+    await expect(flashGovernance.withdrawGovernanceAsset(SET.limbo.address, SET.eye.address)).to.be.revertedWith(
       "FlashDecisionPending"
     );
 
     //execute burn proposal
 
-    this.eyeTotalsupplyBefore = await this.eye.totalSupply();
-    this.eyeInFlashGovBefore = await this.eye.balanceOf(flashGovernance.address);
+    this.eyeTotalsupplyBefore = await SET.eye.totalSupply();
+    this.eyeInFlashGovBefore = await SET.eye.balanceOf(flashGovernance.address);
 
     await SET.limboDAO.executeCurrentProposal();
 
-    this.eyeInFlashGovAfter = await this.eye.balanceOf(flashGovernance.address);
-    this.eyeTotalsupplyAfter = await this.eye.totalSupply();
+    this.eyeInFlashGovAfter = await SET.eye.balanceOf(flashGovernance.address);
+    this.eyeTotalsupplyAfter = await SET.eye.totalSupply();
 
-    //assert this.eye has declined by 21000000
+    //assert SET.eye has declined by 21000000
     expect(this.eyeInFlashGovBefore.sub(this.eyeInFlashGovAfter).toString()).to.equal("21000000");
     expect(this.eyeTotalsupplyBefore.sub(this.eyeTotalsupplyAfter).toString()).to.equal("21000000");
 
@@ -909,11 +912,11 @@ describe.only("Limbo", function () {
 
     const expectedFlanLowerbound = Number((10000000n * 400001n) / 1000000n);
 
-    const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceBefore = await SET.flan.balanceOf(owner.address);
     const expectedFlanUpperbound = Number((10000000n * 400006n) / 1000000n);
 
     await SET.limbo.unstake(aave.address, 4000);
-    const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceAfter = await SET.flan.balanceOf(owner.address);
 
     const userInfoAfterUnstake = await SET.limbo.userInfo(aave.address, owner.address, 0);
 
@@ -946,10 +949,10 @@ describe.only("Limbo", function () {
 
     await advanceTime(400000);
 
-    const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     await SET.limbo.unstake(aave.address, 4000);
-    const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceAfter = await SET.flan.balanceOf(owner.address);
 
     const userInfoAfterUnstake = await SET.limbo.userInfo(aave.address, owner.address, 0);
 
@@ -988,10 +991,10 @@ describe.only("Limbo", function () {
 
     const expectedFlanUpperRange = Number((flanPerSecond * 400003n) / (4n * 1000000n)); // quarter rewards because sharing with other token
 
-    const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     await SET.limbo.unstake(aave.address, 4000);
-    const userFlanBalanceAfter = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceAfter = await SET.flan.balanceOf(owner.address);
 
     const userInfoAfterUnstake = await SET.limbo.userInfo(aave.address, owner.address, 0);
 
@@ -1047,12 +1050,12 @@ describe.only("Limbo", function () {
 
     const proposalConfig = await SET.limboDAO.proposalConfig();
     const requiredFate = proposalConfig[1].mul(2);
-    await this.eye.approve(SET.limboDAO.address, requiredFate);
-    await this.eye.mint(requiredFate);
-    await SET.limboDAO.burnAsset(this.eye.address, requiredFate, false);
+    await SET.eye.approve(SET.limboDAO.address, requiredFate);
+    await SET.eye.mint(requiredFate);
+    await SET.limboDAO.burnAsset(SET.eye.address, requiredFate, false);
 
     await toggleWhiteList(updateSoulConfigProposal.address);
-    await this.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
+    await SET.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
 
     await SET.limboDAO.vote(updateSoulConfigProposal.address, 1000);
 
@@ -1077,10 +1080,10 @@ describe.only("Limbo", function () {
       10 //fps
     );
 
-    await this.eye.approve(SET.limboDAO.address, requiredFate);
-    await this.eye.mint(requiredFate);
-    await SET.limboDAO.burnAsset(this.eye.address, requiredFate, false);
-    await this.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
+    await SET.eye.approve(SET.limboDAO.address, requiredFate);
+    await SET.eye.mint(requiredFate);
+    await SET.limboDAO.burnAsset(SET.eye.address, requiredFate, false);
+    await SET.proposalFactory.lodgeProposal(updateSoulConfigProposal.address);
 
     await SET.limboDAO.vote(updateSoulConfigProposal.address, 1000);
 
@@ -1170,11 +1173,11 @@ describe.only("Limbo", function () {
 
     await advanceTime(1000);
 
-    const flanBeforeFirstClaim = await this.flan.balanceOf(owner.address);
+    const flanBeforeFirstClaim = await SET.flan.balanceOf(owner.address);
     await SET.limbo.claimReward(aave.address, 0);
-    const flanAfterFirstClaim = await this.flan.balanceOf(owner.address);
+    const flanAfterFirstClaim = await SET.flan.balanceOf(owner.address);
     await SET.limbo.claimReward(aave.address, 0);
-    const flanAfterSecondClaim = await this.flan.balanceOf(owner.address);
+    const flanAfterSecondClaim = await SET.flan.balanceOf(owner.address);
 
     expect(flanAfterFirstClaim.gt(flanBeforeFirstClaim));
     expect(flanAfterSecondClaim).to.equal(flanAfterFirstClaim.add("10000000"));
@@ -1251,7 +1254,7 @@ describe.only("Limbo", function () {
     await SET.uniswapHelper.configure(
       SET.limbo.address,
       this.mockBehodler.address,
-      this.flan.address,
+      SET.flan.address,
       0,
       this.uniOracle.address
     );
@@ -1325,7 +1328,7 @@ describe.only("Limbo", function () {
 
     const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
 
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
+    await realUniswapFactory.createPair(realBehodler.address, SET.flan.address);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -1335,11 +1338,11 @@ describe.only("Limbo", function () {
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000");
-    const realflanSCX = await createGov(this.flan);
+    await SET.flan.mint(owner.address, "100000000000000000000");
+    const realflanSCX = await createGov(SET.flan);
     const realdaiSCX = await createGov(this.dai);
     await realBehodler.transfer(realflanSCX.address, scxBalanceGenerated.div(10));
-    await this.flan.mint(realflanSCX.address, "3000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "3000000000000000000");
 
     // await realflanSCX.mint(owner.address);
 
@@ -1364,7 +1367,7 @@ describe.only("Limbo", function () {
     await advanceTime(6000);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await advanceTime(4000);
 
@@ -1381,7 +1384,7 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
     await advanceTime(10000);
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
 
@@ -1390,7 +1393,7 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
     await advanceTime(10000);
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
     await this.uniOracle.updatePair(realdaiSCX.address);
@@ -1398,7 +1401,7 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
     await advanceTime(10000);
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
     let result = await executionResult(
@@ -1421,7 +1424,7 @@ describe.only("Limbo", function () {
       SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
-        this.flan.address,
+        SET.flan.address,
         0,
         this.uniOracle.address
       )
@@ -1466,7 +1469,7 @@ describe.only("Limbo", function () {
 
     const blackHoleBalanceBefore = await realflanSCX.balanceOf(blackHoleAddress);
 
-    const flanPairBalanceBefore = await this.flan.balanceOf(realflanSCX.address);
+    const flanPairBalanceBefore = await SET.flan.balanceOf(realflanSCX.address);
 
     let numberCloseResult = numberClose(scxBalanceOfPairBefore, '129565000000000000000')
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
@@ -1484,7 +1487,7 @@ describe.only("Limbo", function () {
 
     expect(blackHoleBalanceAfter.gt(blackHoleBalanceBefore)).to.be.true;
 
-    const flanPairBalanceAfter = await this.flan.balanceOf(realflanSCX.address);
+    const flanPairBalanceAfter = await SET.flan.balanceOf(realflanSCX.address);
     const scxBalanceOfPairAfter = await realBehodler.balanceOf(realflanSCX.address);
 
     const flanToSCXRatio = flanPairBalanceAfter.mul(1000).div(scxBalanceOfPairAfter)
@@ -1539,7 +1542,7 @@ describe.only("Limbo", function () {
     result = await executionResult(SET.limbo.migrate(mock1.address, mock1LatestIndex));
     expect(result.success).to.equal(true, result.error);
 
-    const flanBalanceAfterSecondMigrate = await this.flan.balanceOf(realflanSCX.address);
+    const flanBalanceAfterSecondMigrate = await SET.flan.balanceOf(realflanSCX.address);
     const scxBalanceOfPairAfterSecondMigrate = await realBehodler.balanceOf(realflanSCX.address);
 
     const ratio = flanBalanceAfterSecondMigrate.mul(1000).div(scxBalanceOfPairAfterSecondMigrate);
@@ -1575,7 +1578,7 @@ describe.only("Limbo", function () {
     await SET.uniswapHelper.configure(
       SET.limbo.address,
       realBehodler.address,
-      this.flan.address,
+      SET.flan.address,
       10, //10% price overshoot on flan means 10% less flan minted,
       this.uniOracle.address
     );
@@ -1593,7 +1596,7 @@ describe.only("Limbo", function () {
     const mock2LatestIndex = await SET.limbo.latestIndex(mock2.address)
     await SET.limbo.migrate(mock2.address, mock2LatestIndex);
 
-    const flanBalanceAfterThirdMigrate = await this.flan.balanceOf(realflanSCX.address);
+    const flanBalanceAfterThirdMigrate = await SET.flan.balanceOf(realflanSCX.address);
     const scxBalanceOfPairAfterThirdMigrate = await realBehodler.balanceOf(realflanSCX.address);
 
     const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfterThirdMigrate);
@@ -1603,21 +1606,21 @@ describe.only("Limbo", function () {
 
   it("t-23. any whitelisted contract can mint flan", async function () {
     //assert secondPerson can't mint flan
-    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith("MintingNotWhiteListed");
+    await expect(SET.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith("MintingNotWhiteListed");
 
     //whitelist secondPerson
-    await this.flan.whiteListMinting(secondPerson.address, true);
+    await SET.flan.whiteListMinting(secondPerson.address, true);
 
-    const flanBefore = await this.flan.balanceOf(owner.address);
-    await this.flan.connect(secondPerson).mint(owner.address, 1000);
-    const flanAfter = await this.flan.balanceOf(owner.address);
+    const flanBefore = await SET.flan.balanceOf(owner.address);
+    await SET.flan.connect(secondPerson).mint(owner.address, 1000);
+    const flanAfter = await SET.flan.balanceOf(owner.address);
     expect(flanAfter.sub(flanBefore).toString()).to.equal("1000");
 
     //unwhitelist secondPerson
-    await this.flan.whiteListMinting(secondPerson.address, false);
+    await SET.flan.whiteListMinting(secondPerson.address, false);
 
     //assert secondPerson can't mint flan
-    await expect(this.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith("MintingNotWhiteListed");
+    await expect(SET.flan.connect(secondPerson).mint(owner.address, 1000)).to.be.revertedWith("MintingNotWhiteListed");
   });
 
   it("t-25. attemptToTargetAPY for non threshold soul fails", async function () {
@@ -1648,11 +1651,11 @@ describe.only("Limbo", function () {
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000");
-    const realflanSCX = await createGov(this.flan);
+    await SET.flan.mint(owner.address, "100000000000000000000");
+    const realflanSCX = await createGov(SET.flan);
     const realdaiSCX = await createGov(this.dai);
     await realBehodler.transfer(realflanSCX.address, scxBalanceGenerated.div(10));
-    await this.flan.mint(realflanSCX.address, "3000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "3000000000000000000");
 
     // await realflanSCX.mint(owner.address);
 
@@ -1677,7 +1680,7 @@ describe.only("Limbo", function () {
     await advanceTime(6000);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await advanceTime(4000);
 
@@ -1694,7 +1697,7 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await SET.uniswapHelper.setDAI(this.dai.address);
 
@@ -1703,7 +1706,7 @@ describe.only("Limbo", function () {
       SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
-        this.flan.address,
+        SET.flan.address,
         0,
         this.uniOracle.address
       )
@@ -1711,7 +1714,7 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
 
     //send Flan and SCX to pair and mint
-    await this.flan.mint(realflanSCX.address, "1000000000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "1000000000000000000000000");
     130000000000000000000000;
     const scxBalance = await realBehodler.balanceOf(owner.address);
 
@@ -1759,15 +1762,15 @@ describe.only("Limbo", function () {
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
+    await realUniswapFactory.createPair(realBehodler.address, SET.flan.address);
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000");
-    const realflanSCX = await createGov(this.flan);
+    await SET.flan.mint(owner.address, "100000000000000000000");
+    const realflanSCX = await createGov(SET.flan);
     const realdaiSCX = await createGov(this.dai);
     await realBehodler.transfer(realflanSCX.address, scxBalanceGenerated.div(10));
-    await this.flan.mint(realflanSCX.address, "3000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "3000000000000000000");
 
     // await realflanSCX.mint(owner.address);
 
@@ -1792,7 +1795,7 @@ describe.only("Limbo", function () {
     await advanceTime(6000);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await advanceTime(4000);
 
@@ -1809,7 +1812,7 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await SET.uniswapHelper.setDAI(this.dai.address);
 
@@ -1820,7 +1823,7 @@ describe.only("Limbo", function () {
       SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
-        this.flan.address,
+        SET.flan.address,
         0,
         this.uniOracle.address
       )
@@ -1828,7 +1831,7 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
 
     //send Flan and SCX to pair and mint
-    await this.flan.mint(realflanSCX.address, "1000000000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "1000000000000000000000000");
     130000000000000000000000;
     const scxBalance = await realBehodler.balanceOf(owner.address);
 
@@ -1863,7 +1866,7 @@ describe.only("Limbo", function () {
 
     const sushi = await this.TokenFactory.deploy("Sushi", "Sushi");
     const pool = await this.TokenFactory.deploy("pool", "pool");
-    //initiatialize proposal
+    //initiatialize proposalupdateMultipleSoulConfig
     const updateMultipleSoulConfigProposalFactory = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal");
     await this.morgothTokenApprover.toggleManyTokens([aave.address, sushi.address, pool.address], true);
     const updateMultiSoulConfigProposal: Types.UpdateMultipleSoulConfigProposal = await updateMultipleSoulConfigProposalFactory.deploy(
@@ -1871,7 +1874,8 @@ describe.only("Limbo", function () {
       "List many tokens",
       SET.limbo.address,
       SET.uniswapHelper.address,
-      this.morgothTokenApprover.address
+      this.morgothTokenApprover.address,
+      SET.proxyRegistry.address
     ) as Types.UpdateMultipleSoulConfigProposal;
 
     await updateMultiSoulConfigProposal.parameterize(sushi.address, 0, 2, 0, 0, 2600, "5000000000000000000000000", "5000000000000000000000000", "10000000", false);
@@ -1881,12 +1885,12 @@ describe.only("Limbo", function () {
     //lodge
     const proposalConfig = await SET.limboDAO.proposalConfig();
     const requiredFate = proposalConfig[1].mul(2);
-    await this.eye.approve(SET.limboDAO.address, requiredFate);
-    await this.eye.mint(requiredFate);
-    await SET.limboDAO.burnAsset(this.eye.address, requiredFate, false);
+    await SET.eye.approve(SET.limboDAO.address, requiredFate);
+    await SET.eye.mint(requiredFate);
+    await SET.limboDAO.burnAsset(SET.eye.address, requiredFate, false);
 
     await toggleWhiteList(updateMultiSoulConfigProposal.address);
-    await this.proposalFactory.lodgeProposal(updateMultiSoulConfigProposal.address);
+    await SET.proposalFactory.lodgeProposal(updateMultiSoulConfigProposal.address);
 
     //vote and execute
     await SET.limboDAO.vote(updateMultiSoulConfigProposal.address, 1000);
@@ -1935,7 +1939,7 @@ describe.only("Limbo", function () {
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
+    await realUniswapFactory.createPair(realBehodler.address, SET.flan.address);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -1943,11 +1947,11 @@ describe.only("Limbo", function () {
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000");
-    const realflanSCX = await createGov(this.flan);
+    await SET.flan.mint(owner.address, "100000000000000000000");
+    const realflanSCX = await createGov(SET.flan);
     const realdaiSCX = await createGov(this.dai);
     await realBehodler.transfer(realflanSCX.address, scxBalanceGenerated.div(10));
-    await this.flan.mint(realflanSCX.address, "3000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "3000000000000000000");
 
     // await realflanSCX.mint(owner.address);
 
@@ -1972,7 +1976,7 @@ describe.only("Limbo", function () {
     await advanceTime(6000);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await advanceTime(4000);
 
@@ -1989,7 +1993,7 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
     await SET.uniswapHelper.setDAI(this.dai.address);
@@ -1999,7 +2003,7 @@ describe.only("Limbo", function () {
       SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
-        this.flan.address,
+        SET.flan.address,
         0,
         this.uniOracle.address
       )
@@ -2007,7 +2011,7 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
 
     //send Flan and SCX to pair and mint
-    await this.flan.mint(realflanSCX.address, "1000000000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "1000000000000000000000000");
     130000000000000000000000;
     const scxBalance = await realBehodler.balanceOf(owner.address);
 
@@ -2061,7 +2065,7 @@ describe.only("Limbo", function () {
     const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
     const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const realUniswapFactory = await UniswapFactoryFactory.deploy(owner.address);
-    await realUniswapFactory.createPair(realBehodler.address, this.flan.address);
+    await realUniswapFactory.createPair(realBehodler.address, SET.flan.address);
 
     await this.dai.mint("1400000000000000010100550");
     await this.dai.approve(realBehodler.address, "140000000000000001010055");
@@ -2069,11 +2073,11 @@ describe.only("Limbo", function () {
 
     const scxBalanceGenerated = await realBehodler.balanceOf(owner.address);
     const createGov = await metaPairFactory(realBehodler, this.uniswapFactory, false);
-    await this.flan.mint(owner.address, "100000000000000000000");
-    const realflanSCX = await createGov(this.flan);
+    await SET.flan.mint(owner.address, "100000000000000000000");
+    const realflanSCX = await createGov(SET.flan);
     const realdaiSCX = await createGov(this.dai);
     await realBehodler.transfer(realflanSCX.address, scxBalanceGenerated.div(10));
-    await this.flan.mint(realflanSCX.address, "3000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "3000000000000000000");
 
     // await realflanSCX.mint(owner.address);
 
@@ -2098,7 +2102,7 @@ describe.only("Limbo", function () {
     await advanceTime(6000);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
     await advanceTime(4000);
 
@@ -2115,12 +2119,12 @@ describe.only("Limbo", function () {
     await this.uniOracle.updatePair(real_SCX_fln_scx.address);
 
     await simpleTrade(realBehodler, realdaiSCX);
-    await simpleTrade(this.flan, realflanSCX);
+    await simpleTrade(SET.flan, realflanSCX);
     await simpleTrade(realflanSCX, real_SCX_fln_scx);
 
     await SET.uniswapHelper.setDAI(this.dai.address);
 
-    await this.eye.approve(flashGovernance.address, "100000000000000000000000000000");
+    await SET.eye.approve(flashGovernance.address, "100000000000000000000000000000");
 
     await SET.uniswapHelper.setDAI(this.dai.address);
 
@@ -2129,7 +2133,7 @@ describe.only("Limbo", function () {
       SET.uniswapHelper.configure(
         SET.limbo.address,
         realBehodler.address,
-        this.flan.address,
+        SET.flan.address,
         0,
         this.uniOracle.address
       )
@@ -2137,7 +2141,7 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
 
     //send Flan and SCX to pair and mint
-    await this.flan.mint(realflanSCX.address, "1000000000000000000000000");
+    await SET.flan.mint(realflanSCX.address, "1000000000000000000000000");
 
     const scxBalance = await realBehodler.balanceOf(owner.address);
 
@@ -2187,7 +2191,7 @@ describe.only("Limbo", function () {
 
     const expectedFlanLowerbound = Number((10000000n * 400001n) / 1000000n);
 
-    const userFlanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const userFlanBalanceBefore = await SET.flan.balanceOf(owner.address);
     const expectedFlanUpperbound = Number((10000000n * 400006n) / 1000000n);
     await SET.limbo.approveUnstake(aave.address, secondPerson.address, "2000");
     const latestIndex = await SET.limbo.latestIndex(aave.address)
@@ -2207,7 +2211,7 @@ describe.only("Limbo", function () {
 
     //set flash loan params
     await flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
@@ -2219,7 +2223,7 @@ describe.only("Limbo", function () {
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
     //stake requisite tokens, try again and succeed.
-    await this.eye.approve(flashGovernance.address, 21000000);
+    await SET.eye.approve(flashGovernance.address, 21000000);
     await expect(SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001)).to.be.revertedWith(
       "FlashGovernanceDisabled"
     );
@@ -2233,7 +2237,7 @@ describe.only("Limbo", function () {
 
     //set flash loan params
     await flashGovernance.configureFlashGovernance(
-      this.eye.address,
+      SET.eye.address,
       21000000, //amount to stake
       604800, //lock duration = 1 week,
       true // asset is burnable
@@ -2242,22 +2246,22 @@ describe.only("Limbo", function () {
     expect(result.success).to.equal(true, result.error);
 
     //stake requisite tokens, try again and succeed.
-    await this.eye.approve(flashGovernance.address, 42000000);
-    const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(flashGovernance.address);
+    await SET.eye.approve(flashGovernance.address, 42000000);
+    const eyeBalanceBeforeEveryThing = await SET.eye.balanceOf(flashGovernance.address);
     console.log("eyeBalanceBeforeEveryThing", eyeBalanceBeforeEveryThing.toString());
-    const userBalanceBeforeFirstCall = await this.eye.balanceOf(owner.address);
+    const userBalanceBeforeFirstCall = await SET.eye.balanceOf(owner.address);
     await SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001);
-    const userBalanceAfterFirstCall = await this.eye.balanceOf(owner.address);
+    const userBalanceAfterFirstCall = await SET.eye.balanceOf(owner.address);
     expect(userBalanceAfterFirstCall.toString()).to.equal(userBalanceBeforeFirstCall.sub(21000000).toString());
 
     await advanceTime(605800); // more than enough time.
-    const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
+    const eyeBalanceBeforeSecondJudgment = await SET.eye.balanceOf(flashGovernance.address);
 
     result = await executionResult(SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001));
     expect(result.success).to.equal(true, result.error);
 
-    const userBalanceAfterSecondCall = await this.eye.balanceOf(owner.address);
-    const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
+    const userBalanceAfterSecondCall = await SET.eye.balanceOf(owner.address);
+    const eyeBalanceAfterSecondJudgment = await SET.eye.balanceOf(flashGovernance.address);
 
     expect(userBalanceAfterSecondCall.toString()).to.equal(userBalanceAfterFirstCall.toString());
 
@@ -2270,8 +2274,8 @@ describe.only("Limbo", function () {
       const initialStakeAmount = 21000000;
       const newDepositRequirement: number = initialStakeAmount + offset;
       const requireFate = (await SET.limboDAO.proposalConfig())[1];
-      await this.eye.mint(requireFate.mul("1000000000000"));
-      await this.eye.approve(
+      await SET.eye.mint(requireFate.mul("1000000000000"));
+      await SET.eye.approve(
         SET.limboDAO.address,
         "115792089237316195423570985008687907853269984665640564039457584007913129639935"
       );
@@ -2294,7 +2298,7 @@ describe.only("Limbo", function () {
       //set flash loan params
       result = await executionResult(
         flashGovernance.configureFlashGovernance(
-          this.eye.address,
+          SET.eye.address,
           21000000, //amount to stake
           604800, //lock duration = 1 week,
           true // asset is burnable
@@ -2306,15 +2310,15 @@ describe.only("Limbo", function () {
       expect(result.success).to.equal(true, result.error);
 
       //stake requisite tokens, try again and succeed.
-      await this.eye.approve(
+      await SET.eye.approve(
         flashGovernance.address,
         "115792089237316195423570985008687907853269984665640564039457584007913129639935"
       );
-      const eyeBalanceBeforeEveryThing = await this.eye.balanceOf(flashGovernance.address);
+      const eyeBalanceBeforeEveryThing = await SET.eye.balanceOf(flashGovernance.address);
       console.log("eyeBalanceBeforeEveryThing", eyeBalanceBeforeEveryThing.toString());
-      const userBalanceBeforeFirstCall = await this.eye.balanceOf(owner.address);
+      const userBalanceBeforeFirstCall = await SET.eye.balanceOf(owner.address);
       await SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001);
-      const userBalanceAfterFirstCall = await this.eye.balanceOf(owner.address);
+      const userBalanceAfterFirstCall = await SET.eye.balanceOf(owner.address);
       expect(userBalanceAfterFirstCall.toString()).to.equal(userBalanceBeforeFirstCall.sub(21000000).toString());
 
       await advanceTime(605800); // more than enough time.
@@ -2327,15 +2331,15 @@ describe.only("Limbo", function () {
         "flashGovProposal"
       );
 
-      await this.eye.mint(requireFate.mul(10000000));
-      await this.eye.approve(
+      await SET.eye.mint(requireFate.mul(10000000));
+      await SET.eye.approve(
         SET.limboDAO.address,
         "115792089237316195423570985008687907853269984665640564039457584007913129639935"
       );
-      await SET.limboDAO.burnAsset(this.eye.address, requireFate, false);
+      await SET.limboDAO.burnAsset(SET.eye.address, requireFate, false);
 
       await configureFlashGovernanceProposal.parameterize(
-        this.eye.address,
+        SET.eye.address,
         newDepositRequirement, //amount to stake
         604800, //lock duration = 1 week,
         true // asset is burnable
@@ -2352,7 +2356,7 @@ describe.only("Limbo", function () {
       expectedArgs["proposal"] = configureFlashGovernanceProposal.address;
       expectedArgs["status"] = "SUCCESS";
 
-      let proposalTX = await this.proposalFactory.lodgeProposal(configureFlashGovernanceProposal.address);
+      let proposalTX = await SET.proposalFactory.lodgeProposal(configureFlashGovernanceProposal.address);
       let receipt: ContractReceipt = await proposalTX.wait();
 
       let eventAssertionResult = await assertLog(receipt.events, "LodgingStatus", expectedArgs);
@@ -2365,15 +2369,15 @@ describe.only("Limbo", function () {
       await advanceTime(100000000);
       await SET.limboDAO.executeCurrentProposal();
 
-      const eyeBalanceBeforeSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
-      const userBalanceBeforeSecondCall = await this.eye.balanceOf(owner.address);
+      const eyeBalanceBeforeSecondJudgment = await SET.eye.balanceOf(flashGovernance.address);
+      const userBalanceBeforeSecondCall = await SET.eye.balanceOf(owner.address);
       console.log("JS: userBalanceBeforeSecondCall ", userBalanceBeforeSecondCall.toString());
       console.log("JS: contractBalanceBeforeSecondCall ", eyeBalanceBeforeSecondJudgment.toString());
       result = await executionResult(SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001));
       expect(result.success).to.equal(true, result.error);
 
-      const userBalanceAfterSecondCall = await this.eye.balanceOf(owner.address);
-      const eyeBalanceAfterSecondJudgment = await this.eye.balanceOf(flashGovernance.address);
+      const userBalanceAfterSecondCall = await SET.eye.balanceOf(owner.address);
+      const eyeBalanceAfterSecondJudgment = await SET.eye.balanceOf(flashGovernance.address);
 
       const netAmount = newDepositRequirement - initialStakeAmount;
       console.log("netAmount " + netAmount);
@@ -2389,7 +2393,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureSoul(aave.address, 10000000, 1, 1, 0, 10000000);
     await SET.limbo.endConfiguration(SET.limboDAO.address);
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const flanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     //stake tokens
     await aave.approve(SET.limbo.address, "10000001");
@@ -2400,7 +2404,7 @@ describe.only("Limbo", function () {
     //stake zero tokens
     await SET.limbo.stake(aave.address, "0");
 
-    const flanImmediatelyAfterSecondStake = await this.flan.balanceOf(owner.address);
+    const flanImmediatelyAfterSecondStake = await SET.flan.balanceOf(owner.address);
 
     const flanBalanceChangeAgterSecondStake = flanImmediatelyAfterSecondStake.sub(flanBalanceBefore);
     const numberCloseResult = numberClose(flanBalanceChangeAgterSecondStake, "900000000000")
@@ -2428,10 +2432,10 @@ describe.only("Limbo", function () {
   });
 
   it("t-40. Minting more than aggregate allowance reverts", async function () {
-    const flan: Types.Flan = this.flan as Types.Flan;
+    const flan: Types.Flan = SET.flan as Types.Flan;
     const dao = SET.limboDAO as Types.LimboDAO;
-    const eye = this.eye as Types.ERC20Burnable;
-    const proposalFactory = this.proposalFactory as Types.ProposalFactory;
+    const eye = SET.eye as Types.ERC20Burnable;
+    const proposalFactory = SET.proposalFactory as Types.ProposalFactory;
 
     const flanMinterFactory = (await ethers.getContractFactory("FlanMinter")) as Types.FlanMinter__factory;
     const flanMinter = await flanMinterFactory.deploy(flan.address);
@@ -2484,7 +2488,7 @@ describe.only("Limbo", function () {
 
     await SET.limbo.configureSoul(aave.address, 100, 1, 1, 0, 10000000);
 
-    const flanBalanceBefore = await this.flan.balanceOf(owner.address);
+    const flanBalanceBefore = await SET.flan.balanceOf(owner.address);
 
     //stake tokens
     await aave.approve(SET.limbo.address, "10000001");
@@ -2589,7 +2593,203 @@ describe.only("Limbo", function () {
       1,
       1200
     ))
-    .to.be.revertedWith(`StakingInProgress("${aave.address}", 0)`)
+      .to.be.revertedWith(`StakingInProgress("${aave.address}", 0)`)
+  })
+
+  it("t-46. UpdateMultipleSoulConfig registers proxies and sets limboToken correctly", async function () {
+    const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
+    const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
+    const BehodlerLiteFactory = await ethers.getContractFactory("BehodlerLite", {
+      libraries: {
+        AddressBalanceCheck: addressBalanceCheckLibAddress,
+      },
+    });
+    const behodlerLite = await BehodlerLiteFactory.deploy() as Types.BehodlerLite
+    await behodlerLite.configureScarcity(15, 5, owner.address);
+
+    const AddressToString = await ethers.getContractFactory("AddressToString")
+    const ProxyDeployer = await ethers.getContractFactory("ProxyDeployer")
+
+    const morgothTokenApproverFactory = await ethers.getContractFactory("MorgothTokenApprover", {
+      libraries: {
+        AddressToString: (await AddressToString.deploy()).address,
+        ProxyDeployer: (await ProxyDeployer.deploy()).address
+      }
+    })
+
+    const par = [SET.proxyRegistry.address,
+    aave.address,
+    behodlerLite.address,
+    SET.limbo.address,
+    SET.flan.address]
+    console.log('parameters: ' + JSON.stringify(par, null, 4))
+
+    const morgothTokenApprover = await deploy<Types.MorgothTokenApprover>(morgothTokenApproverFactory)
+    await morgothTokenApprover.updateConfig(
+      SET.proxyRegistry.address,
+      aave.address,
+      behodlerLite.address,
+      SET.limbo.address,
+      SET.flan.address
+    )
+
+    const UpdateMultipleSoulConfigFactory = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal")
+    const proposal = await deploy<Types.UpdateMultipleSoulConfigProposal>(UpdateMultipleSoulConfigFactory,
+      SET.limboDAO.address,
+      "Update",
+      SET.limbo.address,
+      SET.uniswapHelper.address,
+      morgothTokenApprover.address,
+      SET.proxyRegistry.address
+    )
+
+    const MockTokenFactory = await ethers.getContractFactory("SimpleMockTokenToken")
+    let tokens: Types.MockToken[] = []
+    for (let i = 0; i < 10; i++)
+      tokens.push(
+        await deploy<Types.MockToken>(MockTokenFactory, "token", "token")
+      )
+
+    //Generate cliff face, some with limbo protection, some without.
+    const LimboProxyFactory = await ethers.getContractFactory("LimboProxy")
+    const cliffMap: boolean[] = [0, 1, 0, 0, 1, 0, 1, 0, 0, 0]
+      .map(num => num > 0)
+
+    const limboMap: boolean[] = [1, 1, 0, 0, 1, 0, 1, 1, 0, 0]
+      .map(num => num > 0)
+
+    type address = string
+    interface triplet {
+      baseToken: address
+      limboToken: address
+      behodlerToken: address
+    }
+    let tokenTriplets: triplet[] = []
+    for (let i = 0; i < tokens.length; i++) {
+      if (cliffMap[i]) {
+        await morgothTokenApprover.generateCliffFaceProxy(tokens[i].address,
+          ethers.constants.WeiPerEther, limboMap[i])
+        const proxySet = await SET.proxyRegistry.tokenProxy(tokens[i].address)
+        tokenTriplets.push({
+          baseToken: tokens[i].address,
+          limboToken: proxySet.limboProxy,
+          behodlerToken: proxySet.behodlerProxy
+        });
+      } else {
+        await morgothTokenApprover.morgothApprove(tokens[i].address, true)
+        let limboToken: address = tokens[i].address
+        if (limboMap[i]) {
+          limboToken = (await deploy<Types.LimboProxy>(
+            LimboProxyFactory,
+            tokens[i].address,
+            "lim",
+            "bo",
+            SET.proxyRegistry.address,
+            SET.limbo.address,
+            SET.flan.address,
+            ethers.constants.WeiPerEther
+          )).address
+        }
+        let triplet: triplet = {
+          baseToken: tokens[i].address,
+          limboToken: limboToken,
+          behodlerToken: tokens[i].address
+        }
+        await SET.proxyRegistry.setProxy(triplet.baseToken, triplet.limboToken, triplet.behodlerToken)
+        tokenTriplets.push(triplet)
+
+      }
+    }
+
+    //List all the tokens on limbo, correctly configured
+    for (let i = 0; i < tokens.length; i++) {
+      const triple = tokenTriplets[i]
+      await proposal.parameterize(
+        triple.baseToken,
+        "1000",
+        SoulType.threshold,
+        SoulState.staking,
+        0,
+        10,
+        10,
+        10,
+        10,
+        false)
+
+      await proposal.setProxy(
+        triple.limboToken,
+        triple.behodlerToken,
+        i
+      )
+    }
+
+    //lock proposal
+    await proposal.lockDown()
+    await toggleWhiteList(proposal.address)
+
+    //assert that lock works
+    await expect(proposal.parameterize(
+      tokens[0].address,
+      "1000",
+      SoulType.threshold,
+      SoulState.staking,
+      0,
+      10,
+      10,
+      10,
+      10,
+      false))
+      .to.be.revertedWith("ProposalLocked")
+
+    await expect(proposal.setProxy(
+      tokenTriplets[2].limboToken, tokenTriplets[2].behodlerToken, 2
+    )).to.be.revertedWith("ProposalLocked")
+
+    const proposalConfig = await SET.limboDAO.proposalConfig()
+    const requiredFateToPropose = proposalConfig.requiredFateStake
+
+    await SET.eye.approve(SET.limboDAO.address, ethers.constants.MaxUint256)
+    await SET.limboDAO.burnAsset(SET.eye.address, requiredFateToPropose, false)
+
+    await expect(SET.proposalFactory.lodgeProposal(proposal.address))
+      .to.emit(SET.proposalFactory, "LodgingStatus")
+      .withArgs(proposal.address, "SUCCESS");
+
+    await SET.limboDAO.vote(proposal.address, 100)
+
+    const durationToVotingComplete = proposalConfig.votingDuration
+    await advanceTime(durationToVotingComplete.toNumber())
+    await SET.limboDAO.executeCurrentProposal()
+
+    //assert the proxies are all correclty mapped
+
+    for (let i = 0; i < tokens.length; i++) {
+      const proxyPair = await SET.proxyRegistry.tokenProxy(tokens[i].address)
+      expect(proxyPair.limboProxy).to.not.equal(ethers.constants.AddressZero)
+      expect(proxyPair.behodlerProxy).to.not.equal(ethers.constants.AddressZero)
+
+      if (limboMap[i]) {
+        expect(proxyPair.limboProxy).to.not.equal(tokens[i].address)
+
+      } else {
+        expect(proxyPair.limboProxy).to.equal(tokens[i].address)
+      }
+      if (cliffMap[i]) {
+        expect(proxyPair.behodlerProxy).to.not.equal(tokens[i].address)
+      }
+      else {
+        expect(proxyPair.behodlerProxy).to.equal(tokens[i].address)
+      }
+    }
+
+    //assert they're on limbo
+    for (let i = 0; i < tokens.length; i++) {
+      const proxyPair = await SET.proxyRegistry.tokenProxy(tokens[i].address)
+      const soul = await SET.limbo.souls(proxyPair.limboProxy, 0)
+
+      expect(soul.crossingThreshold.toString()).to.equal("1000")
+      expect(soul.state).to.equal(SoulState.staking)
+    }
   })
   // })
   //TESTS END

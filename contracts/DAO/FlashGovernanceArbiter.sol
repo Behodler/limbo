@@ -5,8 +5,6 @@ import "../facades/Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../openzeppelin/IERC20.sol";
 
-// import "hardhat/console.sol";
-
 ///@author Justin Goro
 /**@notice When assessing whether flash governance rules must apply, the configured status of the calling contract must be inspected
  */
@@ -102,20 +100,19 @@ contract FlashGovernanceArbiter is Governable {
       if (!emergency && (block.timestamp - security.lastFlashGovernanceAct < security.epochSize)) {
         revert FlashGovernanceEpochFull(security.epochSize, security.lastFlashGovernanceAct);
       }
+
       //if user has previously made a flashGovernanceDecision on this contract and the requisite time for judgment has passed
       //but the user has failed to withdraw their deposit then this will simply transfer the net amount required.
       //if the requisite amount has fallen since the first decision, the user will be reimbursed the difference.
       //if the amount has increased, the user's deposit in this contract will be increased
 
       int256 netTransferAmount = int256(flashGovernanceConfig.amount) - int256(current.amount);
-
       flashGovernanceConfig.asset.approve(address(this), type(uint256).max);
       flashGovernanceConfig.asset.safeNetTransferFrom(sender, address(this), netTransferAmount);
 
       current = flashGovernanceConfig;
       current.unlockTime += block.timestamp;
       pendingFlashDecision[target][sender] = current;
-
       security.lastFlashGovernanceAct = block.timestamp;
       emit flashDecision(sender, address(flashGovernanceConfig.asset), flashGovernanceConfig.amount, target);
     } else {

@@ -151,3 +151,5 @@ Default lock time 6 days.
 ....
 
 TODO: make limbo a morgoth minion so that it can migrate
+TODO: remember lock on updateMultiple separate from parameterize
+TODO: white list all proposals
