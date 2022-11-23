@@ -4,7 +4,7 @@
 It's tempting to think that the best way to scale Behodler is just to replicate the ecosystem with a deployment script so that you have Behodler, Limbo, Flan, PyroTokens and Morgoth clones across each layer.
 However, this is not ideal for many reasons. Firstly, most projects have a token that is wrapped on different layers. Behodler, on the other hand, is a token, Scarcity. So if you simply clone Behodler across layers, you'll have multiple versions of Scarcity floating about, all with independent prices.
 Similarly, since Flan liquidity is provided by Scarcity, you'd have to have multiple versions of Flan.
-There is a way to have one true Scarcity (and possibly one true Flan) across all layers. This approach would bind all liquidity across all layers so that Behodler would have one massive collection of liquidity spanning many layers. It would constrain the supply of Scarcity while massively multiplied systemic TVL which would be excellent for the Scarcity price and for Flan stability. What's more, this approach would require very few code changes.
+There is a way to have one true Scarcity (and possibly one true Flan) across all layers. This approach would bind all liquidity across all layers so that Behodler would have one massive collection of liquidity spanning many layers. It would constrain the supply of Scarcity while massively multiplying systemic TVL which would be excellent for the Scarcity price and for Flan stability. What's more, this approach would require very few code changes.
 
 This paper charts the idea in it's current iteration
 
