@@ -6,16 +6,16 @@ However, this is not ideal for many reasons. Firstly, most projects have a token
 Similarly, since Flan liquidity is provided by Scarcity, you'd have to have multiple versions of Flan.
 There is a way to have one true Scarcity (and possibly one true Flan) across all layers. This approach would bind all liquidity across all layers so that Behodler would have one massive collection of liquidity spanning many layers. It would constrain the supply of Scarcity while massively multiplying systemic TVL which would be excellent for the Scarcity price and for Flan stability. What's more, this approach would require very few code changes.
 
-This paper charts the idea in it's current iteration
+This paper charts the idea in its current iteration
 
 ## Limbo Refresher
-When a token is listed on Limbo, flan issued for deposits like a traditional yield farm. When the token TVL surpasses a threshold, staking and unstaking are locked. The token reserve is then migrated to Behodler as a deposit which generates Scarcity (SCX). This SCX is then paired with newly minted flan to prop up the liquidity of Flan. This migration process is what gives Flan its enormous stability and liquidity which allows for future funding of tokens. 
+When a token is listed on Limbo, Flan is issued for deposits like a traditional yield farm. When the token TVL surpasses a threshold, staking and unstaking are locked. The token reserve is then migrated to Behodler as a deposit which generates Scarcity (SCX). This SCX is then paired with newly minted Flan to prop up the liquidity of Flan. This migration process is what gives Flan its enormous stability and liquidity which allows for future funding of tokens. 
 Each migration from Limbo to Behodler creates new SCX. Around 600 or so units of SCX are produced per migration. 
 
 ## Layer 2 proposal
 
 ### A small tweak to Behodler AMM
-Suppose we launch Behodler on Arbitrum. We deploy the Behodler AMM and Limbo. Limbo issues an arbitrum version of Flan. For now, we don't concern ourselves with the relationship between this Flan and main net Flan.
+Suppose we launch Behodler on Arbitrum. We deploy the Behodler AMM and Limbo. Limbo issues an Arbitrum version of Flan. For now, we don't concern ourselves with the relationship between this Flan and main net Flan.
 
 Unlike the Behodler on mainnet, Behodler Arbitrum cannot issue SCX to token deposits. Rather there is one white listed token which can be deposited to produce SCX. So if we set the special token to Dai then only Dai can be deposited to produce SCX. This SCX is a new type of SCX. It has a different contract address to mainent SCX. 
 
@@ -31,7 +31,8 @@ Other than that, trading is the same. Suppose we deposit 400 SCX_p on Behodler_A
 
 So to summarize, SCX_L2 can be used to redeem liquidity but SCX_L2 can only be minted by depositing SCX_p. 
 
-### Small tweaks to Limbo.
+### Small tweaks to Limbo
+
 Limbo mainnet mints new SCX on migrations. On Arbitrum, Limbo would perform a swap instead. So suppose we list Aave on Limbo Arbitrum and raise a portion of Aave. On migrate, the newly listed Aave would be swapped in to Behodler Arbitrum for SCX_P. So instead of minting new SCX_L2, SCX_P would be swapped out. The swap would not be priced according to the xy=k rule. Instead, it would have a fixed exchange rate. So a threshold pool would have 2 parameters: the crossover number and the SCX exchange rate.
 
 ```
@@ -41,9 +42,10 @@ Eg. we list Aave and set the crossover to 2000 Aave with a rate of 1.2 SCX per A
 This SCX_p is then combined with Flan in an LP token (Uniswap Arbitrum) and used to raise Flan liquidity on Arbitrum.
 
 # Implications for Scarcity
+
 Since SCX_L2 is a wrapper for SCX_P, the amount of SCX_L2 locked in Behodler need not be limited. For regular tokens, the amount of liquidity locked per token is equal to the average TVL (AVB). In other words, if Behodler Arbitrum has 10,000 Dai then if we list a token that is priced at $10, we will lock 1000 units. However, SCX_P is just minted like Weth so if the SCX price is $100, we can lock 5000 SCX_P if we wish without unbalancing things since the SCX_P in Behodler_Arb cannot be swapped out.
 
-Since SCX_P is swapped out of Behodler, part of the capitalization of SCX_L2 is diversified into the new token listed. Eg. If we mint 100 SCX_L2 with 100 SCX_P and then list 1000 Dai with a price of 1 Dai = 0.05 SCX then Behodler_Arb will now contain 50 SCX_P and 1000 Dai. If we redeem SCX_L2 for SCX_P, we can only redeem 50 units. The rest will have to come from the Dai.
+Since SCX_P is swapped out of Behodler on Limbo migrations, part of the capitalization of SCX_L2 is diversified into the new token listed. Eg. If we mint 100 SCX_L2 with 100 SCX_P and then list 1000 Dai with a price of 1 Dai = 0.05 SCX then Behodler_Arb will now contain 50 SCX_P and 1000 Dai. If we redeem SCX_L2 for SCX_P, we can only redeem 50 units. The rest will have to come from the Dai.
 
 This means that if we wish to list new tokens on Abritrum, we have to have at least AVB worth of SCX_P locked. We can achieve this by having occasional Limbo migrations of new SCX_P for Flan.
 
