@@ -69,6 +69,6 @@ Flan will be priced according to the same metric as on Mainnet. So if we're targ
 While there is minting of Flan to raise the intial SCX_P, this essentially means twice as much Flan per unit of incoming liqudity is minted on L2. However, the current design on Limbo mainnet is that more than 10x liquidity comes in for every unit of Flan. So the net result to Flan liquidity is still positive and this doesn't even factor in the positive impact this entire scheme will have on the SCX price.
 
 I'm not sure wha to name this strategy. Contenters include:
-1. Unified Liquidiry
+1. Unified Liquidity
 2. Super Scarcity
 3. Full bodied Flan
