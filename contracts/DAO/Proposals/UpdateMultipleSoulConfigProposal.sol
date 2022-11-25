@@ -12,6 +12,9 @@ import "../../facades/TokenProxyRegistryLike.sol";
  * @notice For adding a list of new souls to Limbo for staking
  */
 contract UpdateMultipleSoulConfigProposal is Proposal {
+
+  uint256 constant year = 31536000; // seconds in 365 day year
+
   struct Parameters {
     address baseToken;
     address limboProxy;
@@ -29,7 +32,6 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
 
   struct Config {
     LimboLike limbo;
-    AMMHelper ammHelper;
     MorgothTokenApproverLike morgothApprover;
     TokenProxyRegistryLike proxyRegistry;
   }
@@ -41,13 +43,11 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     address dao,
     string memory _description,
     address _limbo,
-    address _ammHelper,
     address morgothTokenApprover,
     address tokenProxyRegistry
   ) Proposal(dao, _description) 
   {
     config.limbo = LimboLike(_limbo);
-    config.ammHelper = AMMHelper(_ammHelper);
     config.morgothApprover = MorgothTokenApproverLike(morgothTokenApprover);
     config.proxyRegistry = TokenProxyRegistryLike(tokenProxyRegistry);
   }
@@ -104,7 +104,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
       if (localParams[i].soulType < 2 && !config.morgothApprover.approved(localParams[i].baseToken)) {
         revert TokenNotApproved(localParams[i].baseToken);
       }
-      uint256 fps = config.ammHelper.minAPY_to_FPS(localParams[i].targetAPY, localParams[i].daiThreshold);
+      uint256 fps = minAPY_to_FPS(localParams[i].targetAPY, localParams[i].daiThreshold);
      
      //this is redundant if MorgothTokenApprover generated the proxies but that route isn't strictly required.
       config.proxyRegistry.setProxy(localParams[i].baseToken, localParams[i].limboProxy, localParams[i].behodlerProxy);
@@ -131,5 +131,19 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
       );
     }
     return true;
+  }
+
+   ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
+  ///@param minAPY Here APY refers to the dollar value of flan relative to the dollar value of the threshold
+  ///@param daiThreshold The DAI value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
+  function minAPY_to_FPS(
+    uint256 minAPY, //divide by 10000 to get percentage
+    uint256 daiThreshold
+  ) public pure returns (uint256 fps) {
+    if (daiThreshold == 0) {
+      revert DaiThresholdMustBePositive();
+    }
+    uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
+    fps = returnOnThreshold / (year);
   }
 }

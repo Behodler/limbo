@@ -1,7 +1,7 @@
 [
   "function approveFlanMintingPower(address,bool)",
   "function currentProposalState() view returns (uint256, uint256, address, uint256, address)",
-  "function domainConfig() returns (address, address, address, address, bool, address, address)",
+  "function domainConfig() returns (address, address, address, bool, address, address, address)",
   "function fateSpenders(address) view returns (bool)",
   "function fateState(address) view returns (uint256, uint256, uint256)",
   "function getFlashGoverner() view returns (address)",

@@ -6,7 +6,7 @@ import "../contracts/DAO/Governable.sol";
 ///@author Justin Goro
 ///@title Flan
 /**
- *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on the price of DAI via various external incentives
+ *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on a reliable price via various external incentives
  */
 contract Flan is ERC677("Flan", "FLN"), Governable {
   mapping(address => bool) public mintAllowed; //type(uint).max == whitelist

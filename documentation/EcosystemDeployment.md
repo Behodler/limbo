@@ -99,7 +99,8 @@ Must be exempt from Pyro transfer and redeem fees
 **Dependencies:LiquidityReceiver(V3), Lachesis** 
 
 ## DeployerSnufferCap
-**Dependencies: Limbo**
+**Dependencies: Limbo, liquidityReceiver**
+**Dependants: LiquidityReceiver**
 
 ### Order of Deployment 
 1. BigConstants
@@ -115,41 +116,107 @@ Must be exempt from Pyro transfer and redeem fees
 
 ## Limbo
 ### ProposalFactory
-**Dependencies: limboDAO, whitelistngProposal, soulUpdateProposal**
+**Dependencies: limboDAO, whitelistngProposal, soulUpdateProposal,behodler, angband, uniswapHelper, morgothPower**
+Initializers: COnfigureCrossingCOnfig
+
 ### LimboDAO
 Important calibration: voting proposal times, approved assets for staking
 Important post deployment calibration: DAO.setGoverned over all governable contracts. This must be the very last step before ending config Lord's dominion
-**Dependencies:**
+**Dependencies: Limbo, Flan, EYE, flashGoverner, sushiOracle, uniOracle**
+Initializers:
+    1. setFlashGoverner
+    2. seed
+    3. SetFateSpender
+
 ### FlashGovernanceArbiter
+**Dependencies: limboDAO, EYE**
 Imporant calibration: lock time must be greater than voting proposal times in limboDAO. (Enforced in code)
 Default lock time 6 days.
-### Limbo
-### Flan
-### BigConstants
-### TokenProxyRegistry
-### UniswapHelper
+Initializers: 
+    1. SetGoverned
+    2. configureFlashGovernance
+    3. configureSecurityParameters
 
-## Limbo Proposals
+### MorgothTokenApprover
+**Dependencies: ProxyDeployer (lib), TokenProxyRegistry, Reference Token, Behodler, Limbo, Flan**
+Initializers: 
+    1. updateConfig. Callable by Morgoth only
+
+### Limbo
+**Dependencies: flan, limboDAO, uniswapHelper, morgothMigrationPower, behodler, angband**
+Initializers: 
+    1.configureCrossingConfig
+
+### Flan
+**Dependencies: limboDAO**
+Initializers: setMintConfig
+
+### TokenProxyRegistry
+**Dependencies: limboDAO, limboAddTokenToBehodler, behodler, morgothTokenApprover**
+Initializers:
+    1. setPower
+    2. setTokenApprover
+
+### UniswapHelper
+**Dependencies: limbo, limboDAO,UniswapV2Factory,Dai, Behodler, Flan, LimboOracle, UniV2 LP tokens: FLN/SCX, DAI/SCX, SCX/(FLN/SCX)**
+Initializers: 
+    1. SetDai (only for non mainnet)
+    2. configure
+
+### LimboOracle
+**Dependencies: UniswapV2Factory**
+
+## Limbo Proposals. 
+**Dependencies: LimboDAO**
+Initializers: parameterize.
+Important info: Locking modifier so that parameters can't be changed once a proposal has been lodged. Proposals that don't implement the locking mechanism will fail on execution.
+
 ### ToggleWhiteListProposalProposal (not typo)
-### UpdateSoulConfigProposal
-**Dependencies: MorgothTokenApprover**
+**Dependencies: ProposalFactory**
+Note: deploying this proposal is mandatory and is enforced by the ProposalFactory constructor.
+
 ### UpdateMultipleSoulConfigProposal
-**Dependencies: MorgothTokenApprover**
+**Depedencies: Limbo, MorgothTokenApprover, TokenProxyRegistry, baseTokens, limboProxyTokens, behodlerProxyTokens**
+Additional Intilialzer: setProxy
+
 ### BurnFlashStakeDeposit
+**Dependencies: flashGoverner, targetContract (that is flash governed)**
+
 ### ApproveFlanMintintProposal
+**Dependencies: Flan must exist on LimboDAO during execution**
+
 ### ConfigureFlashGovernanceProposal
+**Dependencies: none but FlashGovernanceArb must exist on LimboDAO**
+
 ### SetFateSpendersProposal
+**Dependencies:: None**
+
 ### SetAssetApprovalProposal
+**Dependencies:: None**
 
 ### Order of Deployment
-1. DAO
+1. LimboDAO
 2. WhiteListProposal
-3. Create MorgothTokenApprover
-3. SoulConfigUpdateProposal (with tokenApprover)
+3. MorgothTokenApprover
+3. MultiSoulConfigUpdateProposal (with tokenApprover)
 4. ProposalFactory
-5. Morgoth.mapDomain SoulConfigUpdateProposal
-....
+5. FlashGovernanceAbrbiter and initializers
+6. Flan and setMintConfig
+7. Morgoth.LimboAddTokenToBehodler
+8. UniswapHelper
+9. LimboOracle
+10. Limbo
+11. UniswapHelper.configure
+12. LimboDAO.seed
+13. Limbo.configureCrossingConfig
+14. MorgothTokenApprover.updateConfig
+15. Morgoth: Transfer and Map domain for MorgothTokenApprover
+16. ConfigureTokenApprover and whitelisting on Morgoth
+17. TokenProxyRegistry and set Approver and set Power
+18. All the proposals
+19. Whitelist all the proposals
+20. Assign Power to Limbo minion and make Limbo that minion
+21. Transfer LimboDAO to Morgoth and map domain
 
-TODO: make limbo a morgoth minion so that it can migrate
-TODO: remember lock on updateMultiple separate from parameterize
-TODO: white list all proposals
+
+TODO: Flan Genesis

@@ -6,10 +6,4 @@ abstract contract AMMHelper {
         public
         virtual
         returns (uint256 lpMinted);
-
-    function minAPY_to_FPS(uint256 minAPY, uint256 daiThreshold)
-        public
-        pure
-        virtual
-        returns (uint256 fps);
 }

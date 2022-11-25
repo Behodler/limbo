@@ -1,5 +1,4 @@
 [
-  "function claimSecondaryRewards(address)",
   "function configureCrossingParameters(address,uint256,int256,bool,uint256)",
   "function configureSoul(address,uint256,uint256,uint256,uint256,uint256)",
   "function latestIndex(address) view returns (uint256)",

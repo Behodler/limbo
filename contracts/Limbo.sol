@@ -285,52 +285,10 @@ contract Limbo is Governable {
     _;
   }
 
-  ///@notice helper function for approximating a total dollar value APY for a threshold soul.
-  ///@param token threshold soul
-  ///@param desiredAPY because values may be out of sync with the market, this function can only ever approximate an APY
-  ///@param daiThreshold user can select a Behodler AVB in Dai. 0 indicates the migration oracle value for AVB should be used.
-  function attemptToTargetAPY(
-    address token,
-    uint256 desiredAPY,
-    uint256 daiThreshold
-  ) public governanceApproved(false) {
-    Soul storage soul = currentSoul(token);
-    if (soul.soulType != SoulType.threshold) {
-      revert InvalidSoulType(token, uint256(soul.soulType), uint256(SoulType.threshold));
-    }
-    uint256 fps = AMMHelper(crossingConfig.ammHelper).minAPY_to_FPS(desiredAPY, daiThreshold);
-    flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
-    soul.flanPerSecond = fps;
-  }
-
   ///@notice refreshes current state of soul.
   function updateSoul(address token) public {
     uint256 latest = latestIndex[token];
     souls[token][latest] = previewSoulUpdate(token, latest);
-  }
-
-  function previewSoulUpdate(address token, uint256 index) internal view returns (Soul memory soul) {
-    soul = souls[token][index];
-    if (soul.soulType == SoulType.uninitialized) {
-      revert InvalidSoul(token);
-    }
-
-    uint256 finalTimeStamp = block.timestamp;
-    if (soul.state != SoulState.staking && soul.soulType == SoulType.threshold) {
-      finalTimeStamp = tokenCrossingParameters[token][index].stakingEndsTimestamp;
-    }
-    uint256 soulLastRewardTimestamp = soul.lastRewardTimestamp;
-    if (finalTimeStamp == soulLastRewardTimestamp) {
-      return soul;
-    }
-
-    uint256 balance = IERC20(token).balanceOf(address(this));
-
-    if (balance > 0) {
-      uint256 flanReward = (finalTimeStamp - soulLastRewardTimestamp) * soul.flanPerSecond;
-      soul.accumulatedFlanPerShare = soul.accumulatedFlanPerShare + ((flanReward * TERA) / balance);
-    }
-    soul.lastRewardTimestamp = finalTimeStamp;
   }
 
   constructor(address flan, address limboDAO) Governable(limboDAO) {
@@ -572,24 +530,6 @@ contract Limbo is Governable {
     emit BonusPaid(token, index, msg.sender, flanBonus);
   }
 
-  /**@notice some tokens may be sent to Limbo by mistake or unhandled in some manner. For example, yield. 
-  Each scenario has its own reason and it is up to governance how they should be handled. If a token that has previously
-  been listed for staking on Limbo is accidentally sent, it is lost forever because any positive balance
-  could be an unclaimed stake. Adding code to account for expected vs actual balances on aggregate and allowing
-  for skimming places a gas burden on regular users for an edge case which is an Eth smell.
-  The alternative is to not place any restrictions on withdrawals, given that only the DAO can execute this function
-  but then this creates an incentive for governance attacks which, even when thwarted, are a form of griefing knwon as Karen attacks.
-  */
-  function claimSecondaryRewards(address token) public onlySuccessfulProposal {
-    SoulState state = currentSoul(token).state;
-    if (state != SoulState.unset) {
-      revert TokenAccountedFor(token);
-    }
-    uint256 balance = IERC20(token).balanceOf(address(this));
-    //proposal must know what to with the sent balance
-    IERC20(token).safeTransfer(msg.sender, balance);
-  }
-
   ///@notice migrates threshold token from Limbo to Behodler and orchestrates Flan boosting mechanics. Callers of this function are rewared to compensate for gas expenditure
   /**@dev this function depends on a Morgoth Power. For those unfamiliar, a power is similar to a spell on other DAOs. Morgoth owns Behodler and so the only way to list
    * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
@@ -676,4 +616,30 @@ contract Limbo is Governable {
   function getPending(User memory user, Soul memory soul) internal pure returns (uint256) {
     return ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
   }
+
+
+  function previewSoulUpdate(address token, uint256 index) internal view returns (Soul memory soul) {
+    soul = souls[token][index];
+    if (soul.soulType == SoulType.uninitialized) {
+      revert InvalidSoul(token);
+    }
+
+    uint256 finalTimeStamp = block.timestamp;
+    if (soul.state != SoulState.staking && soul.soulType == SoulType.threshold) {
+      finalTimeStamp = tokenCrossingParameters[token][index].stakingEndsTimestamp;
+    }
+    uint256 soulLastRewardTimestamp = soul.lastRewardTimestamp;
+    if (finalTimeStamp == soulLastRewardTimestamp) {
+      return soul;
+    }
+
+    uint256 balance = IERC20(token).balanceOf(address(this));
+
+    if (balance > 0) {
+      uint256 flanReward = (finalTimeStamp - soulLastRewardTimestamp) * soul.flanPerSecond;
+      soul.accumulatedFlanPerShare = soul.accumulatedFlanPerShare + ((flanReward * TERA) / balance);
+    }
+    soul.lastRewardTimestamp = finalTimeStamp;
+  }
+
 }

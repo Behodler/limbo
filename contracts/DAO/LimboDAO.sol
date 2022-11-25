@@ -30,7 +30,6 @@ struct DomainConfig {
   address limbo;
   address flan;
   address eye;
-  address fate;
   bool live;
   address flashGoverner;
   LimboOracleLike sushiOracle;
@@ -500,7 +499,7 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
   }
 
   /**@notice seed is a goro idiom for initialize that you tend to find in all the dapps I've written.
-   * I prefer initialization funcitons to parameterized solidity constructors for reasons beyond the scope of this comment.
+   * I prefer initialization functions to parameterized solidity constructors for reasons beyond the scope of this comment.
    */
   function _seed(
     address limbo,

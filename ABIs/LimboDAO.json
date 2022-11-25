@@ -35,7 +35,7 @@
   "function assetApproved(address) view returns (bool)",
   "function burnAsset(address,uint256,bool)",
   "function currentProposalState() view returns (int256, uint8, address, uint256, address)",
-  "function domainConfig() view returns (address, address, address, address, bool, address, address, address)",
+  "function domainConfig() view returns (address, address, address, bool, address, address, address)",
   "function executeCurrentProposal()",
   "function fateGrowthStrategy(address) view returns (uint8)",
   "function fateSpenders(address) view returns (bool)",

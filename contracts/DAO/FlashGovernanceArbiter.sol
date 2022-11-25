@@ -62,7 +62,7 @@ contract FlashGovernanceArbiter is Governable {
 
   /**@notice sets contracts LimboDAO has authority to govern
    *@param governables candidate contracts for flash governance
-   *@param isGoverned flags whether contract is governanble FlashGovernance Arbtier
+   *@param isGoverned flags whether contract is governanble by FlashGovernanceArbiter
    */
   function setGoverned(address[] calldata governables, bool[] calldata isGoverned) external onlySuccessfulProposal {
     if (governables.length != isGoverned.length) {

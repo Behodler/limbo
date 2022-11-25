@@ -7,7 +7,7 @@ import "../../facades/ProposalFactoryLike.sol";
 
 /**
  * @author Justin Goro
- * @notice This is the only mandatory proposal and is whitelisted at deployment time for LimboDAO. All subsequent proposals are whitelisted by this proposal.
+ * @notice LimboDAO sets Flan minting rights.
  */
 contract ApproveFlanMintingProposal is Proposal {
   struct Parameters {

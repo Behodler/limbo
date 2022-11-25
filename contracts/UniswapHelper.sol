@@ -9,8 +9,6 @@ import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./facades/AMMHelper.sol";
 import "./facades/LimboOracleLike.sol";
 
-// import "hardhat/console.sol";
-
 contract BlackHole {
 
 }
@@ -206,20 +204,6 @@ contract UniswapHelper is Governable, AMMHelper {
     //update scx/fln_scx if stale
     (blockTimeStamp, period) = oracle.getLastUpdate(localVARS.behodler, address(set.fln_scx));
     if (block.timestamp - blockTimeStamp > period) set.oracle.update(localVARS.behodler, address(set.fln_scx));
-  }
-
-  ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
-  ///@param minAPY Here APY refers to the dollar value of flan relative to the dollar value of the threshold
-  ///@param daiThreshold The DAI value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
-  function minAPY_to_FPS(
-    uint256 minAPY, //divide by 10000 to get percentage
-    uint256 daiThreshold
-  ) public pure override returns (uint256 fps) {
-    if (daiThreshold == 0) {
-      revert DaiThresholdMustBePositive();
-    }
-    uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
-    fps = returnOnThreshold / (year);
   }
 
   function getAmountOut(
