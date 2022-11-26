@@ -62,15 +62,11 @@ Auto instantiated by Angband
 6. Angband.setBehodler()
 7. Angband.mapDomain (liquidityReceiver)
 8. Angband.mapDomain (PyroWeth10Proxy)
-9. <PyroV3>
-10. Angband.mapDomain (<PyroV3>)
-11. <Limbo>
-12. Angband.mapDomain (<Limbo>)
 
 Note: on every powerInvoker, remember to call changePower after deploy
 
 ## PyroTokens (V3)
-*TODO: Create a snufferCap that's controlled by LimboProposals*
+
 ### BigConstants
 Storing the creation code in liquidity receiver violates EIP-170. BigConstants is a way of getting around that limitation.
 **Dependencies: none**
@@ -218,5 +214,77 @@ Additional Intilialzer: setProxy
 20. Assign Power to Limbo minion and make Limbo that minion
 21. Transfer LimboDAO to Morgoth and map domain
 
+# Total Deployment Prior to Genesis
+1. Weth
+2. Behodler
+3. Lachesis
+4. LiquidityReceiver (lachesis)
+5. Behodler.seed
+6. Lachesis.setBehodler 
+7. LiquidityReceiver.RegisterPyroWeth
+8. PyroWeth10Proxy (pyroweth)
+9. Powers
+10. Powers.seed()
+11. Angband
+12. Angband.finalizeSetup()
+13. Transfer Lachesis and Behodler to Angband
+14. Angband.setBehodler()
+15. Angband.mapDomain (liquidityReceiver)
+16. Angband.mapDomain (PyroWeth10Proxy)
+17. BigConstants
+18. LiquidityReceiver
+19. DeployerSnufferCap
+20. LiquidityReceiver.setSnufferCap(DeployerSnufferCap)
+21. LiquidityReceiver.registerPyroTokens
+22. LiquidityReceiver.registerPyroToken (PyroWeth)
+23. PyroWeth10Proxy
+24. DeployerSnufferCap -> exempt PyroWeth10RPoxy and proxyHandler
+25. ProxyHandler
+26. V2Migrator
+27. LimboDAO
+28. WhiteListProposal
+29. MorgothTokenApprover
+30. MultiSoulConfigUpdateProposal (with tokenApprover)
+31. ProposalFactory
+32. FlashGovernanceAbrbiter and initializers
+33. Flan and setMintConfig
+34. Morgoth.LimboAddTokenToBehodler
+35. UniswapHelper
+36. LimboOracle
+37. Limbo
+38. UniswapHelper.configure
+39. LimboDAO.seed
+40. Limbo.configureCrossingConfig
+41. MorgothTokenApprover.updateConfig
+42. Morgoth: Transfer and Map domain for MorgothTokenApprover
+43. ConfigureTokenApprover and whitelisting on Morgoth
+44. TokenProxyRegistry and set Approver and set Power
+45. All the proposals
+46. Whitelist all the proposals
+47. Assign Power to Limbo minion and make Limbo that minion
+48. Transfer LimboDAO to Morgoth and map domain
 
-TODO: Flan Genesis
+
+# Flan Genesis
+Important to note: we can get above script ready before completing genesis event so that PyroTokens3 can proceeed.
+
+Current thinking of Flan Genesis:
+1. Mint Flan equal to Dai balance on Behodler.
+2. TokenProxy.createCliffFace (protectLimbo:false) for Flan
+    - reference Dai, reference multiple 0.7
+3. Lachesis.measure(flanCliff, true,false)
+4. Deposit minted Flan into Behodler via cliffFace.
+5. Collect SCX generated.
+6. Mint Flan equal in value (assuming $1) to SCX minted.
+7. Pair with SCX in UniV2 -> generates SCX/FLN LP token: LP_1
+8. Lachesis.measure (SCX/FLN LP, true, false) -> mints SCX_2
+9. Pair SCX_2 with equivalent LP_1 to create scx__fln_scx -> mints LP_2
+10. Lachesis.measure LP_2 and mint SCX.
+11. On Uni, create dai_scx and seed with as much Dai as possible.
+12. TokenProxyRegistry.createCliffFace (dai_scx)
+13. Lachesis.measure(dai_scx cliff, true, false) and deposit to mint SCX
+14. Create and seed Flan/EYE UniV2 LP
+15. Lachesis.measure (Flan/EYE LP, true, false) and mint SCX
+16. Create PyroFlan/SCX LP
+17. Lachesis.measure (PyroFlan/SCX LP, true, false), mint
+18. Burn all remaining SCX
