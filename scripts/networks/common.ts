@@ -91,11 +91,11 @@ export async function deploy<T extends Contract>(
   gasArgs.push(await getNonce());
 
   const contract: T = await factory.deploy(...gasArgs) as T;
-  try{
+  try {
     let real = await (contract as any).REAL()
-    if(!real)
-    throw "Test Contract detected."
-  }catch{}
+    if (!real)
+      throw "Test Contract detected."
+  } catch { }
   logger("pausing for deployment of " + name + " at " + new Date().toTimeString());
   await pauser();
   //await contract.deployed();
@@ -104,15 +104,72 @@ export async function deploy<T extends Contract>(
 
 export function nameNetwork(networkId: number) {
   switch (networkId) {
-    case 1:
-      return "mainnet"
-    case 1337:
-      return "hardhat";
-    case 3:
-      return "ropsten";
-    case 42:
-      return "kovan";
+    case 1: return "mainnet"
+    case 5: return "goerli"
+    case 10: return "optimism"
+    case 42: return "kovan";
+    case 137: return "polygon"
+    case 1337: return "hardhat";
+    case 42161: return "arbitrum one"
     default:
       throw "unknown network";
   }
 }
+//Note: not all sections deploy contracts.
+export enum Sections {
+  Weth,
+  Behodler,
+  BehodlerTokens,
+  UniswapFactory,
+  Lachesis,
+  LiquidityReceiverOld,
+  BehodlerAndLachesisSeed,
+  RegisterPyroWeth10,
+  PyroWeth10ProxyOld,
+  Powers,
+  PowersSeed,
+  Angband,
+  AngbandFinalize,
+  MorgothOwnBeholderAndLachesis,//also setBehodler
+  MorgothMapLiquidityReceiver,
+  MorgothMapPyroWeth10Proxy,
+  BigConstants,
+  LiquidityReceiverNew,
+  DeployerSnufferCap,
+  LR_setDeployerSnuffer,
+  LR_registerPyroTokens,
+  LR_registerPyroWETH,
+  PyroWeth10ProxyNew,
+  SnuffPyroWeth10ProxyNew,
+  ProxyHandler,
+  V2Migrator,
+  LimboDAO,
+  WhiteListProposal,
+  MorgothTokenApprover,
+  MultiSoulConfigUpdateProposal,
+  ProposalFactory,
+  FlashGovernanceArbiter,
+  FlashGovInitializers,
+  Flan,
+  FlanSetMintConfig,
+  PyroFlanBooster,
+  Morgoth_LimboAddTokenToBehodler,
+  UniswapHelper,
+  LimboOracle,
+  Limbo,
+  UniswapHelperConfigure,
+  LimboTokens,
+  LimboDAOSeed,
+  LimboConfigureCrossingConfig,
+  MorgothTokenApproverUpdateConfig,
+  MorgothMapApprover,
+  ConfigureTokenApproverPower,
+  AngbandWhiteListConfigureTokenApprover,
+  TokenProxyRegistry,
+  TPR_setApprover_setPower,
+  LimboDAOProposals,
+  WhiteListAllProposals,
+  MorgothLimboMinionAndPower,
+  MorgothMapLimboDAO
+}
+export const sectionName = (section: Sections): string => Sections[section]

@@ -1,10 +1,7 @@
-# Culled code
-In LimboDAO, there was an address for Fate in domainConfig. Fate has no address. This was removed.
-In Limbo and in UniswapHelper, there is a helper function for estimating FPS from a given APY. This type of help should either be on a stateless contract in the periphery or on the front end but does not belong in a business logic contract, especially given the gas costs of carrying deadwood code in Ethereum.
+# orchestrate.ts
+Added address backing up code for mainnet contracts in case we run the script more than once before committing
 
-UpdateMultipleSoulConfigProposal relies on the minAPY_to_FPS pure function in UniswapHelper. It was moved directly into the proposal contract.
+# common.ts
+Created the Section Enum which outlines all the deployment steps
 
-# EcosystemDeployment.md
-Remaining work: 
-1. Flan Genesis.
-2. Putting it all together.
+There was some renaming that confused git diffing tools a bit. 

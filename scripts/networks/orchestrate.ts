@@ -69,6 +69,7 @@ export async function deployTestnet(
   const updater = domainUpdater(networkName, persist);
   let existing: AddressFileStructure = {};
 
+
   let loaded = addressLoader("deployBehodler", existing);
   let behodler = loaded.result;
   existing = loaded.existing;
@@ -77,6 +78,7 @@ export async function deployTestnet(
     behodler = await deployments.deployBehodler(deployer, pauser);
     updater("deployBehodler", behodler, existing);
   }
+
   loaded = addressLoader("deployTokens", existing);
   let tokens = loaded.result;
   existing = loaded.existing;
@@ -249,7 +251,7 @@ export async function deployTestnet(
     proposalFactoryAddresses["proposalFactory"],
     limboAddresses["uniswapOracle"],
     [uniswapAddresses["EYEDAI"], uniswapAddresses["EYESCX"]],
-      pauser
+    pauser
   );
 
   loaded = addressLoader("deployMorgothDAO", existing);
@@ -416,13 +418,16 @@ function loadAddresses(
   existing: AddressFileStructure,
   persist: boolean
 ): LoadStructure {
-  const fileName = `${process.cwd()}/scripts/testnet/addresses/${networkName}.json`;
+  const fileName = `${process.cwd()}/scripts/networks/addresses/${networkName}.json`;
+  const timeStamp = new Date().toUTCString()
+  const backupFilenName = fileName.substring(0, fileName.length - 5) + timeStamp + ".backup"
 
   const foundFile = existsSync(fileName);
   if (persist) {
     logger("persist is true");
     if (foundFile) {
       const blob = readFileSync(fileName);
+      writeFileSync(backupFilenName, blob)
       existing = JSON.parse(blob.toString()) as AddressFileStructure;
     } else {
       logger("address file not found");

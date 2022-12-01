@@ -11,8 +11,8 @@ const { expect, assert } = require("chai");
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
-import { safeDeploy } from "../../scripts/testnet/orchestrate";
-import configureRopsten from "../../scripts/testnet/configureThreshold";
+import { safeDeploy } from "../../scripts/networks/orchestrate";
+import configureRopsten from "../../scripts/networks/configureThreshold";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
