@@ -1,0 +1,18 @@
+[
+  "constructor(address)",
+  "error AccessDenied(address,address)",
+  "error BackrunDetected(address,address)",
+  "error GovernanceActionFailed(bool,address)",
+  "function DAO() view returns (address)",
+  "function atomicBoost()",
+  "function config() view returns (uint256, address, address, address)",
+  "function configure(uint256,address,address,address)",
+  "function configured() view returns (bool)",
+  "function endConfiguration(address)",
+  "function governer() view returns (address)",
+  "function mint(uint256,address)",
+  "function mintVars() view returns (uint256, uint256)",
+  "function redeem(uint256,address)",
+  "function setDAO(address)",
+  "function temporaryConfigurationLord() view returns (address)"
+]

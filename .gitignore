@@ -146,3 +146,4 @@ gasReport*
 contracts/remix/
 
 *.zip
+*.backup
