@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.1;
 import "../Powers.sol";
-
-abstract contract Behodler_071 {
-     function setSafetParameters(
-        uint8 swapPrecisionFactor,
-        uint8 maxLiquidityExit
-    ) external virtual;
-}
+import "../facades/Behodler_071.sol";
 
 contract SetSafetyParametersOnBehodler is PowerInvoker {
 

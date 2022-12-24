@@ -28,9 +28,11 @@ describe("ropsten deployment", function () {
   let addresses: DeployedContracts;
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
-    addresses = (await safeDeploy(1337, false, 2, 6)) as DeployedContracts;
+    addresses = (await safeDeploy(1337, 2, 9)) as DeployedContracts;
   });
-  
+
+  it("t0. tests deployer", async function () { })
+
   it("illustrate a healthy deployment by having working LP tokens", async function () {
     const eyeDaiAddress = addresses["EYEDAI"];
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
@@ -131,7 +133,7 @@ describe("ropsten deployment", function () {
     //Second sample 4 blocks later
     let newBlockNumber: number = blockNumberOfFirstSample;
     console.log("block of first sample: " + blockNumberOfFirstSample);
-    for (; newBlockNumber - blockNumberOfFirstSample < 4; ) {
+    for (; newBlockNumber - blockNumberOfFirstSample < 4;) {
       newBlockNumber = parseInt(await network.provider.send("eth_blockNumber"));
       console.log("block :" + newBlockNumber);
       await soulReader.SoulStats(aave.address, limbo.address);
@@ -201,7 +203,6 @@ describe("ropsten deployment", function () {
 });
 
 function pause(duration: number) {
-  console.log("pausing for  " + duration + " seconds");
   return new Promise(function (resolve, error) {
     setTimeout(() => {
       return resolve(duration);

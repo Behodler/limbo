@@ -532,7 +532,7 @@ contract Limbo is Governable {
 
   ///@notice migrates threshold token from Limbo to Behodler and orchestrates Flan boosting mechanics. Callers of this function are rewared to compensate for gas expenditure
   /**@dev this function depends on a Morgoth Power. For those unfamiliar, a power is similar to a spell on other DAOs. Morgoth owns Behodler and so the only way to list
-   * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and than Limbo has been granted
+   * a token on Behodler is via a Morgoth Power. Permission mapping is handled on Morgoth side. Calling this function assumes that the power has been calibrated and that Limbo has been granted
    * permission on Morgoth to execute migrations to Behodler. The other big depenency is the AMM helper which contains the bulk of the migration logic.
    */
   function migrate(address token, uint256 index) public enabled preventFlashLoanMigration(token) {

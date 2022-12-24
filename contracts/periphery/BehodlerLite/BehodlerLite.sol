@@ -168,7 +168,7 @@ contract ScarcityLite is CommonIERC20 {
   }
 }
 
-library ABDK {
+library ABDK_lite {
   /*
    * Minimum value signed 64.64-bit fixed point number may have.
    */
@@ -298,8 +298,8 @@ contract LachesisLite {
 }
 
 contract BehodlerLite is ScarcityLite {
-  using ABDK for int128;
-  using ABDK for uint256;
+  using ABDK_lite for int128;
+  using ABDK_lite for uint256;
   using RB.AddressBalanceCheck for address;
   mapping(address => bool) validTokens;
   struct PrecisionFactors {

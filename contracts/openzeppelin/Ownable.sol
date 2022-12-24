@@ -2,54 +2,56 @@
 pragma solidity 0.8.16;
 
 import "../periphery/Errors.sol";
+import "hardhat/console.sol";
 
 abstract contract Ownable {
-    address private _owner;
+  address private _owner;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _transferOwnership(msg.sender);
+  /**
+   * @dev Initializes the contract setting the deployer as the initial owner.
+   */
+  constructor() {
+    _transferOwnership(msg.sender);
+  }
+
+  /**
+   * @dev Returns the address of the current owner.
+   */
+  function owner() public view virtual returns (address) {
+    return _owner;
+  }
+
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier onlyOwner() {
+    if (owner() != msg.sender) {
+      console.log("not owner. owner: %s, sender %s, this %s", owner(), msg.sender, address(this));
+      revert OnlyOwner(msg.sender, owner());
     }
+    _;
+  }
 
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
+  /**
+   * @dev Transfers ownership of the contract to a new account (`newOwner`).
+   * Can only be called by the current owner.
+   */
+  function transferOwnership(address newOwner) public virtual onlyOwner {
+    if (newOwner == address(0)) {
+      revert TransferToZeroAddress();
     }
+    _transferOwnership(newOwner);
+  }
 
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        if(owner()!=msg.sender){
-            revert OnlyOwner(msg.sender, owner());
-        }
-        _;
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-       if(newOwner==address(0)){
-           revert TransferToZeroAddress();
-       }
-       _transferOwnership(newOwner);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Internal function without access restriction.
-     */
-    function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
+  /**
+   * @dev Transfers ownership of the contract to a new account (`newOwner`).
+   * Internal function without access restriction.
+   */
+  function _transferOwnership(address newOwner) internal virtual {
+    address oldOwner = _owner;
+    _owner = newOwner;
+    emit OwnershipTransferred(oldOwner, newOwner);
+  }
 }

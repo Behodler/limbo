@@ -49,7 +49,7 @@ If we introduce the requirement to supply CRV in order to stake TriCrypto, it br
 
 If we wish to avoid having two tokens and all their attendant complexities, we can instead have a public claim function that anyone can invoke. It claims all pending CRV rewards for the entire TriCrypto reserve pool and then, using Curve's TWAP oracle, swaps the rewards for the base token and deposits the base token into the reserve, boosting the redeem rate.
 
-As an example, Suppose we have ProxyTRI which is a proxy wrapper for TriCrypto. ProxyTRI holds 1000 TryCrypto and there are 1000 ProxyTRI in supply, making the redeem rate 1. The price of CRV is currently 10 CRV to 1 TriCrypto. The reserve accumulates a pending CRV reward of 20 CRV. Someone triggers the claim function and the 20 are swapped out for 2 TriCrypto which are added to the reserve. The redeem rate has now risen to 1002/1000 = 1.002.
+As an example, Suppose we have ProxyTRI which is a proxy wrapper for TriCrypto. ProxyTRI holds 1000 TriCrypto and there are 1000 ProxyTRI in supply, making the redeem rate 1. The price of CRV is currently 10 CRV to 1 TriCrypto. The reserve accumulates a pending CRV reward of 20 CRV. Someone triggers the claim function and the 20 are swapped out for 2 TriCrypto which are added to the reserve. The redeem rate has now risen to 1002/1000 = 1.002.
 
 The caller of the claim function could receive a small percentage of the reward in order to incentivize regular claim invocation. This mechanism can be generalized to multiple reward tokens such as with Convex finance.
 

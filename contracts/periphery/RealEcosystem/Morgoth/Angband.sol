@@ -38,7 +38,7 @@ contract Angband is Empowered, Thangorodrim {
         _;
         (, bytes32 domain, , ) = PowerInvoker(powerInvoker).power();
         address ownable = getAddress(domain);
-
+        
         require(
             ownable == address(this) ||
                 Ownable_071(ownable).owner() == address(this),

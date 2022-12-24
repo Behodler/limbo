@@ -1,6 +1,7 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
-import * as deployments from "./deploymentFunctions";
-import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork } from "./common";
+import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList } from "./common";
+import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
@@ -8,7 +9,6 @@ const logger = logFactory(true);
 
 export async function safeDeploy(
   chainId: number | undefined,
-  persist: boolean,
   blockTime: number,
   confirmations: number
 ): Promise<OutputAddress> {
@@ -25,7 +25,7 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    return deployTestnet(chainId, persist, blockTime, confirmations);
+    return deployTestnet(chainId, blockTime, confirmations);
   } catch (error) {
     throw error;
   } finally {
@@ -35,7 +35,6 @@ export async function safeDeploy(
 
 export async function deployTestnet(
   chainId: number | undefined,
-  persist: boolean,
   blockTime: number,
   confirmations: number,
   nonce?: number
@@ -56,395 +55,114 @@ export async function deployTestnet(
 
   const networkName = nameNetwork(chainId);
   const pauser = await getPauser(blockTime, networkName, confirmations);
-  const recognizedTestNet = networkName !== "hardhat";
 
-  const networkLoader = (network: string, persist: boolean) => (domain: string, existing: AddressFileStructure) =>
-    loadAddresses(network, domain, existing, persist);
-  const addressLoader = networkLoader(networkName, persist);
+  let loader = new Loader(networkName, logger, deployer, pauser)
 
-  const domainUpdater =
-    (network: string, persist: boolean) =>
-      (domain: string, newAddresses: OutputAddress, existing: AddressFileStructure) =>
-        updateDomain(network, domain, newAddresses, existing, persist);
-  const updater = domainUpdater(networkName, persist);
-  let existing: AddressFileStructure = {};
-
-
-  let loaded = addressLoader("deployBehodler", existing);
-  let behodler = loaded.result;
-  existing = loaded.existing;
-
-  if (!behodler) {
-    behodler = await deployments.deployBehodler(deployer, pauser);
-    updater("deployBehodler", behodler, existing);
+  const iterations = SectionsToList.length;
+  for (let i = 0; i < iterations; i++) {
+    const currentSection: Sections = SectionsToList[i]
+    logger(sectionName(currentSection) + ": ")
+    loader = await loader.loadOrDeploy(currentSection).catch(
+      err => { throw err }
+    )
+    logger('finished section ' + sectionName(currentSection))
   }
 
-  loaded = addressLoader("deployTokens", existing);
-  let tokens = loaded.result;
-  existing = loaded.existing;
+  const flat = loader.flatten()
+  logger(JSON.stringify(flat, null, 4))
+  return flat;
+}
 
-  if (!tokens) {
-    tokens = await deployments.deployTokens(deployer, pauser);
-  }
-  tokens["SCX"] = behodler["behodler"];
-  updater("deployTokens", tokens, existing);
 
-  loaded = addressLoader("deployLiquidityReceiver", existing);
-  let liquidityReceiverAddresses = loaded.result;
-  existing = loaded.existing;
-  logger("existing liquidity receiver");
-  logger(JSON.stringify(liquidityReceiverAddresses, null, 2));
+class Loader {
+  network: string
+  existing: AddressFileStructure
+  logger: (message: string) => void
+  deployer: SignerWithAddress
+  pauser: Function
+  fileName: string = ""
 
-  if (!liquidityReceiverAddresses) {
-    liquidityReceiverAddresses = await deployments.deployLiquidityReceiver(
-      deployer,
-      tokens,
-      behodler["addressBalanceCheck"],
-      pauser
-    );
-    logger("lachesis address right after deployLiquidityReceiver " + liquidityReceiverAddresses["lachesis"]);
-    updater("deployLiquidityReceiver", liquidityReceiverAddresses, existing);
-  }
-  logger("lachesis address in orchestrate " + liquidityReceiverAddresses["lachesis"]);
-
-  loaded = addressLoader("deployWeth", existing);
-  let wethAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!wethAddresses) {
-    wethAddresses = await deployments.deployWeth(
-      deployer,
-      liquidityReceiverAddresses["liquidityReceiver"],
-      liquidityReceiverAddresses["lachesis"],
-      pauser
-    );
-    updater("deployWeth", wethAddresses, existing);
-  }
-  logger("lachesis in orchestrate: " + liquidityReceiverAddresses["lachesis"]);
-  tokens["WETH"] = wethAddresses["WETH"];
-  updater("deployTokens", tokens, existing);
-  await deployments.mintOnBehodler(
-    deployer,
-    tokens,
-    behodler["addressBalanceCheck"],
-    liquidityReceiverAddresses["lachesis"],
-    pauser
-  );
-  logger("behodler minting complete");
-
-  loaded = addressLoader("deployUniswap", existing);
-  let uniswapAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!uniswapAddresses) {
-    uniswapAddresses = await deployments.deployUniswap(deployer, tokens, recognizedTestNet, pauser);
-    updater("deployUniswap", uniswapAddresses, existing);
+  constructor(network: string,
+    logger: (message: string) => void,
+    deployer: SignerWithAddress,
+    pauser: Function) {
+    this.network = network;
+    this.existing = {} as AddressFileStructure;
+    this.logger = logger;
+    this.deployer = deployer;
+    this.pauser = pauser;
+    this.populateExistingFromFile();
   }
 
-  loaded = addressLoader("deploySushiswap", existing);
-  let sushiAddresses = loaded.result;
-  existing = loaded.existing;
-  if (!sushiAddresses) {
-    logger("About to deploy sushi swap");
-    sushiAddresses = await deployments.deploySushiswap(deployer, tokens, recognizedTestNet, pauser);
-    updater("deploySushiswap", sushiAddresses, existing);
-  }
-  logger(JSON.stringify(tokens, null, 4));
-  await deployments.seedUniswap(
-    deployer,
-    tokens["EYE"],
-    tokens["DAI"],
-    tokens["SCX"],
-    wethAddresses["WETH"],
-    uniswapAddresses["EYEDAI"],
-    uniswapAddresses["SCXWETH"],
-    uniswapAddresses["EYESCX"],
-    pauser
-  );
-
-  await deployments.seedUniswap(
-    deployer,
-    tokens["EYE"],
-    tokens["DAI"],
-    tokens["SCX"],
-    wethAddresses["WETH"],
-    sushiAddresses["EYEDAISLP"],
-    sushiAddresses["SCXWETHSLP"],
-    sushiAddresses["EYESCXSLP"],
-    pauser
-  );
-
-  loaded = addressLoader("deployLimboDAO", existing);
-  let limboDaoAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!limboDaoAddresses) {
-    limboDaoAddresses = await deployments.deployLimboDAO(deployer, tokens["EYE"], pauser);
-    updater("deployLimboDAO", limboDaoAddresses, existing);
-  }
-
-  loaded = addressLoader("deployFlan", existing);
-  let flanAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!flanAddresses) {
-    flanAddresses = await deployments.deployFlan(
-      deployer,
-      limboDaoAddresses["dao"],
-      liquidityReceiverAddresses["lachesis"],
-      tokens["SCX"],
-      uniswapAddresses["uniswapFactory"],
-      liquidityReceiverAddresses["liquidityReceiver"],
-      behodler["addressBalanceCheck"],
-      limboDaoAddresses["safeERC20"],
-      pauser
-    );
-    updater("deployFlan", flanAddresses, existing);
-  }
-
-  loaded = addressLoader("deployLimbo", existing);
-  let limboAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!limboAddresses) {
-    limboAddresses = await deployments.deployLimbo(deployer,
-      flanAddresses["FLAN"],
-      tokens["DAI"],
-      tokens["SCX"],
-      limboDaoAddresses["dao"],
-      uniswapAddresses["uniswapRouter"],
-      chainId,
-      pauser
-    );
-    updater("deployLimbo", limboAddresses, existing);
-  }
-
-  let limboLibraries: string[] = [];
-  limboLibraries.push(limboAddresses["soulLib"]);
-  limboLibraries.push(limboAddresses["crossingLib"]);
-  limboLibraries.push(limboAddresses["migrationLib"]);
-  logger("limboLibraries" + JSON.stringify(limboLibraries, null, 2));
-
-  loaded = addressLoader("deployProposalFactory", existing);
-  let proposalFactoryAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!proposalFactoryAddresses) {
-    proposalFactoryAddresses = await deployments.deployProposalFactory(
-      deployer,
-      limboDaoAddresses["dao"],
-      limboAddresses["limbo"],
-      limboAddresses["uniswapHelper"],
-      limboDaoAddresses["safeERC20"],
-      limboLibraries,
-      pauser
-    );
-    updater("deployProposalFactory", proposalFactoryAddresses, existing);
-  }
-
-  logger("Seeding DAO");
-  await deployments.seedLimboDAO(
-    limboDaoAddresses["dao"],
-    limboAddresses["limbo"],
-    flanAddresses["FLAN"],
-    tokens["EYE"],
-    proposalFactoryAddresses["proposalFactory"],
-    limboAddresses["uniswapOracle"],
-    [uniswapAddresses["EYEDAI"], uniswapAddresses["EYESCX"]],
-    pauser
-  );
-
-  loaded = addressLoader("deployMorgothDAO", existing);
-  let morgothDAOAddresses = loaded.result;
-  existing = loaded.existing;
-
-  if (!morgothDAOAddresses) {
-    morgothDAOAddresses = await deployments.deployMorgothDAO(
-      deployer,
-      liquidityReceiverAddresses["lachesis"],
-      tokens["SCX"],
-      behodler["addressBalanceCheck"],
-      limboAddresses["limbo"],
-      limboLibraries,
-      pauser
-    );
-    updater("deployMorgothDAO", morgothDAOAddresses, existing);
-  }
-
-  await deployments.configureLimboCrossingConfig(
-    limboAddresses["limbo"],
-    tokens["SCX"],
-    morgothDAOAddresses["angband"],
-    limboAddresses["uniswapHelper"],
-    morgothDAOAddresses["limboAddTokenToBehodlerPower"],
-    500,
-    300,
-    100,
-    limboLibraries,
-    pauser
-  );
-
-  loaded = addressLoader("deploySoulReader", existing);
-  let soulReaderAddress = loaded.result;
-  existing = loaded.existing;
-
-  if (!soulReaderAddress) {
-    soulReaderAddress = await deployments.deploySoulReader(pauser);
-    updater("deploySoulReader", soulReaderAddress, existing);
-  }
-
-  loaded = addressLoader("deployMultiCall", existing);
-  let multicallAddress = loaded.result;
-  existing = loaded.existing;
-
-  if (!multicallAddress) {
-    multicallAddress = await deployments.deployMultiCall(pauser);
-    updater("deployMultiCall", multicallAddress, existing);
-  }
-
-  loaded = addressLoader("TestTokens", existing);
-  let testTokens = loaded.result;
-  existing = loaded.existing;
-
-  if (!testTokens && !persist) {
-    testTokens = await deployments.deployFakeTokens(pauser);
-    updater("TestTokens", testTokens, existing);
-  }
-
-  const flatOutput: OutputAddress = {};
-
-  for (const key in behodler) {
-    flatOutput[key] = behodler[key];
-  }
-  for (const key in tokens) {
-    flatOutput[key] = tokens[key];
-  }
-
-  for (const key in liquidityReceiverAddresses) {
-    flatOutput[key] = liquidityReceiverAddresses[key];
-  }
-
-  for (const key in wethAddresses) {
-    flatOutput[key] = wethAddresses[key];
-  }
-
-  for (const key in uniswapAddresses) {
-    flatOutput[key] = uniswapAddresses[key];
-  }
-
-  for (const key in sushiAddresses) {
-    flatOutput[key] = sushiAddresses[key];
-  }
-
-  for (const key in limboDaoAddresses) {
-    flatOutput[key] = limboDaoAddresses[key];
-  }
-
-  for (const key in flanAddresses) {
-    flatOutput[key] = flanAddresses[key];
-  }
-
-  for (const key in limboAddresses) {
-    flatOutput[key] = limboAddresses[key];
-  }
-
-  for (const key in proposalFactoryAddresses) {
-    flatOutput[key] = proposalFactoryAddresses[key];
-  }
-
-  for (const key in morgothDAOAddresses) {
-    flatOutput[key] = morgothDAOAddresses[key];
-  }
-
-  for (const key in soulReaderAddress) {
-    flatOutput[key] = soulReaderAddress[key];
-  }
-
-  for (const key in multicallAddress) {
-    flatOutput[key] = multicallAddress[key];
-  }
-
-  if (!persist) {
-    for (const key in testTokens) {
-      flatOutput[key] = testTokens[key];
+  flatten(): OutputAddress {
+    let flat: OutputAddress = {}
+    let sectionKeys = Object.keys(this.existing)
+    for (const sectionKey in sectionKeys) {
+      let contractKeys = Object.keys(sectionKeys[sectionKey])
+      for (const contractKey in contractKeys) {
+        let flatKeys = Object.keys(flat)
+        for (const flatKey in flatKeys) {
+          if (contractKey == flatKey)
+            throw `duplicate contract key found <${contractKey}> when traversing ${sectionKey}`
+        }
+        flat[contractKey] = contractKeys[contractKey]
+      }
     }
+    return flat;
   }
 
-  const flatString = JSON.stringify(flatOutput, null, 2);
-  if (persist) {
-    writeFileSync(`./${networkName}.json`, JSON.stringify(flatOutput, null, 2));
-  } else {
-    logger(flatString);
+  async loadOrDeploy(section: Sections): Promise<Loader> {
+    const existingKeys = Object.keys(this.existing)
+    const message = `Section ${sectionName(section)} `
+    for (let i = 0; i < existingKeys.length; i++) {
+      if (existingKeys[i] === sectionName(section)) {
+        this.logger(`${message}already deployed. Skipping deployment...`)
+        return this
+      }
+    }
+
+    logger(`${message}not found. Deploying...`)
+    let deploymentFunction = sectionChooser(section)
+
+    let params: IDeploymentParams = {
+      deployer: this.deployer,
+      existing: this.existing,
+      pauser: this.pauser
+    }
+
+    let outputAddresses = await deploymentFunction(params)
+
+    if (JSON.stringify(outputAddresses) != '{}') {
+      let newExisting: AddressFileStructure = { ...this.existing }
+      newExisting[sectionName(section)] = outputAddresses
+      this.logger(`persisting deployments for ${sectionName(section)} to ${this.fileName}`)
+      let json = JSON.stringify(newExisting, null, 2)
+      writeFileSync(this.fileName, json)
+    }
+
+    return new Loader(
+      this.network,
+      this.logger,
+      this.deployer,
+      this.pauser)
   }
-  logger("successfully deployed Limbo and test versions of Behodler and MorgothDAO")
-  return flatOutput;
-}
 
-function updateDomain(
-  networkName: string,
-  domain: string,
-  newAddresses: OutputAddress,
-  existing: AddressFileStructure,
-  persist: boolean
-) {
-  const fileName = `${process.cwd()}/scripts/testnet/addresses/${networkName}.json`;
+  private async populateExistingFromFile() {
+    logger('in populate')
+    this.fileName = `${process.cwd()}/scripts/networks/addresses/${this.network}.json`;
+    const timeStamp = new Date().toUTCString()
+    const backupFilenName = this.fileName.substring(0, this.fileName.length - 5) + timeStamp + ".backup"
 
-  if (persist && existsSync(fileName)) {
-    const blob = readFileSync(fileName);
-    existing = JSON.parse(blob.toString()) as AddressFileStructure;
-  }
-  const domainKeys = Object.keys(existing);
-  if (domainKeys.includes(domain)) {
-    existing[domain] = newAddresses;
-  } else {
-    existing[domain] = newAddresses;
-  }
-
-  if (persist) {
-    logger("about to write out domain");
-    writeFileSync(fileName, JSON.stringify(existing, null, 2));
-  }
-  return existing;
-}
-
-interface LoadStructure {
-  result: OutputAddress | null;
-  existing: AddressFileStructure;
-}
-
-function loadAddresses(
-  networkName: string,
-  domain: string,
-  existing: AddressFileStructure,
-  persist: boolean
-): LoadStructure {
-  const fileName = `${process.cwd()}/scripts/networks/addresses/${networkName}.json`;
-  const timeStamp = new Date().toUTCString()
-  const backupFilenName = fileName.substring(0, fileName.length - 5) + timeStamp + ".backup"
-
-  const foundFile = existsSync(fileName);
-  if (persist) {
-    logger("persist is true");
+    const foundFile = existsSync(this.fileName);
     if (foundFile) {
-      const blob = readFileSync(fileName);
+      const blob = readFileSync(this.fileName);
       writeFileSync(backupFilenName, blob)
-      existing = JSON.parse(blob.toString()) as AddressFileStructure;
-    } else {
-      logger("address file not found");
+      logger('about to parse')
+      this.existing = JSON.parse(blob.toString()) as AddressFileStructure;
+      logger('parsed')
     }
-  } else logger("persist is false");
-
-  logger("domainKeys at " + domain + " " + JSON.stringify(Object.keys(existing), null, 2));
-  logger(" ");
-  const domainKeys = Object.keys(existing);
-  if (domainKeys.includes(domain)) {
-    logger("found " + domain);
-    return { result: existing[domain], existing };
-  } else {
-    logger(domain + " not found. Deploying...");
-    return { result: null, existing };
   }
 }
 
 
-const ethers = hre.ethers;
+const ethers = hre.ethers

@@ -21,7 +21,7 @@ abstract contract Governable {
 
   /**@notice during initial setup, requiring strict multiday proposals for calibration would unecessarily delay release.
    * As long as configured is false, the contract has no governance enforcement. Calling endConfiguration is a one way operation
-   * to ensure governance mechanisms kicks in. As a user, do not interact with these contracts if configured is false.
+   * to ensure governance mechanisms kick in. As a user, do not interact with these contracts if configured is false.
    * Only the original contract deployer can call endConfiguration. This is to protect against backrunning.
    * If other variables were sneakily changed, the DAO can always correct those through traditional tedious means. Then
    * backrunning becomes a mere inconvenience

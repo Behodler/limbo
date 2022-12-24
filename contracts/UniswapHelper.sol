@@ -74,11 +74,8 @@ contract UniswapHelper is Governable, AMMHelper {
     return VARS.blackHole;
   }
 
-  ///@dev Only for testing: On mainnet Dai has a fixed address.
+  ///@param dai the address of the Dai token
   function setDAI(address dai) public {
-    if (block.chainid == 1) {
-      revert NotOnMainnet();
-    }
     VARS.DAI = dai;
   }
 

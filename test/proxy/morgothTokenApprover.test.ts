@@ -23,17 +23,17 @@ interface TestSet {
   tokenProxyRegistry: Types.TokenProxyRegistry
 }
 
-const stringToBytes = (s: string): string => {
+const stringToBytes32 = (s: string): string => {
   let padded = s.padEnd(32, "\0")
   return ethers.utils.hexlify(ethers.utils.arrayify(web3.utils.fromAscii(padded)))
 }
 
 describe("Morgoth Token Approver Integration test", function () {
   let SET = {} as TestSet;
-  SET.powerName = stringToBytes("CONFIGURE_TOKEN_APPROVER")
+  SET.powerName = stringToBytes32("CONFIGURE_TOKEN_APPROVER")
   console.log('CONFIGURE_TOKEN_APPROVER: ' + SET.powerName)
-  SET.domainName = stringToBytes("TOKEN_APPROVER")
-  SET.TA_Minion = stringToBytes("TA_Minion")
+  SET.domainName = stringToBytes32("TOKEN_APPROVER")
+  SET.TA_Minion = stringToBytes32("TA_Minion")
   this.beforeEach(async function () {
     [SET.owner, SET.secondary, SET.tertiary] = await ethers.getSigners();
     /*

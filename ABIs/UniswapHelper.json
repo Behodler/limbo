@@ -3,7 +3,6 @@
   "error AccessDenied(address,address)",
   "error BackrunDetected(address,address)",
   "error GovernanceActionFailed(bool,address)",
-  "error NotOnMainnet()",
   "error OnlyLimbo(address,address)",
   "error OracleLPsNotSet(address,address,address)",
   "error PriceOvershootTooHigh(uint8)",

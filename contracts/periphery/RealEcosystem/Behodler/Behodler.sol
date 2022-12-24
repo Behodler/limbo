@@ -7,6 +7,7 @@ import "./WETH10.sol";
 import "../../../facades/LachesisLike.sol";
 import "../../../facades/Burnable.sol";
 import "../../../facades/FlashLoanArbiterLike.sol";
+import "hardhat/console.sol";
 
 /*
     Scarcity is the bonding curve token that underpins Behodler functionality
@@ -114,7 +115,7 @@ contract Scarcity is IERC20, Ownable {
 
   function mint(address recipient, uint256 value) internal {
     balances[recipient] = balances[recipient] + value;
-    _totalSupply = _totalSupply - value;
+    _totalSupply = _totalSupply + value;
     emit Mint(msg.sender, recipient, value);
   }
 
@@ -483,6 +484,7 @@ contract Behodler is Scarcity {
     lock(Slot.Add)
     returns (uint256 deltaSCX)
   {
+    console.log("hello there");
     uint256 initialBalance = uint256(uint128(inputToken.shiftedBalance(MIN_LIQUIDITY).fromUInt()));
     if (inputToken == Weth) {
       if (IERC20(Weth).balanceOf(msg.sender) >= amount) {
@@ -494,12 +496,15 @@ contract Behodler is Scarcity {
     } else {
       inputToken.transferIn(inputSender, amount);
     }
+    console.log("transfer complete");
     uint256 netInputAmount = uint256(uint128(((amount - burnToken(inputToken, amount)) / MIN_LIQUIDITY).fromUInt()));
 
     uint256 finalBalance = initialBalance + netInputAmount;
     require(uint256(finalBalance) >= MIN_LIQUIDITY, "BEHODLER: min liquidity.");
     deltaSCX = uint256(finalBalance.log_2() - (initialBalance > 1 ? initialBalance.log_2() : 0));
+    console.log("about to mint scx of %d, for %s", deltaSCX, msg.sender);
     mint(msg.sender, deltaSCX);
+    console.log("mint complete for %s", msg.sender);
     emit LiquidityAdded(msg.sender, inputToken, amount, deltaSCX);
   }
 
