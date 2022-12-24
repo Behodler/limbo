@@ -1,5 +1,5 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
-import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList } from "./common";
+import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder } from "./common";
 import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 const hre = require("hardhat");
@@ -68,8 +68,11 @@ export async function deployTestnet(
     logger('finished section ' + sectionName(currentSection))
   }
 
+  logger("Deployments complete. Flattening...")
   const flat = loader.flatten()
+  logger('printing out flat.')
   logger(JSON.stringify(flat, null, 4))
+  logger('length: ' + Object.keys(flat).length)
   return flat;
 }
 
@@ -96,16 +99,19 @@ class Loader {
 
   flatten(): OutputAddress {
     let flat: OutputAddress = {}
+    let duplicate = (newKey: string, existing: OutputAddress): boolean => {
+      let keys = Object.keys(existing)
+      return keys.filter(k => k == newKey).length > 0
+    }
     let sectionKeys = Object.keys(this.existing)
-    for (const sectionKey in sectionKeys) {
-      let contractKeys = Object.keys(sectionKeys[sectionKey])
-      for (const contractKey in contractKeys) {
-        let flatKeys = Object.keys(flat)
-        for (const flatKey in flatKeys) {
-          if (contractKey == flatKey)
-            throw `duplicate contract key found <${contractKey}> when traversing ${sectionKey}`
-        }
-        flat[contractKey] = contractKeys[contractKey]
+    for (let i = 0; i < sectionKeys.length; i++) {
+      const sectionKey = sectionKeys[i]
+      let contractKeys = Object.keys(this.existing[sectionKey])
+      for (let j = 0; j < contractKeys.length; j++) {
+        const contractKey = contractKeys[j]
+        if (duplicate(contractKey, flat))
+          throw `duplicate key found in flatten. New Key: ${contractKey}`
+        flat[contractKey] = this.existing[sectionKey][contractKey]
       }
     }
     return flat;

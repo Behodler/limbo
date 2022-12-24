@@ -576,7 +576,6 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
 
   await broadcast("mint 1000 flan into addtokenpower", flan.mint(addTokenAndValuePower.address, ethers.constants.WeiPerEther.mul(1000)), params.pauser)
   const flanBalanceOfAddToken = await flan.balanceOf(addTokenAndValuePower.address)
-  logger('flan balance ' + flanBalanceOfAddToken)
   await broadcast("addTokenPower.setPyroDetais", registerPyroPower.setPyroDetails("PyroFlan", "PyroFLN"), params.pauser)
 
   /*
@@ -946,7 +945,6 @@ const deployPyroWeth10ProxyOld: IDeploymentFunction = async function (params: ID
 
   const fetchPyro = fetchOldPyroToken(params.existing)
   const pyroWeth = await fetchPyro("Weth")
-  logger("pyroWeth fetched " + pyroWeth.address)
   const pyroWeth10ProxyV1Factory = await ethers.getContractFactory("PyroWeth10Proxy")
   const pyroWeth10Proxy = await deploy<Types.PyroWeth10Proxy>("PyroWeth10Proxy", pyroWeth10ProxyV1Factory, params.pauser, pyroWeth.address)
 
@@ -958,7 +956,7 @@ const fetchOldPyroToken = (existing: AddressFileStructure) => async (contract: c
   const token = contract === "Weth" ? await getContract(Sections.Weth, "Weth", "WETH10") :
     await getContract(Sections.BehodlerTokens, contract)
   const baseTokenAddress = token.address
-  logger("fetchOldPyro baseToken address " + baseTokenAddress)
+
   const LR = await getContract<Types.LiquidityReceiverV1>(Sections.LiquidityReceiverOld, "LiquidityReceiverV1");
 
   const pyroAddress = await LR.baseTokenMapping(baseTokenAddress)
