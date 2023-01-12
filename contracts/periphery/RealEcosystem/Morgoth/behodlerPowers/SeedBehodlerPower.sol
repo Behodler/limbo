@@ -3,7 +3,6 @@ pragma solidity ^0.7.1;
 import "../Powers.sol";
 import "../facades/Behodler_071.sol";
 
-
 contract SeedBehodlerPower is PowerInvoker, Ownable_071 {
     struct Params {
         address weth;

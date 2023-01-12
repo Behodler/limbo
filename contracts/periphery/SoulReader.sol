@@ -40,7 +40,7 @@ contract SoulReader {
    *@param token the token contract address
    *@param _limbo the limbo contract address
    */
-  function SoulStats(address token, address _limbo)
+  function soulStats(address token, address _limbo)
     public
     view
     returns (

@@ -1,12 +1,13 @@
 import { ethers, network } from "hardhat";
 import { id, parseBytes32String, parseEther, parseTransaction } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, Contract, ContractFactory } from "ethers";
-import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, broadcast, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32 } from "./common";
+import { BigNumber, BigNumberish, Contract, ContractFactory } from "ethers";
+import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, broadcast, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, oraclePairNames, tokenNames } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
+import { getContractFactory } from "@nomiclabs/hardhat-ethers/types";
 
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 interface IDeploymentFunction {
   (params: IDeploymentParams): Promise<OutputAddress>
@@ -42,6 +43,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.Powers: return deployPowers
     case Sections.Angband: return deployAngband
     case Sections.BigConstants: return deployBigConstants
+    case Sections.ConfigureScarcityPower: return deployConfigureScarcityPower
 
     //Pyrotokens3:
     case Sections.LiquidityReceiverNew: return deployNewLiquidityReceiver
@@ -56,6 +58,8 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.V2Migrator: return deployV2Migrator
 
     //LIMBO
+
+    //Proposal subsection
     case Sections.LimboDAO: return deployLimboDAO
     case Sections.WhiteListProposal: return deployWhiteListProposal
     case Sections.MorgothTokenApprover: return deployMorgothTokenApprover
@@ -64,13 +68,22 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.TokenProxyRegistry: return deployTokenProxyRegistry
     case Sections.SoulReader: return deploySoulReader
     case Sections.FlashGovernanceArbiter: return deployFlashGovernanceArbiter
+    //FLAN subsection
     case Sections.Flan: return deployFlan
     case Sections.FlanSetMintConfig: return flanSetConfig
     case Sections.PyroFlanBooster: return deployPyroFlanBooster
     case Sections.Morgoth_LimboAddTokenToBehodler: return deployLimboAddTokenToBehodlerPower
+
+    //Limbo subsection
     case Sections.UniswapHelper: return deployUniswapHelper;
     case Sections.Limbo: return deployLimbo
+
+    //Oracle subsection
     case Sections.LimboOracle: return deployLimboOracle
+    case Sections.TradeOraclePairs: return tradeOraclePairs
+    case Sections.RegisterOraclePairs: return registerOraclePairs
+
+    //Seed, configure and finalize subsection
     case Sections.UniswapHelperConfigure: return configureUniswapHelper
     case Sections.LimboTokens: return deployLimboTokens
     case Sections.LimboDAOSeed: return limboDAOSeed
@@ -119,7 +132,7 @@ export interface IDeploymentParams {
 
 
 const deploySoulReader: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
+  let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing, params.pauser)
 
   const SoulReader = await ethers.getContractFactory("SoulReader");
   const soulReader = await deploy<Types.SoulReader>("SoulReader", SoulReader, params.pauser);
@@ -150,13 +163,13 @@ const configureUniswapHelper: IDeploymentFunction = async function (params: IDep
   return {}
 }
 
-const getOrCreateUniPairFactory = (uniswapFactory: Types.UniswapV2Factory) => {
+const getOrCreateUniPairFactory = (uniswapFactory: Types.UniswapV2Factory, pauser: Function) => {
   return async (token0: Types.ERC20, token1: Types.ERC20): Promise<Types.UniswapV2Pair> => {
     let pairAddress = await uniswapFactory.getPair(token0.address, token1.address)
     logger(`pair for  <${token0.address}, ${token1.address}>...`)
     if (pairAddress == ethers.constants.AddressZero) {
       logger(`not found. Creating...`)
-      await uniswapFactory.createPair(token0.address, token1.address)
+      await broadcast("Creating Uniswap pair", uniswapFactory.createPair(token0.address, token1.address), pauser)
     }
     else logger('found')
     pairAddress = await uniswapFactory.getPair(token0.address, token1.address)
@@ -191,10 +204,16 @@ const morgothMapLimboMinionAndPower: IDeploymentFunction = async function (param
   const limbo = await getLimbo(params.existing)
 
   const minion = stringToBytes32("Smaug")
-  const power = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
+  const addTokenPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
 
-  await powersRegistry.pour(power, minion)
-  await powersRegistry.bondUserToMinion(limbo.address, minion)
+  await broadcast("pour add token to limbo power invoker", powersRegistry.pour(addTokenPower, minion), params.pauser)
+  await broadcast("bond limbo power invoker to Smaug", powersRegistry.bondUserToMinion(limbo.address, minion), params.pauser)
+
+  const limboAddTokenToBehodlerPower = await getContract<Types.LimboAddTokenToBehodler>(Sections.Morgoth_LimboAddTokenToBehodler, "LimboAddTokenToBehodler")
+  const configureScarcityPower = stringToBytes32("CONFIGURE_SCARCITY")
+  const powerMinion = stringToBytes32("Celebrimbor") //not technically a minion but mislead by Sauron
+  await broadcast("bond limbo powerInvoker to Celebrimbor", powersRegistry.bondUserToMinion(limboAddTokenToBehodlerPower.address, powerMinion), params.pauser)
+  await broadcast("pour configure scarcity to limbo add token power invoker", powersRegistry.pour(configureScarcityPower, powerMinion), params.pauser)
   return {}
 }
 
@@ -230,7 +249,7 @@ const setAllGovernable: IDeploymentFunction = async function (params: IDeploymen
 }
 
 const deployAllLimboDAOProposals: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
+  let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const proposalFactory = await getContract<Types.ProposalFactory>(Sections.ProposalFactory, "ProposalFactory")
@@ -271,7 +290,7 @@ const configureTPR: IDeploymentFunction = async function (params: IDeploymentPar
 }
 
 const deployConfigureTokenApproverPower: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.ConfigureTokenApproverPower, params.existing)
+  let deploy = deploymentFactory(Sections.ConfigureTokenApproverPower, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
@@ -289,7 +308,7 @@ const morgothMapApprover: IDeploymentFunction = async function (params: IDeploym
 
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
   const powersRegistry = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
-  const domain = stringToBytes32("TOKENAPPROVER")
+  const domain = stringToBytes32("MorgothTokenApprover")
   const power = stringToBytes32("CONFIG_TOKEN_APPROVER")
   const melkor = stringToBytes32("Melkor")
 
@@ -346,7 +365,9 @@ const limboDAOSeed: IDeploymentFunction = async function (params: IDeploymentPar
 
   //Use uni oracle for both uni and sushi. Can update later.
   const oracle = await getContract(Sections.LimboOracle, "LimboOracle")
-
+  logger('about to retrieve limbodao owner for limboDAO with address ' + limboDAO.address)
+  const ownerOfDao = await limboDAO.owner()
+  logger(`about to call limboDAO seed: owner ${ownerOfDao}, deployer ${params.deployer.address}`)
   await limboDAO.seed(
     limbo.address,
     flan.address,
@@ -356,12 +377,20 @@ const limboDAOSeed: IDeploymentFunction = async function (params: IDeploymentPar
     oracle.address,
     [], //to be safe, start with only EYE stakeable
     []
-  )
+  ).catch(err => {
+    logger('seed error ' + err)
+  })
+
+  const flashGov = await getContract(Sections.FlashGovernanceArbiter, "FlashGovernanceArbiter") as Types.FlashGovernanceArbiter
+  await broadcast("set flash gov on limboDAO", limboDAO.setFlashGoverner(flashGov.address), params.pauser)
+  const limboDAOFlashGov = await limboDAO.getFlashGoverner()
+  logger(`actual flashGov ${flashGov.address}. LimboDAO's flashGov ${limboDAOFlashGov}`)
+  logger('limboDAO seed called')
   return {}
 }
 
 const deployLimboTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LimboTokens, params.existing)
+  let deploy = deploymentFactory(Sections.LimboTokens, params.existing, params.pauser)
 
   const deployMockToken = async (name: contractNames, symbol: string) => {
     const MockTokenFactory = await ethers.getContractFactory("MockToken")
@@ -390,7 +419,7 @@ const deployLimboTokens: IDeploymentFunction = async function (params: IDeployme
 }
 
 const deployLimboOracle: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LimboOracle, params.existing)
+  let deploy = deploymentFactory(Sections.LimboOracle, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const uniswapFactory = await getContract<Types.UniswapV2Factory>(Sections.UniswapV2Clones, "UniswapV2Factory")
@@ -399,7 +428,7 @@ const deployLimboOracle: IDeploymentFunction = async function (params: IDeployme
   const limboOracleFactory = await ethers.getContractFactory("LimboOracle")
   const limboOracle = await deploy<Types.LimboOracle>("LimboOracle", limboOracleFactory, params.pauser, uniswapFactory.address, dao.address)
 
-  const getPair = getOrCreateUniPairFactory(uniswapFactory)
+  const getPair = getOrCreateUniPairFactory(uniswapFactory, params.pauser)
 
   const fetchToken = async (contract: contractNames, section: Sections) =>
     await getContract(section, contract, "ERC677")
@@ -416,18 +445,154 @@ const deployLimboOracle: IDeploymentFunction = async function (params: IDeployme
   const dai_scx = await getPair(dai, scx)
   const scx_fln_scx = await getPair(scx, ERC20Factory.attach(fln_scx.address) as Types.ERC20)
 
-  const samplePeriod = 43200//12 hours
+  //get balances
 
-  await limboOracle.RegisterPair(fln_scx.address, samplePeriod)
-  await limboOracle.RegisterPair(dai_scx.address, samplePeriod)
-  await limboOracle.RegisterPair(scx_fln_scx.address, samplePeriod)
+  const flanBalanceOfDeployer = await flan.balanceOf(params.deployer.address)
+  const daiBalanceOfDeployer = await dai.balanceOf(params.deployer.address)
+  const scxBalanceOfDeployer = await scx.balanceOf(params.deployer.address)
 
-  return OutputAddressAdder<Types.LimboOracle>({}, "LimboOracle", limboOracle)
+  const flanAllotment = flanBalanceOfDeployer.div(10)
+  const daiAllotment = daiBalanceOfDeployer.div(4)
+  const scxAllotment = scxBalanceOfDeployer.div(10)
+
+  await broadcast("flan transfer to fln_scx", flan.transfer(fln_scx.address, flanAllotment), params.pauser)
+  await broadcast("scx transfer to fln_scx", scx.transfer(fln_scx.address, scxAllotment), params.pauser)
+  await broadcast("fln_scx mint", fln_scx.mint(params.deployer.address), params.pauser)
+  const fln_scxBalance = await fln_scx.balanceOf(params.deployer.address)
+  const fln_scx_allotment = fln_scxBalance.div(4)
+
+  await broadcast("dai transfer to dai_scx", dai.transfer(dai_scx.address, daiAllotment), params.pauser)
+  await broadcast("scx transfer to dai_scx", scx.transfer(dai_scx.address, scxAllotment), params.pauser)
+  await broadcast("dai_SCX mint", dai_scx.mint(params.deployer.address), params.pauser)
+  const dai_scxBalance = await dai_scx.balanceOf(params.deployer.address)
+
+  await broadcast("scx transfer to scx__fln_scx", scx.transfer(scx_fln_scx.address, scxAllotment), params.pauser)
+  await broadcast("fln_scx transfer to scx__fln_scx", fln_scx.transfer(scx_fln_scx.address, fln_scx_allotment), params.pauser)
+  await broadcast("scx__fln_scx mint", scx_fln_scx.mint(params.deployer.address), params.pauser)
+  const scx_fln_scxBalance = await scx_fln_scx.balanceOf(params.deployer.address)
+
+
+  let addresses = OutputAddressAdder<Types.UniswapV2Pair>({}, "FLN_SCX", fln_scx)
+  addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "DAI_SCX", dai_scx)
+  addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "SCX__FLN_SCX", scx_fln_scx)
+  return OutputAddressAdder<Types.LimboOracle>(addresses, "LimboOracle", limboOracle)
+}
+
+const tradeOraclePairs: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const getContract = await getContractFromSection(params.existing)
+
+  const fetchOraclePair = async (contract: oraclePairNames) =>
+    await getContract<Types.UniswapV2Pair>(Sections.LimboOracle, contract, "UniswapV2Pair")
+
+
+  const fetchToken = async (contract: tokenNames, section: Sections) =>
+    await getContract<Types.ERC677>(section, contract, "ERC677")
+
+
+  const fln_scx = await fetchOraclePair("FLN_SCX")
+  const dai_scx = await fetchOraclePair("DAI_SCX")
+  const scx__fln_scx = await fetchOraclePair("SCX__FLN_SCX")
+
+  const flan = await fetchToken("Flan", Sections.Flan)
+  const dai = await fetchToken("DAI", Sections.BehodlerTokens)
+  const scx = await getBehodler(params.existing)
+
+  //assert that the pairs have liquidity
+  let supplies = (await Promise.all(
+    [fln_scx, dai_scx, scx__fln_scx]
+      .map(async pair => {
+        return {
+          name: await pair.name(),
+          supply: await pair.totalSupply()
+        }
+      }
+      )))
+
+  if (
+    supplies.filter(s => s.supply.eq(0)).length > 0
+  ) {
+    throw "TradeOraclePairs: not all pairs have liquidity"
+  }
+
+
+  //assert deployer has balances of scx and flan
+  const balances = (await Promise.all(
+    [flan, scx]
+      .map(async token => {
+        return [token as Contract, (await token.balanceOf(params.deployer.address))]
+      })))
+
+  if (
+    balances.filter(s => s[1].isZero()).length > 0
+  ) {
+    throw "TradeOraclePairs: zero balances for either flan or scx"
+  }
+
+
+  //trade flan and scx into all 3
+  const scxBalance = balances.filter(b => (b[0] as Contract).address === scx.address)[0][1] as BigNumber
+  const flanBalance = balances.filter(b => (b[0] as Contract).address === flan.address)[0][1] as BigNumber
+
+  const uniswapV2Router = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
+
+
+  await broadcast("approve flan on router", flan.approve(uniswapV2Router.address, ethers.constants.MaxUint256), params.pauser)
+  await broadcast("approve scx on routee", scx.approve(uniswapV2Router.address, ethers.constants.MaxUint256), params.pauser)
+
+
+  await broadcast("sending flan to fln_scx pair", flan.transfer(fln_scx.address, flanBalance.div(10)), params.pauser)
+  await broadcast("sending scx to scx__fln_scx pair", scx.transfer(scx__fln_scx.address, scxBalance.div(10)), params.pauser)
+  await broadcast("sending scx to dai_scx pair", scx.transfer(dai_scx.address, scxBalance.div(10)), params.pauser)
+
+  const blockNumber = await ethers.provider.getBlockNumber()
+  const timestamp = (await ethers.provider.getBlock(blockNumber - 1)).timestamp
+  const deadline = timestamp + 1000
+
+  const tradeOnUni = async (inputToken: Contract, outputToken: Contract, inputAmount: BigNumberish): Promise<BigNumber> => {
+    const balanceOfOutputtBefore = await (outputToken as Types.ERC20).balanceOf(params.deployer.address)
+    await broadcast("swaping through Uniswap router", uniswapV2Router.swapExactTokensForTokens(inputAmount, 1000, [inputToken.address, outputToken.address], params.deployer.address, deadline), params.pauser)
+    await params.pauser()
+    await params.pauser()
+    const balanceOfOutputAfter = await (outputToken as Types.ERC20).balanceOf(params.deployer.address)
+    return balanceOfOutputAfter.sub(balanceOfOutputtBefore)
+  }
+
+  const scxBought = await tradeOnUni(flan, scx, flanBalance.div(100))
+  const daiBought = await tradeOnUni(scx, dai, scxBalance.div(100))
+  const fln_scxBought = await tradeOnUni(scx, fln_scx, scxBalance.div(100))
+
+  logger('scx bought ' + scxBought.toString())
+  logger('dai bought ' + daiBought.toString())
+  logger('fln_scx bought ' + fln_scxBought.toString())
+
+  if ([scxBought, daiBought, fln_scxBought].filter(b => b.isZero()).length > 0)
+    throw "Trade failed"
+
+  return {}
+}
+
+const registerOraclePairs: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const getContract = await getContractFromSection(params.existing)
+  const samplePeriod = 12//hours
+
+  const limboOracle = await getContract<Types.LimboOracle>(Sections.LimboOracle, "LimboOracle")
+
+  const getPair = async (name: oraclePairNames): Promise<Types.UniswapV2Pair> =>
+    getContract<Types.UniswapV2Pair>(Sections.LimboOracle, name, "UniswapV2Pair")
+
+  const fln_scx = await getPair("FLN_SCX")
+  const dai_scx = await getPair("DAI_SCX")
+  const scx__fln_scx = await getPair("SCX__FLN_SCX")
+
+  await broadcast(`register pair ${fln_scx.address}`, limboOracle.RegisterPair(fln_scx.address, samplePeriod), params.pauser)
+  await broadcast(`register pair ${dai_scx.address}`, limboOracle.RegisterPair(dai_scx.address, samplePeriod), params.pauser)
+  await broadcast(`register pair ${scx__fln_scx.address}`, limboOracle.RegisterPair(scx__fln_scx.address, samplePeriod), params.pauser)
+  return {}
 }
 
 const deployLimbo: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
 
-  let deploy = deploymentFactory(Sections.Limbo, params.existing)
+  let deploy = deploymentFactory(Sections.Limbo, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -449,6 +614,9 @@ const deployLimbo: IDeploymentFunction = async function (params: IDeploymentPara
   })
   const limbo = await deploy<Types.Limbo>("Limbo", LimboFactory,
     params.pauser, flan.address, dao.address)
+
+  await broadcast("whitelist flan minting for Limbo", flan.whiteListMinting(limbo.address, true), params.pauser)
+
   let addresses = OutputAddressAdder<Types.Limbo>({}, "Limbo", limbo)
   addresses = OutputAddressAdder(addresses, "CrossingLib", crossingLib)
   addresses = OutputAddressAdder(addresses, "MigrationLib", migrationLib)
@@ -473,7 +641,7 @@ const getLimbo = async (existing: AddressFileStructure) => {
 
 
 const deployUniswapHelper: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.UniswapHelper, params.existing)
+  let deploy = deploymentFactory(Sections.UniswapHelper, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -486,18 +654,22 @@ const deployUniswapHelper: IDeploymentFunction = async function (params: IDeploy
   const dai = await fetchTokenAddress("DAI")
   await uniswapHelper.setDAI(dai)
 
+  const flan = await getContract(Sections.Flan, "Flan")
+  await broadcast("whitelist flan minting for uniswapHelper", flan.whiteListMinting(uniswapHelper.address, true), params.pauser)
+
   return OutputAddressAdder<Types.UniswapHelper>({}, "UniswapHelper", uniswapHelper)
 }
 
 const deployLimboAddTokenToBehodlerPower: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.Morgoth_LimboAddTokenToBehodler, params.existing)
+  let deploy = deploymentFactory(Sections.Morgoth_LimboAddTokenToBehodler, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
   const limbo = await getLimbo(params.existing)
+  const configScarcityPower = await getContract<Types.ConfigureScarcityPower>(Sections.ConfigureScarcityPower, "ConfigureScarcityPower")
 
   const powerFactory = await ethers.getContractFactory("LimboAddTokenToBehodler")
-  const power = await deploy<Types.LimboAddTokenToBehodler>("LimboAddTokenToBehodler", powerFactory, params.pauser, angband.address, limbo.address)
+  const power = await deploy<Types.LimboAddTokenToBehodler>("LimboAddTokenToBehodler", powerFactory, params.pauser, angband.address, limbo.address, configScarcityPower.address)
   await angband.authorizeInvoker(power.address, true)
 
   const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
@@ -507,7 +679,7 @@ const deployLimboAddTokenToBehodlerPower: IDeploymentFunction = async function (
 }
 
 const deployPyroFlanBooster: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.PyroFlanBooster, params.existing)
+  let deploy = deploymentFactory(Sections.PyroFlanBooster, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -538,14 +710,14 @@ const flanSetConfig: IDeploymentFunction = async function (params: IDeploymentPa
 }
 
 const deployFlan: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.Flan, params.existing)
+  let deploy = deploymentFactory(Sections.Flan, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
 
   const flanFactory = await ethers.getContractFactory("Flan")
   const flan = await deploy<Types.Flan>("Flan", flanFactory, params.pauser, dao.address)
-
+  await flan.mint(params.deployer.address, ethers.constants.WeiPerEther.mul(10_000))
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
   const powersRegistry = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
 
@@ -591,7 +763,7 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
   const powerMinion = stringToBytes32("Witchking")
   await broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePower.address, powerMinion), params.pauser)
 
-  await broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("BEHODLER"), true, false), params.pauser)
+  await broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false), params.pauser)
 
   await broadcast("pour add token to behodler power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")), params.pauser)
   await broadcast("pour register pyro power minion", powersRegistry.pour(registerPyroTokenPower, powerMinion), params.pauser)
@@ -615,7 +787,7 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
 }
 
 const deployFlashGovernanceArbiter: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.BehodlerSeedNew, params.existing)
+  let deploy = deploymentFactory(Sections.BehodlerSeedNew, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
   const fetchTokenAddress = fetchTokenAddressFactory(params.existing)
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -631,7 +803,7 @@ const deployFlashGovernanceArbiter: IDeploymentFunction = async function (params
 }
 
 const deployTokenProxyRegistry: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.TokenProxyRegistry, params.existing)
+  let deploy = deploymentFactory(Sections.TokenProxyRegistry, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -646,7 +818,7 @@ const deployTokenProxyRegistry: IDeploymentFunction = async function (params: ID
 }
 
 const deployProposalFactory: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.ProposalFactory, params.existing)
+  let deploy = deploymentFactory(Sections.ProposalFactory, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -660,7 +832,7 @@ const deployProposalFactory: IDeploymentFunction = async function (params: IDepl
 }
 
 const deployMultiSoulConfigUpdateProposal: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.MultiSoulConfigUpdateProposal, params.existing)
+  let deploy = deploymentFactory(Sections.MultiSoulConfigUpdateProposal, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -683,7 +855,8 @@ const deployMultiSoulConfigUpdateProposal: IDeploymentFunction = async function 
 }
 
 const deployMorgothTokenApprover: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.MorgothTokenApprover, params.existing)
+  let deploy = deploymentFactory(Sections.MorgothTokenApprover, params.existing, params.pauser)
+  const getContract = await getContractFromSection(params.existing)
 
   const addressToStringFactory = await ethers.getContractFactory("AddressToString")
   const proxyDeployerFactory = await ethers.getContractFactory("ProxyDeployer")
@@ -701,6 +874,12 @@ const deployMorgothTokenApprover: IDeploymentFunction = async function (params: 
   let addresses = OutputAddressAdder<Types.AddressToString>({}, "AddressToString", addressToString)
   addresses = OutputAddressAdder(addresses, "ProxyDeployer", proxyDeployer)
 
+  const powers = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
+  await broadcast("creating approver power", powers.create(stringToBytes32("CONFIGURE_TOKEN_APPROVER"), stringToBytes32("MorgothTokenApprover"), true, false), params.pauser)
+  await broadcast("pouring approver power into Melkor", powers.pour(stringToBytes32("CONFIGURE_TOKEN_APPROVER"), stringToBytes32("Melkor")), params.pauser)
+
+  const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
+  await broadcast("authorizing approver power", angband.authorizeInvoker(MTA.address, true), params.pauser)
   return OutputAddressAdder<Types.MorgothTokenApprover>(addresses, "MorgothTokenApprover", MTA)
 }
 
@@ -718,7 +897,7 @@ const getMorgothTokenApprover = async (existing: AddressFileStructure): Promise<
 }
 
 const deployWhiteListProposal: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.WhiteListProposal, params.existing)
+  let deploy = deploymentFactory(Sections.WhiteListProposal, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
@@ -729,14 +908,14 @@ const deployWhiteListProposal: IDeploymentFunction = async function (params: IDe
 }
 
 const deployLimboDAO: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LimboDAO, params.existing)
+  let deploy = deploymentFactory(Sections.LimboDAO, params.existing, params.pauser)
   const LimboDAOFactory = await ethers.getContractFactory("LimboDAO")
   const limboDAO = await deploy<Types.LimboDAO>("LimboDAO", LimboDAOFactory, params.pauser)
   return OutputAddressAdder<Types.LimboDAO>({}, "LimboDAO", limboDAO)
 }
 
 const deployV2Migrator: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.V2Migrator, params.existing)
+  let deploy = deploymentFactory(Sections.V2Migrator, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
   const liquidityReceiver = await getContract(Sections.LiquidityReceiverNew, "LiquidityReceiver")
   const lachesis = await getContract(Sections.Lachesis, "Lachesis")
@@ -747,7 +926,7 @@ const deployV2Migrator: IDeploymentFunction = async function (params: IDeploymen
 }
 
 const deployProxyHandler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.ProxyHandler, params.existing)
+  let deploy = deploymentFactory(Sections.ProxyHandler, params.existing, params.pauser)
   const ProxyHandlerFactory = await ethers.getContractFactory("ProxyHandler")
   const proxyHandler = await deploy<Types.ProxyHandler>("ProxyHandler", ProxyHandlerFactory, params.pauser)
   return OutputAddressAdder<Types.ProxyHandler>({}, "ProxyHandler", proxyHandler)
@@ -771,7 +950,7 @@ const snuffPyroWethProxy: IDeploymentFunction = async function (params: IDeploym
 }
 
 const deployPyroWethProxy: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.PyroWethProxy, params.existing)
+  let deploy = deploymentFactory(Sections.PyroWethProxy, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const weth = await getContract(Sections.Weth, "Weth", "WETH10")
@@ -781,7 +960,7 @@ const deployPyroWethProxy: IDeploymentFunction = async function (params: IDeploy
 }
 
 const deployerSnufferCap: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.DeployerSnufferCap, params.existing)
+  let deploy = deploymentFactory(Sections.DeployerSnufferCap, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const limbo = await getLimbo(params.existing)
@@ -813,7 +992,7 @@ const mapLiquidityReceiver: IDeploymentFunction = async function (params: IDeplo
 }
 
 const reseedBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.BehodlerSeedNew, params.existing)
+  let deploy = deploymentFactory(Sections.BehodlerSeedNew, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
   const fetchTokenAddress = fetchTokenAddressFactory(params.existing)
 
@@ -829,12 +1008,20 @@ const reseedBehodler: IDeploymentFunction = async function (params: IDeploymentP
   let scarcityPower = stringToBytes32("CONFIGURE_SCARCITY")
 
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
-  const SeedBehodlerFactory = await ethers.getContractFactory("SeedBehodlerPower")
-  const seedBehodler = await deploy<Types.SeedBehodlerPower>("SeedBehodlerPower", SeedBehodlerFactory, params.pauser, angband.address)
 
   //approve power on morgoth
   await broadcast("create power configure scarcity", powersRegistry.create(scarcityPower, stringToBytes32("BEHODLER"), true, false), params.pauser)
   await broadcast("pour power", powersRegistry.pour(scarcityPower, stringToBytes32("Melkor")), params.pauser)
+
+  const melkorIsDeployer = await powersRegistry.isUserMinion(params.deployer.address, stringToBytes32("Melkor"))
+  logger('Melkor is deployer: ' + melkorIsDeployer)
+  logger('deployer ' + params.deployer.address)
+  const userHasPower = await powersRegistry.userHasPower(scarcityPower, params.deployer.address)
+  logger('User has power ' + userHasPower)
+  logger('powers registry in deployment: ' + powersRegistry.address)
+
+  const SeedBehodlerFactory = await ethers.getContractFactory("SeedBehodlerPower")
+  const seedBehodler = await deploy<Types.SeedBehodlerPower>("SeedBehodlerPower", SeedBehodlerFactory, params.pauser, angband.address)
 
   //execute power
   await broadcast("parameterize seedBehodler power", seedBehodler.parameterize(weth.address, lachesis.address, flashLoanArbiter, liquidityReceiver.address, weidaiReserve, dai, weiDai), params.pauser)
@@ -844,7 +1031,7 @@ const reseedBehodler: IDeploymentFunction = async function (params: IDeploymentP
 }
 
 const deployNewLiquidityReceiver: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LiquidityReceiverNew, params.existing)
+  let deploy = deploymentFactory(Sections.LiquidityReceiverNew, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const lachesis = await getContract(Sections.Lachesis, "Lachesis")
@@ -884,14 +1071,14 @@ const deployNewLiquidityReceiver: IDeploymentFunction = async function (params: 
 
 
 const deployBigConstants: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.BigConstants, params.existing)
+  let deploy = deploymentFactory(Sections.BigConstants, params.existing, params.pauser)
   const BCFactory = await ethers.getContractFactory("BigConstants")
   const bigConstants = await deploy<Types.BigConstants>("BigConstants", BCFactory, params.pauser)
   return OutputAddressAdder({}, "BigConstants", bigConstants)
 }
 
 const deployAngband: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.Powers, params.existing)
+  let deploy = deploymentFactory(Sections.Powers, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const powersRegistry = await getContract(Sections.Powers, "PowersRegistry")
@@ -925,15 +1112,28 @@ const deployAngband: IDeploymentFunction = async function (params: IDeploymentPa
 }
 
 const deployPowers: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.Powers, params.existing)
+  let deploy = deploymentFactory(Sections.Powers, params.existing, params.pauser)
   const powersFactory = await ethers.getContractFactory("PowersRegistry")
   const powers = await deploy<Types.PowersRegistry>("PowersRegistry", powersFactory, params.pauser)
   await powers.seed()
   return OutputAddressAdder<Types.PowersRegistry>({}, "PowersRegistry", powers)
 }
 
+const deployConfigureScarcityPower: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  let deploy = deploymentFactory(Sections.LiquidityReceiverOld, params.existing, params.pauser)
+  const getContract = await getContractFromSection(params.existing)
+
+  const powersRegistry = await getContract(Sections.Powers,"PowersRegistry")
+ const power = "CONFIGURE_SCARCITY"
+
+  const ConfigureScarcityPowerFactory = await ethers.getContractFactory("ConfigureScarcityPower")
+  const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
+  const configureScarcityPower = await deploy<Types.ConfigureScarcityPower>("ConfigureScarcityPower", ConfigureScarcityPowerFactory, params.pauser, angband.address)
+  await angband.authorizeInvoker(configureScarcityPower.address, true)
+  return OutputAddressAdder<Types.ConfigureScarcityPower>({}, "ConfigureScarcityPower", configureScarcityPower)
+}
 const deployMultiCall: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.MultiCall, params.existing)
+  let deploy = deploymentFactory(Sections.MultiCall, params.existing, params.pauser)
 
   const Multicall = await ethers.getContractFactory("Multicall");
   const multicall = await deploy<Types.Multicall>("Multicall", Multicall, params.pauser);
@@ -941,7 +1141,7 @@ const deployMultiCall: IDeploymentFunction = async function (params: IDeployment
 }
 
 const deployPyroWeth10ProxyOld: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.RegisterPyroWeth10, params.existing)
+  let deploy = deploymentFactory(Sections.RegisterPyroWeth10, params.existing, params.pauser)
 
   const fetchPyro = fetchOldPyroToken(params.existing)
   const pyroWeth = await fetchPyro("Weth")
@@ -972,7 +1172,7 @@ const fetchTokenAddressFactory = (existing: AddressFileStructure) => async (cont
 }
 
 const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.LiquidityReceiverOld, params.existing)
+  let deploy = deploymentFactory(Sections.LiquidityReceiverOld, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const lachesis = await getContract<Types.Lachesis>(Sections.Lachesis, "Lachesis")
@@ -1014,7 +1214,7 @@ const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: 
 }
 
 const deployLachesis: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.Lachesis, params.existing)
+  let deploy = deploymentFactory(Sections.Lachesis, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
   const uniswap = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Factory", "UniswapV2Factory")
@@ -1058,7 +1258,7 @@ const deployLachesis: IDeploymentFunction = async function (params: IDeploymentP
 }
 
 const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.BehodlerTokens, params.existing)
+  let deploy = deploymentFactory(Sections.BehodlerTokens, params.existing, params.pauser)
   const uniswapName: contractNames = "UniswapV2Factory"
   const uniswapAddress = params.existing[sectionName(Sections.UniswapV2Clones)][uniswapName]
   const UniswapV2FactoryFactory = await ethers.getContractFactory("UniswapV2Factory")
@@ -1081,7 +1281,7 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
     const result = await uniswapContract.getPair(token0, token1)
     return UniswapPairFactory.attach(result)
   }
-  let uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, pairDeployer(eye.address, dai.address))
+  let uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, params.pauser, pairDeployer(eye.address, dai.address))
   const getContract = getContractFromSection(params.existing)
 
   const UniswapV2Pair = await ethers.getContractFactory("UniswapV2Pair")
@@ -1091,10 +1291,10 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
   const uniWeth = await uniswapRouter.WETH()
 
 
-  uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, pairDeployer(scarcity.address, uniWeth))
+  uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, params.pauser, pairDeployer(scarcity.address, uniWeth))
   const scxEth = await uniswapDeployer<Types.UniswapV2Pair>("SCX_ETH", UniswapV2Pair, params.pauser)
 
-  uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, pairDeployer(scarcity.address, eye.address))
+  uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, params.pauser, pairDeployer(scarcity.address, eye.address))
   const scxEYE = await uniswapDeployer<Types.UniswapV2Pair>("SCX_EYE", UniswapV2Pair, params.pauser)
 
   let tokens: OutputAddress = OutputAddressAdder<Types.MockToken>({}, "EYE", eye);
@@ -1114,7 +1314,7 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
 export async function deployWeth(
   params: IDeploymentParams
 ): Promise<OutputAddress> {
-  const deploy = deploymentFactory(Sections.Weth, params.existing)
+  const deploy = deploymentFactory(Sections.Weth, params.existing, params.pauser)
 
   const Weth = await ethers.getContractFactory("WETH10");
   const weth = await deploy<Types.WETH10>("Weth", Weth, params.pauser);
@@ -1123,7 +1323,7 @@ export async function deployWeth(
 }
 
 export async function deployBehodler(params: IDeploymentParams): Promise<OutputAddress> {
-  const deploy = deploymentFactory(Sections.Behodler, params.existing)
+  const deploy = deploymentFactory(Sections.Behodler, params.existing, params.pauser)
 
   const AddressBalanceCheck = await ethers.getContractFactory("AddressBalanceCheck");
   // const ABDK = await ethers.getContractFactory("ABDK");
@@ -1147,7 +1347,7 @@ export async function deployBehodler(params: IDeploymentParams): Promise<OutputA
 const deployUniclones: IDeploymentFunction = async function uniclone(
   params: IDeploymentParams
 ): Promise<OutputAddress> {
-  let deploy = deploymentFactory(Sections.UniswapV2Clones, params.existing)
+  let deploy = deploymentFactory(Sections.UniswapV2Clones, params.existing, params.pauser)
 
   let addresses = {} as OutputAddress
 

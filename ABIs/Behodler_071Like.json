@@ -5,6 +5,7 @@
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)",
   "function balanceOf(address) view returns (uint256)",
+  "function config() view returns (uint256, uint256, address)",
   "function decimals() returns (uint8)",
   "function setValidToken(address,bool,bool)",
   "function totalSupply() view returns (uint256)",

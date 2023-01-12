@@ -2,6 +2,8 @@ import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { Contract, ContractFactory } from "ethers";
 import * as Web3 from 'web3'
+import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
+
 type address = string;
 
 
@@ -24,7 +26,7 @@ export function logFactory(visible: boolean) {
   };
 }
 
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 export async function getNonce() {
   const [deployer] = await ethers.getSigners();
@@ -36,6 +38,7 @@ export async function getTXCount(deployer: SignerWithAddress) {
   return await network.provider.send("eth_getTransactionCount", [deployer.address, "latest"]);
 }
 
+//note:duration is milliseconds 
 function pauserFactory(duration: number, network: string, confirmations: number) {
   const networkToUse = network == "hardhat" ? "localhost" : network;
   let provider = ethers.provider; //ethers.getDefaultProvider(networkToUse);
@@ -62,12 +65,10 @@ export function getPauser(blockTime: number, network: string, confirmations: num
   return pauserFactory(blockTime, network, confirmations);
 }
 
-function pause(duration: number) {
-  return new Promise(function (resolve, error) {
-    setTimeout(() => {
-      return resolve(duration);
-    }, duration);
-  });
+async function pause(duration: number) {
+  await mine(1)
+  await time.increase(duration)
+  await mine(1)
 }
 
 export async function broadcast(name: string, transaction: Promise<any>, pauser: Function) {
@@ -75,6 +76,7 @@ export async function broadcast(name: string, transaction: Promise<any>, pauser:
   logger("                                                         ");
   const result = await transaction;
   await pauser();
+  return result
 }
 
 export interface IDeployer<T extends Contract> {
@@ -92,6 +94,7 @@ export function isContractAddress(address: string): boolean {
 export function deploymentFactory(
   section: Sections,
   existing: AddressFileStructure,
+  pauser: Function,
   customDeploymentCode?: () => Promise<Contract>
 ) {
   const sectionAddresses = existing[sectionName(section)]
@@ -120,14 +123,14 @@ export function deploymentFactory(
       contract = await factory.attach(existingAddress) as T
     } else if (customDeploymentCode) {
       logger('      deploy tx: custom')
-      contract = await customDeploymentCode() as T
+      contract = await broadcast("custom deployment", customDeploymentCode(), pauser) as T
       logger('      custom address ' + contract.address)
     }
     else {
       logger('      deploy tx: standard')
-      contract = await factory.deploy(...gasArgs) as T;
+      contract = await broadcast("standard deployment", factory.deploy(...gasArgs), pauser);
     }
-    logger('     ----->deployment complete')
+    logger('     ----->deployment complete: ' + contract.address)
     try {
       let real = await (contract as any).REAL()
       if (!real)
@@ -176,6 +179,7 @@ export enum Sections {
   PowersSeed,
   Angband,
   AngbandFinalize,
+  ConfigureScarcityPower,
   BigConstants,
   LiquidityReceiverNew,
   BehodlerSeedNew,
@@ -197,6 +201,8 @@ export enum Sections {
   Limbo,
   UniswapHelper,
   LimboOracle,
+  TradeOraclePairs,
+  RegisterOraclePairs,
   Morgoth_LimboAddTokenToBehodler, //TokenProxyRegistrySetPower
   MultiSoulConfigUpdateProposal,
   ProposalFactory,
@@ -233,6 +239,7 @@ export const SectionsToList: Sections[] = [
   Sections.BigConstants,
   Sections.LiquidityReceiverNew,
   Sections.BehodlerSeedNew,
+  Sections.ConfigureScarcityPower,
   Sections.ConfigureIronCrown,
   Sections.MorgothMapLiquidityReceiver,
   Sections.MorgothMapPyroWeth10Proxy,
@@ -251,6 +258,9 @@ export const SectionsToList: Sections[] = [
   Sections.Limbo,
   Sections.UniswapHelper,
   Sections.LimboOracle,
+  Sections.TradeOraclePairs,
+  Sections.RegisterOraclePairs,
+  Sections.TradeOraclePairs,
   Sections.Morgoth_LimboAddTokenToBehodler,
   Sections.MultiSoulConfigUpdateProposal,
   Sections.ProposalFactory,
@@ -271,10 +281,18 @@ export const SectionsToList: Sections[] = [
   Sections.MorgothMapLimboDAO
 ]
 
-//TODO: broken
 export const sectionName = (section: Sections): string => Sections[section]
 
+export type behodlerTokenNames = "EYE" | "MKR" | "OXT" | "PNK" | "LNK" | "LOOM" | "DAI" | "WEIDAI" | "EYE_DAI" | "SCX_ETH" | "SCX_EYE"
+
+export type oraclePairNames = "FLN_SCX" | "DAI_SCX" | "SCX__FLN_SCX"
+
+export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
+
+export type tokenNames = behodlerTokenNames | limboTokenNames | oraclePairNames | "Flan"
+
 export type contractNames =
+  tokenNames |
   "Weth"
   | "UniswapV2Router"
   | "UniswapV2Factory"
@@ -284,17 +302,6 @@ export type contractNames =
   | "Multicall"
   | "Lachesis"
   | "AddressBalanceCheck"
-  | "EYE"
-  | "MKR"
-  | "OXT"
-  | "PNK"
-  | "LNK"
-  | "LOOM"
-  | "DAI"
-  | "WEIDAI"
-  | "EYE_DAI"
-  | "SCX_ETH"
-  | "SCX_EYE"
   | "LiquidityReceiverV1"
   | "LiquidityReceiver"
   | "PyroWeth10Proxy"
@@ -302,6 +309,7 @@ export type contractNames =
   | "Angband"
   | "BigConstants"
   | "SeedBehodlerPower"
+  | "ConfigureScarcityPower"
   | "PyroWethProxy"
   | "ProxyHandler"
   | "V2Migrator"
@@ -313,7 +321,6 @@ export type contractNames =
   | "AddressToString"
   | "TokenProxyRegistry"
   | "FlashGovernanceArbiter"
-  | "Flan"
   | "PyroFlanBooster"
   | "UniswapHelper"
   | "LimboOracle"
@@ -321,7 +328,6 @@ export type contractNames =
   | "UpdateMultipleSoulConfigProposal"
   | "ProposalFactory"
   | "DeployerSnufferCap"
-  | "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
   | "ConfigureTokenApproverPower"
   | "UpdateSoulConfigProposal"
   | "SoulReader"

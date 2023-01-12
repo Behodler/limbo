@@ -13,69 +13,129 @@ import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 import { safeDeploy } from "../../scripts/networks/orchestrate";
 import configureRopsten from "../../scripts/networks/configureThreshold";
+import { broadcast, contractNames, getPauser, stringToBytes32 } from "../../scripts/networks/common"
+import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
+import * as Types from "../../typechain"
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
 }
+
+
+const fetchAddressFactory = (addresses: DeployedContracts) =>
+  (name: contractNames) => addresses[name]
 describe("ropsten deployment", function () {
   let owner: SignerWithAddress, secondPerson: SignerWithAddress;
-
+  let fetchAddress: (name: contractNames) => string
   let daiEYESLP, linkEYESLP, sushiEYESLP, daiSushiSLP;
   let daiEYEULP, linkEYEULP, sushiEYEULP, daiSushiULP;
   let dao, proposalFactory, updateProposalConfigProposal;
   let toggleWhiteList;
+  let pauser: Function
   const zero = "0x0000000000000000000000000000000000000000";
   let addresses: DeployedContracts;
+  let logger = (message: string, content: any) => {
+    console.log(`In test: ${message} ${content}`)
+  }
   beforeEach(async function () {
     [owner, secondPerson, proposalFactory] = await ethers.getSigners();
     addresses = (await safeDeploy(1337, 2, 9)) as DeployedContracts;
+    fetchAddress = fetchAddressFactory(addresses)
+    logger('Addresses ', JSON.stringify(addresses, null, 4))
+    pauser = await getPauser(2, "hardhat", 9);
   });
 
   it("t0. tests deployer", async function () { })
 
-  it("illustrate a healthy deployment by having working LP tokens", async function () {
-    const eyeDaiAddress = addresses["EYEDAI"];
+  it("t1. illustrate a healthy deployment by having working LP tokens", async function () {
+    const eyeDaiAddress = fetchAddress("EYE_DAI")
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
-    const eyeDai = await uniswapPairFactory.attach(eyeDaiAddress);
+    const eyeDai = uniswapPairFactory.attach(eyeDaiAddress) as Types.ERC20;
     const totalSupply = await eyeDai.totalSupply();
-    console.log(`eyeDai address ${eyeDaiAddress} has ${totalSupply} tokens`);
+    console.log('total eye dai supply ' + totalSupply.toString())
   });
 
-  it("list a fake token as threshold with positive delta and migrate it successfully to behodler", async function () {
-    const Aave = addresses["LimboMigrationToken1"];
-    const aave = await (await ethers.getContractFactory("MockToken")).attach(Aave);
+  it("t2. list a fake token as threshold with positive delta and migrate it successfully to behodler", async function () {
+    const aave = await (await ethers.getContractFactory("MockToken")).attach(fetchAddress("Aave")) as Types.MockToken;
     await expect(await aave.totalSupply()).to.be.gt(0);
 
     //Approve aave on Limbo
-    await aave.approve(addresses["limbo"], parseEther("1000000000000000000000000000"));
-    await aave.connect(secondPerson).approve(addresses["limbo"], parseEther("1000000000000000000000000000"));
+    await aave.approve(fetchAddress("Limbo"), parseEther("1000000000000000000000000000"));
+    await aave.connect(secondPerson).approve(fetchAddress("Limbo"), parseEther("1000000000000000000000000000"));
     await aave.transfer(secondPerson.address, parseEther("2000"));
 
     //attach Limbo
     const LimboFactory = await ethers.getContractFactory("Limbo", {
       libraries: {
-        SoulLib: addresses["soulLib"],
-        CrossingLib: addresses["crossingLib"],
-        MigrationLib: addresses["migrationLib"],
+        SoulLib: fetchAddress("SoulLib"),
+        CrossingLib: fetchAddress("CrossingLib"),
+        MigrationLib: fetchAddress("MigrationLib"),
       },
     });
-    const limbo = await LimboFactory.attach(addresses["limbo"]);
+    const limbo = await LimboFactory.attach(fetchAddress("Limbo")) as Types.Limbo;
 
-    //set up soul
-    await limbo.configureSoul(aave.address, parseEther("2000"), 1, 1, 0, parseEther("0.0034"));
-    await limbo.configureCrossingParameters(
-      addresses["LimboMigrationToken1"],
-      parseEther("6320000"),
-      parseEther("100000"),
-      true,
-      parseEther("2000")
-    );
+    logger("DAO", fetchAddress('LimboDAO'))
+    logger('aave address', aave.address)
+    const LimboDAOFactory = await ethers.getContractFactory("LimboDAO")
+    const dao = await LimboDAOFactory.attach(fetchAddress("LimboDAO")) as Types.LimboDAO
 
+
+    const UpdateMultipleSoulConfigProposalFactory = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal")
+    const proposal = await UpdateMultipleSoulConfigProposalFactory.attach(fetchAddress("UpdateMultipleSoulConfigProposal")) as Types.UpdateMultipleSoulConfigProposal
+    logger("about to engage in governance for proposal", proposal.address)
+    const ConfigureTokenApproverPowerFactory = await ethers.getContractFactory("ConfigureTokenApproverPower")
+    const power = await ConfigureTokenApproverPowerFactory.attach(fetchAddress("ConfigureTokenApproverPower")) as Types.ConfigureTokenApproverPower
+    await broadcast("setting approve token", power.setApprove([aave.address], [true]), pauser)
+
+    const AngbandFactory = await ethers.getContractFactory("Angband")
+    const angband = await AngbandFactory.attach(fetchAddress("Angband")) as Types.Angband
+
+    await broadcast("angband execute proposal", angband.executePower(power.address), pauser)
+
+    logger('difference. ', `parseEther ${parseEther("2000")}, twenty 20`)
+    logger('original fps ', parseEther("0.0034"))
+
+    await proposal.parameterize(aave.address,
+      ethers.constants.WeiPerEther.mul(2000)
+      , 1, 1, 0, "210", ethers.constants.WeiPerEther.mul(7000)
+      , ethers.constants.WeiPerEther.mul("6320000"),
+      ethers.constants.WeiPerEther.mul("100000"), false)
+    await proposal.lockDown()
+
+    const ProposalFactoryFactory = await ethers.getContractFactory("ProposalFactory")
+    const proposalFactory = await ProposalFactoryFactory.attach(fetchAddress("ProposalFactory")) as Types.ProposalFactory
+
+    const MockToken = await ethers.getContractFactory("MockToken")
+    const eye = await MockToken.attach(fetchAddress("EYE")) as Types.MockToken
+
+    const proposalConfig = await dao.proposalConfig()
+    await eye.approve(dao.address, ethers.constants.MaxUint256)
+    await dao.burnAsset(fetchAddress("EYE"), proposalConfig.requiredFateStake, true)
+
+    await expect(proposalFactory.lodgeProposal(proposal.address))
+      .to.emit(proposalFactory, "LodgingStatus")
+      .withArgs(proposal.address, "SUCCESS");
+
+    await broadcast("voting on proposal", dao.vote(proposal.address, "1000"), pauser)
+
+    logger("voting duration", proposalConfig.votingDuration.toString())
+    await mine(1)
+    await time.increase(proposalConfig.votingDuration)
+    await mine(1)
+
+    await expect(dao.executeCurrentProposal())//2 == rejected, 3 == failed
+      .to.emit(dao, "proposalExecuted")
+      .withArgs(proposal.address, true)
+
+    logger("governance success for dao", dao.address)
+
+    const soul = await limbo.souls(aave.address, 0)
+    logger('Soul State', soul.state)
     //get initial flan balances
-    const flan = await (await ethers.getContractFactory("MockToken")).attach(addresses["FLAN"]);
+    const flan = await (await ethers.getContractFactory("MockToken")).attach(fetchAddress("Flan"));
     const user1Flan = await flan.balanceOf(owner.address);
     const user2Flan = await flan.balanceOf(secondPerson.address);
-    await expect(user1Flan).to.equal(0);
+
     await expect(user2Flan).to.equal(0);
 
     const aaveBalanceOwner = await aave.balanceOf(owner.address);
@@ -83,129 +143,120 @@ describe("ropsten deployment", function () {
 
     console.log(`aave balance owner ${aaveBalanceOwner}, aave balance second person ${aaveBalanceSecondPerson}`);
     //stake user 1
-    await limbo.stake(aave.address, parseEther("250"));
+    await broadcast("approving aave for limbo", aave.approve(limbo.address, ethers.constants.MaxUint256), pauser)
+
+    await broadcast("limbo stake 250", limbo.stake(aave.address, parseEther("250")), pauser)
     //stake user 2.
-    await limbo.connect(secondPerson).stake(aave.address, parseEther("1100"));
+    await broadcast("approving aave for limbo", aave.connect(secondPerson).approve(limbo.address, ethers.constants.MaxUint256), pauser)
+    await broadcast("limbo stake second person", limbo.connect(secondPerson).stake(aave.address, parseEther("1100")), pauser);
 
     //wait 100 seconds
-    //await advanceTimeAlternative(100);
     //revert mining style temporarily
-    //await network.provider.send("evm_setAutomine", [false]);
+    // await network.provider.send("evm_setAutomine", [false]);
     // await network.provider.send("evm_setIntervalMining", [0]);
-    console.log("about to pause ");
-    await advanceTime(400000);
+    console.log("about to pause for 400000 seconds ");
+
+    await time.increase(400000)
+
     console.log("finished pausing");
     //  await network.provider.send("evm_setAutomine", [true]);
     // await network.provider.send("evm_setIntervalMining", [20]);
-    await pause(1);
+
     //unstake some of user 1, assert flan balance
-    await limbo.unstake(aave.address, parseEther("100"));
-    await pause(5);
-    const user1FlanAfter = await flan.balanceOf(owner.address);
+    await broadcast("unstaking ", limbo.unstake(aave.address, parseEther("100")), pauser);
+    await time.increase(5)
+    await mine(1);
+
+    const user1FlanAfter = (await flan.balanceOf(owner.address)).sub(user1Flan);
+    logger("user1Flan", user1FlanAfter)
     await expect(user1FlanAfter).to.be.gte(parseEther("0.34"));
-    await expect(user1Flan).to.be.lt(parseEther("0.38"));
+    await expect(user1FlanAfter).to.be.lt(parseEther("0.38"));
     //increase stake of user 2 until threshold crossed, assert state
 
     //stake exact amount, no crossover
     await limbo.stake(aave.address, parseEther("750"));
-    await pause(5);
-    const soulReader = (await ethers.getContractFactory("SoulReader")).attach(addresses["soulReader"]);
-    const stats = await soulReader.SoulStats(aave.address, limbo.address);
+    await time.increase(5)
+
+    const soulReader = (await ethers.getContractFactory("SoulReader")).attach(fetchAddress("SoulReader")) as Types.SoulReader;
+    const stats = await soulReader.soulStats(aave.address, limbo.address);
     console.log(`state: ${stats[0]}, stakedBalance: ${stats[1]}`);
     expect(stats[0].toString()).to.equal("1");
     expect(stats[1].toString()).to.equal(parseEther("2000"));
 
     //stake 1 and cross over
     await limbo.connect(secondPerson).stake(aave.address, parseEther("1"));
-    await pause(10);
+    await time.increase(10)
 
-    const stats2 = await soulReader.SoulStats(aave.address, limbo.address);
+    const stats2 = await soulReader.soulStats(aave.address, limbo.address);
     console.log(`state: ${stats2[0]}, stakedBalance: ${stats2[1]}`);
     expect(stats2[0].toString()).to.equal("2");
-    expect(stats2[1].toString()).to.equal(parseEther("2001"));
+    const stakedAave = ethers.constants.WeiPerEther.mul(2001)
+    expect(stats2[1].toString()).to.equal(stakedAave);
 
-    //sample oracle at correct intervals -> pre audit fix for simplicity
-    //First sample
-
-    const uniswapHelper = (await ethers.getContractFactory("UniswapHelper")).attach(addresses["uniswapHelper"]);
-    await uniswapHelper.generateFLNQuote();
-    const blockNumberOfFirstSample = parseInt(await network.provider.send("eth_blockNumber"));
-    //Second sample 4 blocks later
-    let newBlockNumber: number = blockNumberOfFirstSample;
-    console.log("block of first sample: " + blockNumberOfFirstSample);
-    for (; newBlockNumber - blockNumberOfFirstSample < 4;) {
-      newBlockNumber = parseInt(await network.provider.send("eth_blockNumber"));
-      console.log("block :" + newBlockNumber);
-      await soulReader.SoulStats(aave.address, limbo.address);
-      pause(1);
-    }
-    await uniswapHelper.generateFLNQuote();
-    await pause(10);
+    await time.increase(3600)
+    await mine(1)
     //migrate token to behodler
-    const aaveBalanceOnBehodlerBeforeMigrate = await aave.balanceOf(addresses["behodler"]);
+    const aaveBalanceOnBehodlerBeforeMigrate = await aave.balanceOf(fetchAddress("Behodler"));
     expect(aaveBalanceOnBehodlerBeforeMigrate).to.equal(0);
-    await limbo.migrate(aave.address);
-    await pause(10);
-    const aaveBalanceOnBehodlerBeforeAfter = await aave.balanceOf(addresses["behodler"]);
-    await pause(10);
-    expect(aaveBalanceOnBehodlerBeforeAfter).to.equal(parseEther("2001"));
+    await broadcast("migrating on limbo", limbo.migrate(aave.address, 0), pauser);
 
+    const aaveBalanceOnBehodlerAfter = await aave.balanceOf(fetchAddress("Behodler"));
+    logger('aave address', fetchAddress("Aave"))
     //redeem some of the token from behodler
-    const addressBalanceCheckAddress = addresses["addressBalanceCheck"];
+    const addressBalanceCheckAddress = fetchAddress("AddressBalanceCheck");
     const BehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
       libraries: { AddressBalanceCheck: addressBalanceCheckAddress },
-    });
+    })
+    const behodler = BehodlerFactory.attach(fetchAddress("Behodler")) as Types.Behodler;
+    expect(aaveBalanceOnBehodlerAfter).to.equal(stakedAave);
 
-    const behodler = BehodlerFactory.attach(addresses["behodler"]);
     const aaveBalanceBeforeRedeem = await aave.balanceOf(owner.address);
-    await pause(2);
+    await time.increase(2)
     await behodler.withdrawLiquidity(aave.address, parseEther("10"));
-    await pause(2);
+    await time.increase(2)
     const aaveBalanceAfterRedeem = await aave.balanceOf(owner.address);
     expect(aaveBalanceAfterRedeem).to.be.gt(aaveBalanceBeforeRedeem);
+
+
+
+    const LiquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver")
+    const liquidityReceiver = LiquidityReceiverFactory.attach(await fetchAddress("LiquidityReceiver")) as Types.LiquidityReceiver
+
+    const powersFactory = await ethers.getContractFactory("PowersRegistry")
+    const powers = await powersFactory.attach(fetchAddress("PowersRegistry")) as Types.PowersRegistry
+
+    const powerBytes = stringToBytes32("REGISTER_PYRO_V3")
+    const melkor = stringToBytes32("Melkor")
+    await powers.create(powerBytes, stringToBytes32("LIQUIDITY_RECEIVER"), true, false)
+    await powers.pour(powerBytes, melkor)
+
+    const RegisterPyroV3PowerInvokerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
+
+    const powerInvoker = await broadcast("deploying RegisterPyro powerinvoker", RegisterPyroV3PowerInvokerFactory.deploy(aave.address, false, angband.address), pauser) as Types.RegisterPyroTokenV3Power
+    await broadcast("setting pyroDetails on invoker", powerInvoker.setPyroDetails("PyroAave", "PAAVE"), pauser)
+    await broadcast("authorizing invoker ", angband.authorizeInvoker(powerInvoker.address, true), pauser)
+    await broadcast("executing power to register pyroAave", angband.executePower(powerInvoker.address), pauser)
+
+    const pyroAaveAddress = await liquidityReceiver.getPyroToken(aave.address)
+    console.log('pyroAaveAddress ' + pyroAaveAddress)
+
+    const PyroTokenFactory = await ethers.getContractFactory("PyroToken")
+
+    const pyroAave = await PyroTokenFactory.attach(pyroAaveAddress) as Types.PyroToken
+
+    await expect((await pyroAave.config()).baseToken).to.equal(aave.address)
+    await broadcast("Approving pyroAave", aave.approve(pyroAave.address, ethers.constants.MaxUint256), pauser)
+    await broadcast("minting pyroAave", pyroAave.mint(owner.address, ethers.constants.WeiPerEther.mul(10)), pauser)
+    const balanceOfPyro = await pyroAave.balanceOf(owner.address)
+    await expect(balanceOfPyro).to.equal(ethers.constants.WeiPerEther.mul(10))
+    const redeemRate = (await pyroAave.redeemRate()).toString()
+    logger('pyroAaveRedeemRate', redeemRate)
+    const aaveInPyroAave = await aave.balanceOf(pyroAave.address)
+    logger('Aave in pyroAave', aaveInPyroAave)
+    const aaveInLiquidityReceiver = await aave.balanceOf(liquidityReceiver.address)
+    logger('aave in liquidityReceiver', aaveInLiquidityReceiver)
+    const aaveOfOwnerBefore = await aave.balanceOf(owner.address)
+    await pyroAave.redeem(owner.address, ethers.constants.WeiPerEther.mul(10))
   });
-
-  it("transfers Aave from user 1 to user 2", async function () {
-    console.log("addresses " + JSON.stringify(addresses, null, 4));
-    const aave = await (await ethers.getContractFactory("MockToken")).attach(addresses["LimboMigrationToken1"]);
-
-    const ownerBalanceBefore = (await aave.balanceOf(owner.address)).toString();
-    await aave.approve(owner.address, parseEther("2000"));
-    await aave.transferFrom(owner.address, secondPerson.address, parseEther("1000"));
-    await pause(1);
-    const ownerBalanceAfter = (await aave.balanceOf(owner.address)).toString();
-    console.log("owner balance before " + ownerBalanceBefore + " owner balance after " + ownerBalanceAfter);
-    await expect(await aave.balanceOf(owner.address)).to.equal(parseEther("9000"));
-    await expect(await aave.balanceOf(secondPerson.address)).to.equal(parseEther("1000"));
-  });
-
-  it("Tests soul reader", async function () {
-    await configureRopsten(2, 6, addresses);
-
-    //first call with traditional route.
-    const soulReader = (await ethers.getContractFactory("SoulReader")).attach(addresses["soulReader"]);
-    const output = await soulReader.ExpectedCrossingBonusRate(
-      owner.address,
-      addresses["LimboMigrationToken4"],
-      addresses["limbo"]
-    );
-
-  });
-
-  const advanceTime = async (seconds: number) => {
-    await network.provider.send("evm_increaseTime", [seconds]);
-    await network.provider.send("evm_mine");
-  };
-
-  const advanceTimeAlternative = async (seconds: number) => {
-    await network.provider.send("evm_mine");
-  };
 });
 
-function pause(duration: number) {
-  return new Promise(function (resolve, error) {
-    setTimeout(() => {
-      return resolve(duration);
-    }, duration * 1000);
-  });
-}

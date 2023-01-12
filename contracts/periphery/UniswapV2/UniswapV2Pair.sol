@@ -8,7 +8,6 @@ import "./libraries/UQ112x112.sol";
 import "./interfaces/UNIIERC20.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Callee.sol";
-import "hardhat/console.sol";
 
 contract UniswapV2Pair is UniswapV2ERC20 {
   event Mint(address indexed sender, uint256 amount0, uint256 amount1);
@@ -73,7 +72,6 @@ contract UniswapV2Pair is UniswapV2ERC20 {
   }
 
   constructor() {
-    console.log("hello there");
     factory = msg.sender;
   }
 
@@ -128,29 +126,18 @@ contract UniswapV2Pair is UniswapV2ERC20 {
 
   // this low-level function should be called from a contract which performs important safety checks
   function mint(address to) external lock returns (uint256 liquidity) {
-    //    console.log("mint start");
     (uint112 _reserve0, uint112 _reserve1, ) = getReserves(); // gas savings
     uint256 balance0 = UNIIERC20(token0).balanceOf(address(this));
     uint256 balance1 = UNIIERC20(token1).balanceOf(address(this));
 
     uint256 amount0 = balance0.sub(_reserve0);
     uint256 amount1 = balance1.sub(_reserve1);
-    // console.log("amount0, amount1 %s, %s", amount0, amount1);
     bool feeOn = _mintFee(_reserve0, _reserve1);
-    // console.log("feeOn over");
     uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
     if (_totalSupply == 0) {
       liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
-
       _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
     } else {
-      // console.log(
-      //     "totalSupply %s, reserve0 %s, reserve1 %s",
-      //     _totalSupply,
-      //     _reserve0,
-      //     _reserve1
-      // );
-      // console.log("amount0 %s, amount1 %s", amount0, amount1);
       liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
     }
     require(liquidity > 0, "UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED");
@@ -196,7 +183,9 @@ contract UniswapV2Pair is UniswapV2ERC20 {
   ) external lock {
     require(amount0Out > 0 || amount1Out > 0, "UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT");
     (uint112 _reserve0, uint112 _reserve1, ) = getReserves(); // gas savings
+
     require(amount0Out < _reserve0 && amount1Out < _reserve1, "UniswapV2: INSUFFICIENT_LIQUIDITY");
+
     uint256 balance0;
     uint256 balance1;
     {
@@ -218,15 +207,6 @@ contract UniswapV2Pair is UniswapV2ERC20 {
       // scope for reserve{0,1}Adjusted, avoids stack too deep errors
       uint256 balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
       uint256 balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-      // console.log("UNI PAIR INVARIABLE BEGIN");
-      // console.log("      balance0Adjusted %s, balance1Adjusted %s", balance0Adjusted, balance1Adjusted);
-      // console.log("      reserve0 %s, reserve1 ", _reserve0 * 1000, _reserve1 * 1000);
-      // console.log(
-      //   "      LHS %s, RHS %s",
-      //   balance0Adjusted.mul(balance1Adjusted),
-      //   uint256(_reserve0).mul(_reserve1).mul(1000**2)
-      // );
-      // console.log("UNI PAIR INVARIABLE END");
       require(balance0Adjusted.mul(balance1Adjusted) >= uint256(_reserve0).mul(_reserve1).mul(1000**2), "UniswapV2: K");
     }
 

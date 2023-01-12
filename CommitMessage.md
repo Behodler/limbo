@@ -1,22 +1,35 @@
-# Deployment Script 
-A very adaptive deployment script has been created for deploying the entire ecosystem to any chain. If an ecosystem is partially deployed such as with mainnet, a config file exists which can be populated with preexisting contract addresses. The script then skips.
+# Potential bug in FlashGov singleton pattern
+The flash governer is set using a Singleton pattern on the Governable base class. Firstly, this wasn't being made use of in the assertGovernance function.
+However, an upgradeability issue arises. If the DAO changes its flashGov object, every single governance contract would need to be notified which presents a security smell.
 
-## Not completed in this commit
-1. Flattening the list of addresses for the UI dev(s)
-2. Saving deployed dev state to a file for UI projects to just "spin up" behodler on demand
-3. Adjusted wargame tests to use new state
+# Synchronous Time management
+In the wargame tests, we're simulating reality including actual block times instead of the unit test friendly instant-confirmation approach.
+Initially we used javascript's native timeout function but this slows things down. Hardhat provides a way of time traveling. So we're using that now.
 
-## For future
-In this version, Flan was created, deployed and Behodler was prepopulated with some Flan. Once it's complete, the state and ABIs can be handed to the UI dev. Then I can replace the simple Flan logic with Flan Genesis. It's likely that instead of being a separate ceremony, Flan Genesis will now simply be one of the many functions invoked in the script.
+# UniswapHelper
+SCX fee was hardcoded. Now it's retrieved. 
 
-## TODO for testnet deploy
-1. Change dev_evn project to use new hardhat state
-2. Assist UI dev in getting PyroToken UI out the gates
-3. Stress the team immensely by orchestrating PyroTokenV3 migration (RIP Josh).
-4. While that's going on, cleaning up and assisting UI dev in getting Limbo UI ready.
+# Limbo Migration
+Upon writing this wargame test, it was revealed that when a limbo migration happens, a portion of the migrated tokens, equal to the burnFee on Scarcity contract, was deducted and sent to LiquidityReceiver. This creates the tricky situation where the first person to mint the PyroToken for that token would get that entire fee. The Morgoth power which is responsible for orchestrating the migration has been changed so that the flow is:
 
-## Contracts still to be written (not required for mainnet launch)
- SecondaryRewardToken. This isn't complicated and is very similar to existing PyroTokens but it will be needed before we can list crv or cvx pools, for example.
+1. Retrieve current burn fee on Behodler
+2. Set burn fee to zero
+3. Migrate new token
+4. Reset fee to original amount
 
-## To consider before mainent launch
- Possible simultaneous deploy to Polygon or an L2. However, the Scarcity linking needs to be carefully approached
+This means that the entire token set is migrated and the PyroToken is initialized with zero reserve. The above steps happen atomically so that no shenanigans are possible.
+
+# Configure Scarcity Power
+A Morgoth power invoker can only operate on one ownable contract at a time. This contract is known as the domain of that power. For instance, SetLachesisPowerInvoker's domain is Lachesis. If a power invoker needs to change 2 domains in one transaction, a new power invoker can be created. The outer most power invoker is then made a minion on Morgoth and the power to invoke the innermost is poured into the outer. For the LimboAddTokenToBehodler power invoker which migrates a token, the domain is lachesis. However, it now needs to first set the fee on Behodler to zero. So it has been given the power to invoke ConfigureScarcityPower. 
+By default powers on Morgoth are use once only contracts. However, some powers need to be invoked repeatedly such as the migration power. We don't want to deploy a new contract on every migration. For this reason, the IdempotentInvoker base contract was created. Since ConfigureScarcity is now called on every migration as well, it has been changed to an Idempotent power invoker.
+TODO: we need a flow chart in the docs for Morgoth decision making logic.
+
+# DeploymentScript
+The wargame test is now acting as a kind of integration test that does the whole schpiel of the Behodler Ecosystem in one test. This means that the oracle is made of use. In order for the Oracle to function, the token pairs have to have initial reserves and to have been traded against at least once. This is all added in the deployment script.
+
+
+# Next steps
+1. Save dev state and handover state to UI dev
+2. Flesh out Flan genesis logic in deployment script
+3. In parallel with 2 (ie. UI dev does this), launch PyroTokens3 with migration.
+4. Limbo Testnet

@@ -37,7 +37,6 @@
   "function disableProtocol()",
   "function enableProtocol()",
   "function endConfiguration(address)",
-  "function governer() view returns (address)",
   "function latestIndex(address) view returns (uint256)",
   "function migrate(address,uint256)",
   "function setDAO(address)",

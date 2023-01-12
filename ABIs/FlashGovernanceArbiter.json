@@ -26,7 +26,6 @@
   "function enforceToleranceInt(int256,int256) view",
   "function flashGovernanceConfig() view returns (uint256, uint256, address, bool)",
   "function governed(address) view returns (bool)",
-  "function governer() view returns (address)",
   "function pendingFlashDecision(address,address) view returns (uint256, uint256, address, bool)",
   "function security() view returns (uint256, uint256, uint8, uint8)",
   "function setDAO(address)",

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.1;
 import "../Powers.sol";
+import "../Limbo/IdempotentPowerInvoker.sol";
 
 abstract contract Scarcity_071 {
     function configureScarcity(
@@ -10,13 +11,13 @@ abstract contract Scarcity_071 {
     ) public virtual;
 }
 
-contract ConfigureScarcityPower is PowerInvoker {
+contract ConfigureScarcityPower is IdempotentPowerInvoker {
     uint256 transferFee;
     uint256 burnFee;
     address feeDestination;
 
     constructor(address _angband)
-        PowerInvoker("CONFIGURE_SCARCITY", _angband)
+        IdempotentPowerInvoker("CONFIGURE_SCARCITY", _angband)
     {}
 
     function parameterize(

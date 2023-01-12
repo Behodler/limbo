@@ -9,7 +9,6 @@
   "function configure(uint256,address,address,address)",
   "function configured() view returns (bool)",
   "function endConfiguration(address)",
-  "function governer() view returns (address)",
   "function mint(uint256,address)",
   "function mintVars() view returns (uint256, uint256)",
   "function redeem(uint256,address)",

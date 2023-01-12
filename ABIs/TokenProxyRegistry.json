@@ -12,7 +12,6 @@
   "function TransferFromLimboTokenToBehodlerToken(address) returns (bool)",
   "function configured() view returns (bool)",
   "function endConfiguration(address)",
-  "function governer() view returns (address)",
   "function migrateProxyTokenToNewProxyWrapper(address,address)",
   "function setDAO(address)",
   "function setPower(address)",

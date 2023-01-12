@@ -2,7 +2,6 @@
 pragma solidity 0.8.16;
 import "./openzeppelin/ERC677.sol";
 import "../contracts/DAO/Governable.sol";
-import "hardhat/console.sol";
 
 ///@author Justin Goro
 ///@title Flan
@@ -50,21 +49,17 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     if (!allowed) {
       revert MintingNotWhiteListed(msg.sender);
     }
-    console.log("allowed in flan");
     MintParameters memory config = mintConfig;
     if (block.timestamp - config.lastEpochTimeStamp > config.EPOCH_SIZE) {
       config.lastEpochTimeStamp = uint128(block.timestamp); //epochs can be long to allow for dormant periods followed by busy periods
       config.aggregateMintingThisEpoch = 0;
     }
-    console.log("past mint params");
     config.aggregateMintingThisEpoch += amount;
     if (config.aggregateMintingThisEpoch > config.maxMintPerEpoch) {
-      console.log("reverting on max");
       revert MaxMintPerEpochExceeded(config.maxMintPerEpoch, config.aggregateMintingThisEpoch);
     }
 
     mintConfig = config;
-    console.log("about to mint in Flan");
     _mint(recipient, amount);
     return true;
   }

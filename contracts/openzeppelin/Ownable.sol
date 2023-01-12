@@ -2,7 +2,6 @@
 pragma solidity 0.8.16;
 
 import "../periphery/Errors.sol";
-import "hardhat/console.sol";
 
 abstract contract Ownable {
   address private _owner;
@@ -28,7 +27,6 @@ abstract contract Ownable {
    */
   modifier onlyOwner() {
     if (owner() != msg.sender) {
-      console.log("not owner. owner: %s, sender %s, this %s", owner(), msg.sender, address(this));
       revert OnlyOwner(msg.sender, owner());
     }
     _;

@@ -8,10 +8,9 @@ import "./periphery/UniswapV2/interfaces/IUniswapV2Factory.sol";
 import "./periphery/UniswapV2/interfaces/IUniswapV2Pair.sol";
 import "./facades/AMMHelper.sol";
 import "./facades/LimboOracleLike.sol";
+import "./facades/BehodlerLike.sol";
 
-contract BlackHole {
-
-}
+contract BlackHole {}
 
 ///@Title Uniswap V2 helper for managing Flan liquidity on Uniswap V2, Sushiswap and any other compatible AMM
 ///@author Justin Goro
@@ -138,7 +137,6 @@ contract UniswapHelper is Governable, AMMHelper {
     tilt.FlanPerSCX = VARS.oracleSet.oracle.consult(VARS.behodler, VARS.flan, SPOT);
     tilt.SCXPerFLN_SCX = VARS.oracleSet.oracle.consult(address(VARS.oracleSet.fln_scx), VARS.behodler, SPOT);
     tilt.totalSupplyOfFLN_SCX = VARS.oracleSet.fln_scx.totalSupply(); // although this can be manipulated, it appears on both sides of the equation(cancels out)
-
     tilt.DAIPerSCX = VARS.oracleSet.oracle.consult(VARS.behodler, VARS.DAI, SPOT);
 
     /*if all of the contained liquidity of FLN_SCX were converted to SCX, tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT) would be the quantity.
@@ -148,7 +146,6 @@ contract UniswapHelper is Governable, AMMHelper {
      which is 18 decimal places or 1 ether since FLN and SCX are both 18 decimal place tokens
      */
     tilt.currentSCXInFLN_SCX = (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT * 2); //normalized to in units of 1 ether
-
     tilt.currentFLNInFLN_SCX = (tilt.currentSCXInFLN_SCX * tilt.FlanPerSCX) / SPOT;
   }
 
@@ -159,14 +156,14 @@ contract UniswapHelper is Governable, AMMHelper {
       revert OnlyLimbo(msg.sender, limbo);
     }
     generateFLNQuote();
-
     PriceTiltVARS memory priceTilting = getPriceTiltVARS();
-    uint256 transferredSCX = (mintedSCX * 98) / 100;
+    (uint256 transferFee, uint256 burnFee, ) = BehodlerLike(VARS.behodler).config();
+
+    uint256 transferredSCX = (mintedSCX * (1000 - transferFee - burnFee)) / 1000;
     uint256 finalSCXBalanceOnLP = (transferredSCX) + priceTilting.currentSCXInFLN_SCX;
     uint256 DesiredFinalFlanOnLP = (finalSCXBalanceOnLP * priceTilting.DAIPerSCX) / SPOT;
 
     address pair = address(VARS.oracleSet.fln_scx);
-
     if (priceTilting.currentFLNInFLN_SCX < DesiredFinalFlanOnLP) {
       uint256 flanToMint = ((DesiredFinalFlanOnLP - priceTilting.currentFLNInFLN_SCX) *
         (100 - VARS.priceBoostOvershoot)) / 100;
@@ -179,6 +176,7 @@ contract UniswapHelper is Governable, AMMHelper {
       }
     } else {
       uint256 minFlan = priceTilting.currentFLNInFLN_SCX / priceTilting.totalSupplyOfFLN_SCX;
+
       FlanLike(VARS.flan).mint(pair, minFlan + 2);
       IERC20(VARS.behodler).transfer(pair, transferredSCX);
       lpMinted = VARS.oracleSet.fln_scx.mint(VARS.blackHole);
@@ -192,7 +190,10 @@ contract UniswapHelper is Governable, AMMHelper {
 
     //update scx/fln if stale
     (uint32 blockTimeStamp, uint256 period) = oracle.getLastUpdate(localVARS.behodler, localVARS.flan);
-    if (block.timestamp - blockTimeStamp > period) set.oracle.update(localVARS.behodler, localVARS.flan);
+    if (block.timestamp - blockTimeStamp > period) {
+      set.oracle.update(localVARS.behodler, localVARS.flan);
+    }
+
 
     //update scx/DAI if stale
     (blockTimeStamp, period) = oracle.getLastUpdate(localVARS.behodler, localVARS.DAI);

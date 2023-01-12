@@ -17,15 +17,15 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 });
 
 export default {
-  solidity: 
+  solidity:
   {
     compilers: [
-        {
-            version: "0.8.16"
-        },
-        {
-            version: "0.7.1"
-        }
+      {
+        version: "0.8.16"
+      },
+      {
+        version: "0.7.1"
+      }
     ]
   },
   gasReporter: {
@@ -45,7 +45,7 @@ export default {
   networks: {
 
     hardhat: {
-      // allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
       chainId: 1337,
       accounts: {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",

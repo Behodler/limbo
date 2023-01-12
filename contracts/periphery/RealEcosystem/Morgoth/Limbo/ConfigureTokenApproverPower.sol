@@ -2,7 +2,6 @@
 pragma solidity ^0.7.1;
 import "../Powers.sol";
 import "./IdempotentPowerInvoker.sol";
-import "hardhat/console.sol";
 
 abstract contract TokenApproverLike {
   function config()

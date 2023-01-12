@@ -12,7 +12,6 @@
   "function configure(address,address,address,uint8,address)",
   "function configured() view returns (bool)",
   "function endConfiguration(address)",
-  "function governer() view returns (address)",
   "function setDAI(address)",
   "function setDAO(address)",
   "function stabilizeFlan(uint256) returns (uint256)",

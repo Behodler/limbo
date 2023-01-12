@@ -24,7 +24,6 @@
   "function decimals() view returns (uint8)",
   "function decreaseAllowance(address,uint256) returns (bool)",
   "function endConfiguration(address)",
-  "function governer() view returns (address)",
   "function increaseAllowance(address,uint256) returns (bool)",
   "function mint(address,uint256) returns (bool)",
   "function mintAllowed(address) view returns (bool)",

@@ -149,13 +149,12 @@ contract LimboDAO is Ownable {
         if (currentProposalState.fate > 0) {
           currentProposalState.decision = ProposalDecision.approved;
           (success, ) = address(currentProposalState.proposal).call(abi.encodeWithSignature("orchestrateExecute()"));
-          //deposit returned to propser
+          //deposit returned to proposer
           fateState[currentProposalState.proposer].fateBalance += proposalConfig.requiredFateStake;
           if (!success) currentProposalState.decision = ProposalDecision.failed;
         } else {
           currentProposalState.decision = ProposalDecision.rejected;
         }
-
         emit proposalExecuted(address(currentProposalState.proposal), success);
         nextProposal();
       }
@@ -202,6 +201,7 @@ contract LimboDAO is Ownable {
 
     proposalConfig.requiredFateStake = 223 * ONE; //defaulted to 50000 EYE for 24 hours
     proposalConfig.proposalFactory = proposalFactory;
+
     address sushiFactory = address(LimboOracleLike(sushiOracle).factory());
     address uniFactory = address(LimboOracleLike(uniOracle).factory());
     for (uint256 i = 0; i < sushiMetaLPs.length; i++) {
@@ -242,6 +242,7 @@ contract LimboDAO is Ownable {
     if (address(currentProposalState.proposal) != address(0)) {
       revert LodgeFailActiveProposal(address(currentProposalState.proposal), proposal);
     }
+
     //The *2 refers to 100% deposit in fate taken from the proposer.
     // If the vote succeeds, the deposit is returned, if it fails, it isn't. This makes proposals
     // that are likely to fail more costly and ties up fate of proposers, reducing incentives to over propose.

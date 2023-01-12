@@ -4,7 +4,6 @@ import "../Powers.sol";
 import "../openzeppelin/IERC20.sol";
 import "../facades/BehodlerLike.sol";
 import "../facades/LiquidityReceiverNewLike.sol";
-import "hardhat/console.sol";
 
 contract RegisterPyroTokenV3Power is PowerInvoker, Empowered {
   address token;
@@ -33,7 +32,6 @@ contract RegisterPyroTokenV3Power is PowerInvoker, Empowered {
   }
 
   function orchestrate() internal override returns (bool) {
-    console.log("In PyroRegisterPower orchestrate()");
     LiquidityReceiverNewLike LR = LiquidityReceiverNewLike(angband.getAddress(power.domain));
     if (!burnable) {
       LR.registerPyroToken(token, pyro.name, pyro.symbol, 18);

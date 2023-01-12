@@ -5,12 +5,13 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 const hre = require("hardhat");
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 export async function safeDeploy(
   chainId: number | undefined,
   blockTime: number,
-  confirmations: number
+  confirmations: number,
+  persistPath?: string
 ): Promise<OutputAddress> {
   const file = "/tmp/deploy.lock";
   if (!existsSync(file)) {
@@ -25,7 +26,10 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    return deployTestnet(chainId, blockTime, confirmations);
+    const addresses = deployToNetwork(chainId, blockTime, confirmations);
+    if (persistPath)
+      writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
+    return addresses
   } catch (error) {
     throw error;
   } finally {
@@ -33,7 +37,7 @@ export async function safeDeploy(
   }
 }
 
-export async function deployTestnet(
+export async function deployToNetwork(
   chainId: number | undefined,
   blockTime: number,
   confirmations: number,
@@ -70,9 +74,6 @@ export async function deployTestnet(
 
   logger("Deployments complete. Flattening...")
   const flat = loader.flatten()
-  logger('printing out flat.')
-  logger(JSON.stringify(flat, null, 4))
-  logger('length: ' + Object.keys(flat).length)
   return flat;
 }
 

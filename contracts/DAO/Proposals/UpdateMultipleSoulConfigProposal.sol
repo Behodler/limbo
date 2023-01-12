@@ -12,8 +12,7 @@ import "../../facades/TokenProxyRegistryLike.sol";
  * @notice For adding a list of new souls to Limbo for staking
  */
 contract UpdateMultipleSoulConfigProposal is Proposal {
-
-  uint256 constant year = 31536000; // seconds in 365 day year
+  uint256 constant YEAR = 31536000; // seconds in 365 day year
 
   struct Parameters {
     address baseToken;
@@ -45,8 +44,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     address _limbo,
     address morgothTokenApprover,
     address tokenProxyRegistry
-  ) Proposal(dao, _description) 
-  {
+  ) Proposal(dao, _description) {
     config.limbo = LimboLike(_limbo);
     config.morgothApprover = MorgothTokenApproverLike(morgothTokenApprover);
     config.proxyRegistry = TokenProxyRegistryLike(tokenProxyRegistry);
@@ -99,14 +97,14 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
 
   function execute() internal override returns (bool) {
     Parameters[] memory localParams = params;
+
     for (uint256 i = 0; i < localParams.length; i++) {
       //second check to catch any blacklisted cliffFace tokens.
       if (localParams[i].soulType < 2 && !config.morgothApprover.approved(localParams[i].baseToken)) {
         revert TokenNotApproved(localParams[i].baseToken);
       }
       uint256 fps = minAPY_to_FPS(localParams[i].targetAPY, localParams[i].daiThreshold);
-     
-     //this is redundant if MorgothTokenApprover generated the proxies but that route isn't strictly required.
+      //this is redundant if MorgothTokenApprover generated the proxies but that route isn't strictly required.
       config.proxyRegistry.setProxy(localParams[i].baseToken, localParams[i].limboProxy, localParams[i].behodlerProxy);
 
       address limboToken = localParams[i].limboProxy == address(0)
@@ -121,7 +119,6 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
         localParams[i].index,
         fps
       );
-
       config.limbo.configureCrossingParameters(
         limboToken,
         localParams[i].initialCrossingBonus,
@@ -133,7 +130,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     return true;
   }
 
-   ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
+  ///@notice helper function for converting a desired APY into a flan per second (FPS) statistic
   ///@param minAPY Here APY refers to the dollar value of flan relative to the dollar value of the threshold
   ///@param daiThreshold The DAI value of the target threshold to list on Behodler. Threshold is an approximation of the AVB on Behodler
   function minAPY_to_FPS(
@@ -144,6 +141,6 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
       revert DaiThresholdMustBePositive();
     }
     uint256 returnOnThreshold = (minAPY * daiThreshold) / 1e4;
-    fps = returnOnThreshold / (year);
+    fps = returnOnThreshold / (YEAR);
   }
 }

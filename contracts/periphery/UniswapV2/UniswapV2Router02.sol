@@ -5,7 +5,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-// import "hardhat/console.sol";
 import "../Errors.sol";
 import "./interfaces/UNIIERC20.sol";
 import "./interfaces/IUniswapV2Factory.sol";
@@ -394,8 +393,7 @@ contract UniswapV2Router02 {
   address public WETH;
 
   modifier ensure(uint256 deadline) {
-    //commented out because getting UniswapV2 to work in tests is not my life's purpose right now.
-    // require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
+    require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
     _;
   }
 

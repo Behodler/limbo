@@ -13,7 +13,7 @@ import "./facades/LimboAddTokenToBehodlerPowerLike.sol";
 import "./DAO/Governable.sol";
 import "./facades/FlashGovernanceArbiterLike.sol";
 import "./openzeppelin/SafeERC20.sol";
-// import "hardhat/console.sol";
+
 /*
 Contract: LIMBO is the main staking contract. It corresponds conceptually to Sushi's Masterchef and takes design inspiration from Masterchef.
 Context: Limbo is a part of the Behodler ecosystem. All dapps within the Behodler ecosystem either support or are supported by the Behodler AMM.
@@ -205,6 +205,7 @@ library MigrationLib {
     uint256 scxBalance = scx.balanceOf(address(this));
     AngbandLike(crossingConfig.angband).executePower(crossingConfig.morgothPower);
     scxBalance = scx.balanceOf(address(this)) - scxBalance;
+
     //use remaining scx to buy flan and pool it on an external AMM
     IERC20(crossingConfig.behodler).safeTransfer(crossingConfig.ammHelper, scxBalance);
     uint256 lpMinted = AMMHelper(crossingConfig.ammHelper).stabilizeFlan(scxBalance);
@@ -334,13 +335,14 @@ contract Limbo is Governable {
     uint256 fps
   ) public governanceApproved(false) {
     Soul storage soul = currentSoul(token);
-    flashGoverner().enforceTolerance(soul.flanPerSecond, fps);
+    FlashGovernanceArbiterLike governer = flashGoverner();
+    governer.enforceTolerance(soul.flanPerSecond, fps);
     soul.flanPerSecond = fps;
 
     CrossingParameters storage params = tokenCrossingParameters[token][latestIndex[token]];
 
-    flashGoverner().enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
-    flashGoverner().enforceTolerance(
+    governer.enforceTolerance(params.initialCrossingBonus, initialCrossingBonus);
+    governer.enforceTolerance(
       uint256(params.crossingBonusDelta < 0 ? params.crossingBonusDelta * -1 : params.crossingBonusDelta),
       uint256(crossingBonusDelta < 0 ? crossingBonusDelta * -1 : crossingBonusDelta)
     );
@@ -381,7 +383,6 @@ contract Limbo is Governable {
     }
 
     souls[token][index] = soul;
-
     emit SoulUpdated(token, fps);
   }
 
@@ -544,7 +545,6 @@ contract Limbo is Governable {
     if (soul.state != SoulState.waitingToCross) {
       revert InvalidSoulState(token, index, uint256(soul.state));
     }
-
     (uint256 tokenBalance, uint256 lpMinted) = token.migrate(
       soul.aggregateStakedBalance,
       LimboAddTokenToBehodlerPowerLike(crossingConfig.morgothPower),
@@ -552,6 +552,7 @@ contract Limbo is Governable {
       crossingConfig,
       Flan
     );
+    uint256 balanceOfSoulOnBehodler = IERC20(token).balanceOf(crossingConfig.behodler);
     souls[token][index].state = SoulState.crossedOver;
     emit TokenListed(token, tokenBalance, lpMinted);
   }
@@ -573,7 +574,9 @@ contract Limbo is Governable {
   ) internal {
     uint256 index = latestIndex[token];
     Soul memory soul = souls[token][index];
-    if (soul.state != SoulState.staking) revert InvalidSoulState(token, index, uint256(soul.state));
+    if (soul.state != SoulState.staking) {
+      revert InvalidSoulState(token, index, uint256(soul.state));
+    }
 
     soul = previewSoulUpdate(token, index);
     User storage user = userInfo[token][recipient][index];
@@ -617,7 +620,6 @@ contract Limbo is Governable {
     return ((user.stakedAmount * soul.accumulatedFlanPerShare) / TERA) - user.rewardDebt;
   }
 
-
   function previewSoulUpdate(address token, uint256 index) internal view returns (Soul memory soul) {
     soul = souls[token][index];
     if (soul.soulType == SoulType.uninitialized) {
@@ -632,7 +634,6 @@ contract Limbo is Governable {
     if (finalTimeStamp == soulLastRewardTimestamp) {
       return soul;
     }
-
     uint256 balance = IERC20(token).balanceOf(address(this));
 
     if (balance > 0) {
@@ -641,5 +642,4 @@ contract Limbo is Governable {
     }
     soul.lastRewardTimestamp = finalTimeStamp;
   }
-
 }

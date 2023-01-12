@@ -7,8 +7,6 @@ import "../../../facades/LachesisLike.sol";
 import "../../../openzeppelin/IERC20.sol";
 import "../../../facades/BigConstantsLike.sol";
 import * as PH from "./ProxyHandler.sol";
-import "hardhat/console.sol";
-
 library Create2 {
     /**
      * @dev Deploys a contract using `CREATE2`. The address where the contract
@@ -193,7 +191,6 @@ contract LiquidityReceiver is Ownable {
         string memory symbol,
         uint8 decimals
     ) public onlyOwner {
-        console.log('executing in registerPyroToken');
         address expectedAddress = getPyroToken(baseToken);
 
         //Don't be mislead by the name. The purpose of this is just to check if there is a contract deployed at the current address
