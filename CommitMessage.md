@@ -33,3 +33,4 @@ The wargame test is now acting as a kind of integration test that does the whole
 2. Flesh out Flan genesis logic in deployment script
 3. In parallel with 2 (ie. UI dev does this), launch PyroTokens3 with migration.
 4. Limbo Testnet
+5. In parallel with 4 (flesh out some Limbo Proxy examples to help UI dev)
