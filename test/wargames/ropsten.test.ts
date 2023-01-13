@@ -44,7 +44,9 @@ describe("ropsten deployment", function () {
   describe("tests", function () {
 
 
-    it("t0. tests deployer", async function () { })
+    it("t0. tests deployer", async function () {
+      const { fetchAddress } = await loadFixture(deployEcosystem)
+     })
 
     it("t1. illustrate a healthy deployment by having working LP tokens", async function () {
       const { fetchAddress } = await loadFixture(deployEcosystem)

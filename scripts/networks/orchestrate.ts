@@ -139,13 +139,11 @@ class Loader {
 
     let outputAddresses = await deploymentFunction(params)
 
-    if (JSON.stringify(outputAddresses) != '{}') {
-      let newExisting: AddressFileStructure = { ...this.existing }
-      newExisting[sectionName(section)] = outputAddresses
-      this.logger(`persisting deployments for ${sectionName(section)} to ${this.fileName}`)
-      let json = JSON.stringify(newExisting, null, 2)
-      writeFileSync(this.fileName, json)
-    }
+    let newExisting: AddressFileStructure = { ...this.existing }
+    newExisting[sectionName(section)] = outputAddresses
+    this.logger(`persisting deployments for ${sectionName(section)} to ${this.fileName}`)
+    let json = JSON.stringify(newExisting, null, 2)
+    writeFileSync(this.fileName, json)
 
     return new Loader(
       this.network,
