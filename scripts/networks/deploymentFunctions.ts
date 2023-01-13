@@ -5,7 +5,6 @@ import { BigNumber, BigNumberish, Contract, ContractFactory } from "ethers";
 import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, broadcast, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, oraclePairNames, tokenNames } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
-import { getContractFactory } from "@nomiclabs/hardhat-ethers/types";
 
 const logger = logFactory(false);
 

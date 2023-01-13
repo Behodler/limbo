@@ -146,8 +146,8 @@ export const stringToBytes32 = (s: string): string => {
   let padded = s.padEnd(32, "\0")
   return ethers.utils.hexlify(ethers.utils.arrayify(Web3.default.utils.fromAscii(padded)))
 }
-
-export function nameNetwork(networkId: number): string {
+export type networks = "mainnet"|"goerli"|"optimism"|"kovan"|"polygon"|"hardhat"|"arbitrum one"|"sepolia" 
+export function nameNetwork(networkId: number): networks {
   switch (networkId) {
     case 1: return "mainnet"
     case 5: return "goerli"

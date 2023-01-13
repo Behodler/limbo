@@ -1,5 +1,5 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
-import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder } from "./common";
+import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder, networks } from "./common";
 import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 const hre = require("hardhat");
@@ -79,14 +79,14 @@ export async function deployToNetwork(
 
 
 class Loader {
-  network: string
+  network: networks
   existing: AddressFileStructure
   logger: (message: string) => void
   deployer: SignerWithAddress
   pauser: Function
   fileName: string = ""
 
-  constructor(network: string,
+  constructor(network: networks,
     logger: (message: string) => void,
     deployer: SignerWithAddress,
     pauser: Function) {
@@ -157,13 +157,9 @@ class Loader {
   private async populateExistingFromFile() {
     logger('in populate')
     this.fileName = `${process.cwd()}/scripts/networks/addresses/${this.network}.json`;
-    const timeStamp = new Date().toUTCString()
-    const backupFilenName = this.fileName.substring(0, this.fileName.length - 5) + timeStamp + ".backup"
-
     const foundFile = existsSync(this.fileName);
     if (foundFile) {
       const blob = readFileSync(this.fileName);
-      writeFileSync(backupFilenName, blob)
       logger('about to parse')
       this.existing = JSON.parse(blob.toString()) as AddressFileStructure;
       logger('parsed')

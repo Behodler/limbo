@@ -17,6 +17,7 @@ import { broadcast, contractNames, getPauser, stringToBytes32 } from "../../scri
 import * as networkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import * as Types from "../../typechain"
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import shell from "shelljs"
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -27,6 +28,8 @@ describe("ropsten deployment", function () {
   let logger = (message: string, content: any) => {
     console.log(`In test: ${message} ${content}`)
   }
+  shell.rm("scripts/networks/addresses/hardhat.json")
+ 
   async function deployEcosystem() {
     const [owner, secondPerson] = await ethers.getSigners();
     const addresses = (await safeDeploy(1337, 2, 9)) as DeployedContracts;
