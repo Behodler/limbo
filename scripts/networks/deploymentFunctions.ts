@@ -6,7 +6,7 @@ import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, bro
 import * as Types from "../../typechain";
 import shell from "shelljs"
 
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 interface IDeploymentFunction {
   (params: IDeploymentParams): Promise<OutputAddress>
@@ -67,10 +67,12 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.TokenProxyRegistry: return deployTokenProxyRegistry
     case Sections.SoulReader: return deploySoulReader
     case Sections.FlashGovernanceArbiter: return deployFlashGovernanceArbiter
-    //FLAN subsection
+    //FLAN Genesis 
     case Sections.Flan: return deployFlan
+    case Sections.RegisterFlanAndPyroOnBehodler: return registerFlanOnBehodler
     case Sections.FlanSetMintConfig: return flanSetConfig
     case Sections.PyroFlanBooster: return deployPyroFlanBooster
+    //FLAN Genesis END
     case Sections.Morgoth_LimboAddTokenToBehodler: return deployLimboAddTokenToBehodlerPower
 
     //Limbo subsection
@@ -717,6 +719,14 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
   const flanFactory = await ethers.getContractFactory("Flan")
   const flan = await deploy<Types.Flan>("Flan", flanFactory, params.pauser, dao.address)
   await flan.mint(params.deployer.address, ethers.constants.WeiPerEther.mul(10_000))
+
+  return OutputAddressAdder<Types.Flan>({}, "Flan", flan)
+}
+
+const registerFlanOnBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  let deploy = deploymentFactory(Sections.Flan, params.existing, params.pauser)
+  const getContract = await getContractFromSection(params.existing)
+
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
   const powersRegistry = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
 
@@ -725,6 +735,7 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
   const registerPyroTokenPower = stringToBytes32("REGISTER_PYRO_V3")
   await broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false), params.pauser)
 
+  const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
 
   const registerPyroTokenPowerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
 
@@ -782,7 +793,8 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
   if (baseToken !== flan.address)
     throw "PyroFlan deploy failure"
 
-  return OutputAddressAdder<Types.Flan>({}, "Flan", flan)
+
+  return {}
 }
 
 const deployFlashGovernanceArbiter: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
@@ -1122,8 +1134,8 @@ const deployConfigureScarcityPower: IDeploymentFunction = async function (params
   let deploy = deploymentFactory(Sections.LiquidityReceiverOld, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
-  const powersRegistry = await getContract(Sections.Powers,"PowersRegistry")
- const power = "CONFIGURE_SCARCITY"
+  const powersRegistry = await getContract(Sections.Powers, "PowersRegistry")
+  const power = "CONFIGURE_SCARCITY"
 
   const ConfigureScarcityPowerFactory = await ethers.getContractFactory("ConfigureScarcityPower")
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
