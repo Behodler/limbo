@@ -1,0 +1,22 @@
+{
+  "name": "@vavite/example-reloader-fastify",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node-dev --loader ts-node/esm src/server.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@tsconfig/node16": "^1.0.3",
+    "@types/node": "^18.11.18",
+    "node-dev": "^8.0.0",
+    "prettier": "^2.8.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "fastify": "^4.11.0"
+  }
+}
