@@ -146,7 +146,7 @@ export const stringToBytes32 = (s: string): string => {
   let padded = s.padEnd(32, "\0")
   return ethers.utils.hexlify(ethers.utils.arrayify(Web3.default.utils.fromAscii(padded)))
 }
-export type networks = "mainnet"|"goerli"|"optimism"|"kovan"|"polygon"|"hardhat"|"arbitrum one"|"sepolia" 
+export type networks = "mainnet" | "goerli" | "optimism" | "kovan" | "polygon" | "hardhat" | "arbitrum one" | "sepolia"
 export function nameNetwork(networkId: number): networks {
   switch (networkId) {
     case 1: return "mainnet"
@@ -196,10 +196,13 @@ export enum Sections {
   SoulReader,
   FlashGovernanceArbiter,
   Flan,
-  RegisterFlanAndPyroOnBehodler,
+  AddInitialLiquidityToBehodler,
   FlanSetMintConfig,
+  FlanGenesis,
   PyroFlanBooster,
   Limbo,
+  MorgothTokenApproverUpdateConfig,
+  RegisterFlanAndPyroOnBehodlerViaCliffFace,
   UniswapHelper,
   LimboOracle,
   TradeOraclePairs,
@@ -214,7 +217,6 @@ export enum Sections {
   LimboTokens,//Pick up from here
   LimboDAOSeed,
   LimboConfigureCrossingConfig,
-  MorgothTokenApproverUpdateConfig,
   MorgothMapApprover,
   ConfigureTokenApproverPower, // white list on angband
   TPR_setApprover_setPower,
@@ -242,7 +244,7 @@ export const SectionsToList: Sections[] = [
   Sections.BehodlerSeedNew,
   Sections.ConfigureScarcityPower,
   Sections.ConfigureIronCrown,
-  Sections.MorgothMapLiquidityReceiver,
+
   Sections.MorgothMapPyroWeth10Proxy,
   Sections.PyroWethProxy,
   Sections.ProxyHandler,
@@ -254,10 +256,15 @@ export const SectionsToList: Sections[] = [
   Sections.SoulReader,
   Sections.FlashGovernanceArbiter,
   Sections.Flan,
-  Sections.RegisterFlanAndPyroOnBehodler,
+  Sections.AddInitialLiquidityToBehodler,
   Sections.FlanSetMintConfig,
+  Sections.FlanGenesis,
   Sections.PyroFlanBooster,
   Sections.Limbo,
+  Sections.DeployerSnufferCap,
+  Sections.MorgothMapLiquidityReceiver,
+  Sections.MorgothTokenApproverUpdateConfig,
+  Sections.RegisterFlanAndPyroOnBehodlerViaCliffFace,
   Sections.UniswapHelper,
   Sections.LimboOracle,
   Sections.TradeOraclePairs,
@@ -266,13 +273,13 @@ export const SectionsToList: Sections[] = [
   Sections.Morgoth_LimboAddTokenToBehodler,
   Sections.MultiSoulConfigUpdateProposal,
   Sections.ProposalFactory,
-  Sections.DeployerSnufferCap,
+
   Sections.SnuffPyroWethProxy,
   Sections.UniswapHelperConfigure,
   Sections.LimboTokens,
   Sections.LimboDAOSeed,
   Sections.LimboConfigureCrossingConfig,
-  Sections.MorgothTokenApproverUpdateConfig,
+
   Sections.MorgothMapApprover,
   Sections.ConfigureTokenApproverPower,
   Sections.TPR_setApprover_setPower,
@@ -293,9 +300,20 @@ export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBT
 
 export type tokenNames = behodlerTokenNames | limboTokenNames | oraclePairNames | "Flan"
 
+
+export type proposalNames = "AdjustFlanFeeOnTransferProposal" |
+  "ApproveFlanMintingProposal" |
+  "BurnFlashStakeDeposit" |
+  "ConfigureFlashGovernanceProposal" |
+  "SetAssetApprovalProposal" |
+  "SetFateSpendersProposal" |
+  "ToggleFlashGovernanceProposal" |
+  "UpdateProposalConfigProposal"
+
 export type contractNames =
-  tokenNames |
-  "Weth"
+  tokenNames
+  | proposalNames
+  | "Weth"
   | "UniswapV2Router"
   | "UniswapV2Factory"
   | "SushiswapV2Router"

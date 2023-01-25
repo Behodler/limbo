@@ -7,6 +7,7 @@ import "./WETH10.sol";
 import "../../../facades/LachesisLike.sol";
 import "../../../facades/Burnable.sol";
 import "../../../facades/FlashLoanArbiterLike.sol";
+// import "hardhat/console.sol";
 
 /*
     Scarcity is the bonding curve token that underpins Behodler functionality
@@ -436,7 +437,6 @@ contract Behodler is Scarcity {
     } else {
       inputToken.transferIn(inputSender, inputAmount);
     }
-
     uint256 netInputAmount = inputAmount - burnToken(inputToken, inputAmount);
     uint256 initialOutputBalance = outputToken.tokenBalance();
     require(
@@ -451,12 +451,10 @@ contract Behodler is Scarcity {
       //if the input balance after adding input liquidity is 1073741824 bigger than the initial balance, we revert.
       uint256 inputRatio = (initialInputBalance << safetyParameters.swapPrecisionFactor) / finalInputBalance;
       uint256 outputRatio = (finalOutputBalance << safetyParameters.swapPrecisionFactor) / initialOutputBalance;
-
       require(inputRatio != 0 && inputRatio == outputRatio, "BEHODLER: swap invariant.");
     }
 
     require(finalOutputBalance >= MIN_LIQUIDITY, "BEHODLER: min liquidity.");
-
     if (outputToken == Weth) {
       address payable sender = payable(msg.sender);
       IWETH10(Weth).withdrawTo(sender, outputAmount);

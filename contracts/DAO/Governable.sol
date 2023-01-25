@@ -58,7 +58,7 @@ abstract contract Governable {
   function _governanceApproved(bool emergency) internal {
     bool successfulProposal = LimboDAOLike(DAO).successfulProposal(msg.sender);
     FlashGovernanceArbiterLike refreshedGoverner = flashGoverner();
-    if (successfulProposal) {
+    if (successfulProposal || msg.sender == DAO) {
       refreshedGoverner.setEnforcement(false);
     } else if (configured()) {
       refreshedGoverner.setEnforcement(true);
@@ -72,7 +72,7 @@ abstract contract Governable {
   }
 
   function assertSuccessfulProposal(address sender) internal view {
-    if (configured() && !LimboDAOLike(DAO).successfulProposal(sender)) {
+    if (configured() && sender != DAO && !LimboDAOLike(DAO).successfulProposal(sender)) {
       revert GovernanceActionFailed(configured(), sender);
     }
   }
@@ -82,8 +82,8 @@ abstract contract Governable {
     setDAO(dao);
   }
 
- function flashGoverner() internal view returns (FlashGovernanceArbiterLike) {    
-    return  FlashGovernanceArbiterLike(LimboDAOLike(DAO).getFlashGoverner());
+  function flashGoverner() internal view returns (FlashGovernanceArbiterLike) {
+    return FlashGovernanceArbiterLike(LimboDAOLike(DAO).getFlashGoverner());
   }
 
   ///@param dao The LimboDAO contract address

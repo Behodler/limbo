@@ -17,6 +17,7 @@ interface TestContracts {
   flan: Types.Flan
   eye: Types.MockToken
   proposalFactory: Types.ProposalFactory
+  soulReader:Types.SoulReader
 }
 
 let Constants = {
@@ -269,7 +270,7 @@ describe.only("Limbo", function () {
     await SET.limboDAO.makeLive();
 
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
-    this.soulReader = await SoulReaderFactory.deploy() as Types.SoulReader;
+    SET.soulReader = await SoulReaderFactory.deploy() as Types.SoulReader;
 
     const UniswapHelperFactory = await ethers.getContractFactory("UniswapHelper");
     SET.uniswapHelper = await UniswapHelperFactory.deploy(SET.limbo.address, SET.limboDAO.address) as Types.UniswapHelper
@@ -559,7 +560,7 @@ describe.only("Limbo", function () {
     assert.isTrue(flanBalanceChangeAgterSecondStake.gt("900000000000") && flanBalanceChangeAgterSecondStake.lt("900050000000"), flanBalanceChangeAgterSecondStake.toString())
 
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(aave.address, SET.limbo.address);
+    const stats = await SET.soulReader.soulStats(aave.address, SET.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
     //claim
@@ -590,7 +591,7 @@ describe.only("Limbo", function () {
     await SET.limbo.stake(aave.address, "9990001");
 
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(aave.address, SET.limbo.address);
+    const stats = await SET.soulReader.soulStats(aave.address, SET.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
     //claim
@@ -622,7 +623,7 @@ describe.only("Limbo", function () {
     //stake enough tokens to cross threshold
     await SET.limbo.stake(aave.address, "9990001");
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(aave.address, SET.limbo.address);
+    const stats = await SET.soulReader.soulStats(aave.address, SET.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
 
@@ -653,7 +654,7 @@ describe.only("Limbo", function () {
     //stake enough tokens to cross threshold
     await SET.limbo.stake(aave.address, "9990001");
     //assert soul state change
-    const stats = await this.soulReader.SoulStats(aave.address, SET.limbo.address);
+    const stats = await SET.soulReader.soulStats(aave.address, SET.limbo.address);
     expect(stats[0].toString()).to.equal("2");
     expect(stats[1].toString()).to.equal("10000001");
 
@@ -679,7 +680,7 @@ describe.only("Limbo", function () {
     await aave.approve(SET.limbo.address, "10000001");
     await SET.limbo.stake(aave.address, "10000001");
 
-    const stats = await this.soulReader.SoulStats(aave.address, SET.limbo.address);
+    const stats = await SET.soulReader.soulStats(aave.address, SET.limbo.address);
     expect(stats[0].toNumber()).to.equal(1);
   });
 
@@ -707,7 +708,7 @@ describe.only("Limbo", function () {
     await SET.eye.approve(flashGovernance.address, 21000000);
     await SET.limbo.adjustSoul(aave.address, 20000000001, -1001, 10000001);
 
-    const newStates = await this.soulReader.CrossingParameters(aave.address, SET.limbo.address);
+    const newStates = await SET.soulReader.CrossingParameters(aave.address, SET.limbo.address);
 
     //assert newStates
     const stringNewStates = stringifyBigNumber(newStates);
@@ -1084,8 +1085,8 @@ describe.only("Limbo", function () {
     await SET.limboDAO.executeCurrentProposal();
 
     const SoulReaderFactory = await ethers.getContractFactory("SoulReader");
-    const soulReader = await SoulReaderFactory.deploy();
-    const soulStats = await soulReader.SoulStats(aave.address, SET.limbo.address);
+    const soulReader = (await SoulReaderFactory.deploy()) as Types.SoulReader;
+    const soulStats = await soulReader.soulStats(aave.address, SET.limbo.address);
     expect(soulStats[0].toNumber()).to.equal(2);
 
     await expect(SET.limbo.stake(aave.address, "10000")).to.be.revertedWith("InvalidSoulState");
@@ -2528,7 +2529,7 @@ describe.only("Limbo", function () {
     }
   })
 
-  describe.only("PyroFlanBooster tests", function () {
+  describe("PyroFlanBooster tests", function () {
     interface PyroFlanSet {
       pyroFlan: Types.PyroToken
       liquidityReceiver: Types.LiquidityReceiver,

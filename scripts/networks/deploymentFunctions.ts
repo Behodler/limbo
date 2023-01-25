@@ -2,11 +2,11 @@ import { ethers, network } from "hardhat";
 import { id, parseBytes32String, parseEther, parseTransaction } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { BigNumber, BigNumberish, Contract, ContractFactory } from "ethers";
-import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, broadcast, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, oraclePairNames, tokenNames } from "./common";
+import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, broadcast, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, oraclePairNames, tokenNames, behodlerTokenNames } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
 
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 interface IDeploymentFunction {
   (params: IDeploymentParams): Promise<OutputAddress>
@@ -33,6 +33,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.Behodler: return deployBehodler
     case Sections.UniswapV2Clones: return deployUniclones
     case Sections.BehodlerTokens: return deployBehodlerTokens
+    case Sections.AddInitialLiquidityToBehodler: return addInitialLiquidityToBehodler
     case Sections.Lachesis: return deployLachesis
     case Sections.LiquidityReceiverOld: return deployOldLiquidityReceiver
     case Sections.PyroWeth10Proxy: return deployPyroWeth10ProxyOld //remember to use deployOldPyro
@@ -67,17 +68,21 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.TokenProxyRegistry: return deployTokenProxyRegistry
     case Sections.SoulReader: return deploySoulReader
     case Sections.FlashGovernanceArbiter: return deployFlashGovernanceArbiter
-    //FLAN Genesis 
-    case Sections.Flan: return deployFlan
-    case Sections.RegisterFlanAndPyroOnBehodler: return registerFlanOnBehodler
-    case Sections.FlanSetMintConfig: return flanSetConfig
-    case Sections.PyroFlanBooster: return deployPyroFlanBooster
-    //FLAN Genesis END
+
     case Sections.Morgoth_LimboAddTokenToBehodler: return deployLimboAddTokenToBehodlerPower
 
     //Limbo subsection
     case Sections.UniswapHelper: return deployUniswapHelper;
     case Sections.Limbo: return deployLimbo
+    case Sections.MorgothTokenApproverUpdateConfig: return morgothTokenAppoverUpdateConfig
+
+    //FLAN Genesis 
+    case Sections.Flan: return deployFlan
+    case Sections.RegisterFlanAndPyroOnBehodlerViaCliffFace: return registerFlanOnBehodlerViaCliffFace
+    case Sections.FlanSetMintConfig: return flanSetConfig
+    case Sections.FlanGenesis: return flanGenesis
+    case Sections.PyroFlanBooster: return deployPyroFlanBooster
+    //FLAN Genesis END
 
     //Oracle subsection
     case Sections.LimboOracle: return deployLimboOracle
@@ -89,7 +94,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.LimboTokens: return deployLimboTokens
     case Sections.LimboDAOSeed: return limboDAOSeed
     case Sections.LimboConfigureCrossingConfig: return limboConfigureCrossingConfig
-    case Sections.MorgothTokenApproverUpdateConfig: return morgothTokenAppoverUpdateConfig
+
     case Sections.MorgothMapApprover: return morgothMapApprover
     case Sections.ConfigureTokenApproverPower: return deployConfigureTokenApproverPower
     case Sections.TPR_setApprover_setPower: return configureTPR
@@ -331,7 +336,7 @@ const morgothTokenAppoverUpdateConfig: IDeploymentFunction = async function (par
   const limbo = await getLimbo(params.existing)
   const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
 
-  await morgothTokenApprover.updateConfig(tokenProxyRegistry.address, referenceToken.address, behodler.address, limbo.address, flan.address)
+  await broadcast("Morgoth token update", morgothTokenApprover.updateConfig(tokenProxyRegistry.address, referenceToken.address, behodler.address, limbo.address, flan.address), params.pauser)
   return {}
 }
 
@@ -710,6 +715,41 @@ const flanSetConfig: IDeploymentFunction = async function (params: IDeploymentPa
   return {}
 }
 
+const flanGenesis: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  let deploy = deploymentFactory(Sections.Flan, params.existing, params.pauser)
+  const getContract = await getContractFromSection(params.existing)
+
+  const uniswapV2Factory = await getContract<Types.UniswapV2Factory>(Sections.UniswapV2Clones, "UniswapV2Factory")
+  const getPair = getOrCreateUniPairFactory(uniswapV2Factory, params.pauser)
+
+  const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
+  const fetchBehodlerToken = fetchTokenFactory(params.existing, Sections.BehodlerTokens)
+  const dai = await fetchBehodlerToken("DAI")
+  /*
+  1. Mint Flan equal to Dai balance on Behodler.
+2. TokenProxy.createCliffFace (protectLimbo:false) for Flan
+    * reference Dai, reference multiple 0.7
+3. Lachesis.measure(flanCliff, true,false)
+4. Deposit minted Flan into Behodler via cliffFace.
+5. Collect SCX generated.
+6. Mint Flan equal in value (assuming $1) to SCX minted.
+7. Pair with SCX in UniV2 -> generates SCX/FLN LP token: LP_1
+8. Lachesis.measure (SCX/FLN LP, true, false) -> mints SCX_2
+9. Pair SCX_2 with equivalent LP_1 to create scx__fln_scx -> mints LP_2
+10. Lachesis.measure LP_2 and mint SCX.
+11. On Uni, create dai_scx and seed with as much Dai as possible.
+12. TokenProxyRegistry.createCliffFace (dai_scx)
+13. Lachesis.measure(dai_scx cliff, true, false) and deposit to mint SCX
+14. Create and seed Flan/EYE UniV2 LP
+15. Lachesis.measure (Flan/EYE LP, true, false) and mint SCX
+16. Create PyroFlan/SCX LP
+17. Lachesis.measure (PyroFlan/SCX LP, true, false), mint
+18. Burn all remaining SCX
+19. Remove other genesis-ish code such as sending flan to Behodler and minting into fln_scx
+  */
+  return {}
+}
+
 const deployFlan: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.Flan, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
@@ -723,10 +763,26 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
   return OutputAddressAdder<Types.Flan>({}, "Flan", flan)
 }
 
-const registerFlanOnBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+
+const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.Flan, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
+  const morgothTokenApprover = await getMorgothTokenApprover(params.existing)
+  const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
+
+  const seventy_percent = ethers.constants.WeiPerEther.mul(1428571429)
+    .div(1000000000)
+
+
+  await broadcast("Cliff face for Flan", morgothTokenApprover.generateCliffFaceProxy(flan.address, seventy_percent, false), params.pauser)
+
+  const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
+
+  const proxyMappingForFlan = await tokenProxyRegistry.tokenProxy(flan.address)
+  const behodlerToken = await proxyMappingForFlan.behodlerProxy;
+
+  logger('clff face of Flan address ' + behodlerToken)
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
   const powersRegistry = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
 
@@ -735,29 +791,39 @@ const registerFlanOnBehodler: IDeploymentFunction = async function (params: IDep
   const registerPyroTokenPower = stringToBytes32("REGISTER_PYRO_V3")
   await broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false), params.pauser)
 
-  const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
-
   const registerPyroTokenPowerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
 
   const registerPyroPower = await deploy<Types.RegisterPyroTokenV3Power>("RegisterPyroTokenV3Power", registerPyroTokenPowerFactory, params.pauser,
-    flan.address,
+    behodlerToken,
     false,
     angband.address,
   )
 
+  logger('Behodler token ' + behodlerToken)
+
   const addTokenAndValuePower = await deploy<Types.AddTokenAndValueToBehodlerPower>("AddTokenAndValueToBehodlerPower"
     , addTokenAndValuePowerFactory,
     params.pauser,
-    flan.address,
+    behodlerToken,
     false,
     angband.address,
     params.deployer.address,
     registerPyroPower.address
   )
 
+  const dai = await getContract<Types.ERC20>(Sections.BehodlerTokens, "DAI", "ERC677")
+  const behodler = await getBehodler(params.existing)
+  const daiBalanceOnBehoder = await dai.balanceOf(behodler.address)
+  await flan.mint(params.deployer.address, daiBalanceOnBehoder)
 
-  await broadcast("mint 1000 flan into addtokenpower", flan.mint(addTokenAndValuePower.address, ethers.constants.WeiPerEther.mul(1000)), params.pauser)
-  const flanBalanceOfAddToken = await flan.balanceOf(addTokenAndValuePower.address)
+  const CliffFaceFactory = await ethers.getContractFactory("CliffFace")
+  const cliffFace = await CliffFaceFactory.attach(behodlerToken) as Types.CliffFace
+  const cliffFaceBalanceOnPowerBefore = await cliffFace.balanceOf(addTokenAndValuePower.address)
+  await broadcast("approving flan transfer into cliff face", flan.approve(cliffFace.address, ethers.constants.MaxUint256), params.pauser)
+  await broadcast(`mint ${daiBalanceOnBehoder} flan cliffFace into addtokenpower`, cliffFace.mint(addTokenAndValuePower.address, params.deployer.address, daiBalanceOnBehoder), params.pauser)
+  await broadcast("approve flan on behodler for cliffface", cliffFace.approveBehodlerFor(flan.address), params.pauser)
+  const cliffFaceBalanceOnPowerrAfter = await cliffFace.balanceOf(addTokenAndValuePower.address)
+
   await broadcast("addTokenPower.setPyroDetais", registerPyroPower.setPyroDetails("PyroFlan", "PyroFLN"), params.pauser)
 
   /*
@@ -785,14 +851,18 @@ const registerFlanOnBehodler: IDeploymentFunction = async function (params: IDep
   const liquidityReceiver = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver")
 
   const pyroTokenFactory = await ethers.getContractFactory("PyroToken")
-  const pyroFlanAddress = await liquidityReceiver.getPyroToken(flan.address)
+  const pyroFlanAddress = await liquidityReceiver.getPyroToken(behodlerToken)
 
   const pyroFlan = await pyroTokenFactory.attach(pyroFlanAddress) as Types.PyroToken
 
-  const baseToken = (await pyroFlan.config()).baseToken
-  if (baseToken !== flan.address)
-    throw "PyroFlan deploy failure"
+  const deployerSnufferCap = await getContract<Types.DeployerSnufferCap>(Sections.DeployerSnufferCap, "DeployerSnufferCap")
+  const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
+  logger(`pyroFlan ${pyroFlan.address}, proxyHandler ${proxyHandler.address}`);
+  await broadcast("snuffing fees for pyroFlan on ProxyHandler", deployerSnufferCap.snuff(pyroFlan.address, proxyHandler.address, FeeExemption.RECEIVER_EXEMPT), params.pauser)
 
+  const baseToken = (await pyroFlan.config()).baseToken
+  if (baseToken !== behodlerToken)
+    throw "PyroFlan deploy failure"
 
   return {}
 }
@@ -984,9 +1054,8 @@ const deployerSnufferCap: IDeploymentFunction = async function (params: IDeploym
   const weth = await getContract(Sections.Weth, "Weth", "WETH10")
   const pyroWethAddress = await liquidityReceiver.getPyroToken(weth.address)
 
-  liquidityReceiver.setSnufferCap(deployerSnufferCap.address)
-  await liquidityReceiver.setFeeExemptionStatusOnPyroForContract(pyroWethAddress, pyroWethProxy.address,
-    FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT)
+  await broadcast("setting snuffer cap", liquidityReceiver.setSnufferCap(deployerSnufferCap.address), params.pauser)
+  await broadcast("Set pyroweth proxy fee exemption", deployerSnufferCap.snuff(pyroWethAddress, pyroWethProxy.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT), params.pauser)
 
   return OutputAddressAdder<Types.DeployerSnufferCap>({}, "DeployerSnufferCap", deployerSnufferCap)
 }
@@ -1182,6 +1251,12 @@ const fetchTokenAddressFactory = (existing: AddressFileStructure) => async (cont
   return token.address
 }
 
+const fetchTokenFactory = (existing: AddressFileStructure, section: Sections) => async (tokenName: tokenNames) => {
+  const getContract = await getContractFromSection(existing)
+  const token = await getContract(section, tokenName, "ERC20")
+  return token
+}
+
 const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.LiquidityReceiverOld, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
@@ -1320,6 +1395,74 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
   tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "SCX_ETH", scxEth)
   tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "SCX_EYE", scxEYE)
   return tokens;
+}
+
+const addInitialLiquidityToBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  let deploy = deploymentFactory(Sections.WhiteListProposal, params.existing, params.pauser)
+  const getContract = await getContractFromSection(params.existing)
+
+  const fetchToken = async (contract: tokenNames, section: Sections) =>
+    await getContract<Types.MockToken>(section, contract, "MockToken")
+
+  const dai = await fetchToken("DAI", Sections.BehodlerTokens)
+  const eye = await fetchToken("EYE", Sections.BehodlerTokens)
+  const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
+  const lnk = await fetchToken("LNK", Sections.BehodlerTokens)
+  const loom = await fetchToken("LOOM", Sections.BehodlerTokens)
+  const mkr = await fetchToken("MKR", Sections.BehodlerTokens)
+  const oxt = await fetchToken("OXT", Sections.BehodlerTokens)
+  const pnk = await fetchToken("PNK", Sections.BehodlerTokens)
+  const weiDai = await fetchToken("WEIDAI", Sections.BehodlerTokens)
+
+  const behodler = await getBehodler(params.existing)
+
+  interface tokenAmount {
+    token: Types.MockToken
+    amount: number
+  }
+
+  const fetchUniPai = async (pair: behodlerTokenNames) => getContract<Types.UniswapV2Pair>(Sections.BehodlerTokens, pair, "UniswapV2Pair")
+  const eye_dai = await fetchUniPai("EYE_DAI")
+  const scx_eth = await fetchUniPai("SCX_ETH")
+  const scx_eye = await fetchUniPai("SCX_EYE")
+
+  const balanceOfEyeDai = await eye_dai.balanceOf(params.deployer.address)
+  const balanceOfScxWeth = await scx_eth.balanceOf(params.deployer.address)
+  const balanceOfScXEye = await scx_eye.balanceOf(params.deployer.address)
+
+  // await broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
+
+  const liquidity: tokenAmount[] = [
+    { token: dai, amount: 10_000 },
+    { token: eye, amount: 5000 },
+    { token: lnk, amount: 1890 },
+    { token: mkr, amount: 900 },
+    { token: oxt, amount: 40_000 },
+    { token: loom, amount: 90_000 },
+    { token: pnk, amount: 100_000 },
+    { token: weiDai, amount: 82_000 },
+  ]
+
+  for (let i = 0; i < liquidity.length; i++) {
+    let item = liquidity[i]
+    const amount = ethers.constants.WeiPerEther.mul(item.amount)
+    await broadcast(`minting token ${item.token.address}`, item.token.mint(amount), params.pauser)
+    await broadcast('transferring to behodler', item.token.transfer(behodler.address, amount), params.pauser)
+  }
+
+  const pairLiquidity = [
+    [scx_eth, balanceOfScxWeth],
+    [scx_eye, balanceOfScXEye],
+    [eye_dai, balanceOfEyeDai]
+  ]
+
+  for (let i = 0; i < pairLiquidity.length; i++) {
+    const pair = pairLiquidity[i]
+    const token = pair[0] as Types.UniswapV2Pair
+    const amount = pair[1] as BigNumber
+    await broadcast("transferring liquidity to behodler", token.transfer(behodler.address, amount), params.pauser)
+  }
+  return {}
 }
 
 export async function deployWeth(

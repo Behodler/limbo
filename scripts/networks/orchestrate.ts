@@ -65,7 +65,11 @@ export async function deployToNetwork(
   const iterations = SectionsToList.length;
   for (let i = 0; i < iterations; i++) {
     const currentSection: Sections = SectionsToList[i]
-    logger(sectionName(currentSection) + ": ")
+    logger(" ")
+    logger("#######################################################")
+    logger(sectionName(currentSection).toUpperCase() + ": ")
+    logger("#######################################################")
+
     loader = await loader.loadOrDeploy(currentSection).catch(
       err => { throw err }
     )

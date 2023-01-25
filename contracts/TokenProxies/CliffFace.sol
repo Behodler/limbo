@@ -114,7 +114,7 @@ contract CliffFace is BehodlerTokenProxy {
       BehodlerLike(behodler).transfer(outputRecipient, scx);
     } else {
       BehodlerLike(behodler).swap(address(this), outputToken, workingVars.minted, outputAmount);
-      IERC20(baseToken).safeTransfer(outputRecipient, outputAmount);
+      IERC20(outputToken).safeTransfer(outputRecipient, outputAmount);
     }
     //modifiers don't share local variables
     localVars.priorRefBalance = workingVars.currentRefBalance;

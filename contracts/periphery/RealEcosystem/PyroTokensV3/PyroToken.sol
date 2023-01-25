@@ -2,11 +2,10 @@
 pragma solidity 0.8.16;
 import "../../../facades/Enums.sol";
 import "../../../openzeppelin/SafeERC20.sol";
-import * as RG from "./facades/ReentrancyGuard.sol";
+import "./facades/ReentrancyGuard.sol" as RG;
 import "../../../facades/BigConstantsLike.sol";
-import * as Error from "./Errors.sol";
-import * as LR from "../../../facades/LiquidityReceiverLike.sol";
-// import "hardhat/console.sol";
+import "./Errors.sol" as Error;
+import "../../../facades/LiquidityReceiverLike.sol" as LR;
 
 /**
  *@title PyroToken
@@ -77,26 +76,14 @@ abstract contract PyroERC20 is IERC20 {
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+  function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+  function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -107,12 +94,7 @@ abstract contract PyroERC20 is IERC20 {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
+  function approve(address spender, uint256 amount) public virtual override returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -208,7 +190,6 @@ abstract contract PyroERC20 is IERC20 {
     }
 }
 
-
 contract PyroToken is PyroERC20, RG.ReentrancyGuard {
     using SafeERC20 for IERC20;
     /**
@@ -295,9 +276,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
 
     function _updateReserve() internal {
         if (config.pullPendingFeeRevenue) {
-            LR.LiquidityReceiverLike(config.liquidityReceiver).drain(
-                address(config.baseToken)
-            );
+      LR.LiquidityReceiverLike(config.liquidityReceiver).drain(address(config.baseToken));
         }
     }
 
@@ -332,16 +311,13 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
         _name = name_;
         _symbol = symbol_;
         decimals = decimals;
-        rebaseWrapper = BigConstantsLike(bigConstantsAddress)
-            .deployRebaseWrapper(address(this));
+    rebaseWrapper = BigConstantsLike(bigConstantsAddress).deployRebaseWrapper(address(this));
 
         //disable all fees so that holders can toggle back and forth without penalty
-        feeExemptionStatus[rebaseWrapper] = FeeExemption
-            .REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT;
+    feeExemptionStatus[rebaseWrapper] = FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT;
 
         //disable all fees for the proxyHandler
-        feeExemptionStatus[proxyHandler] = FeeExemption
-            .SENDER_EXEMPT_AND_RECEIVER_EXEMPT;
+    feeExemptionStatus[proxyHandler] = FeeExemption.SENDER_EXEMPT_AND_RECEIVER_EXEMPT;
     }
 
     /**
@@ -356,10 +332,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
      * @notice On mint, the pyrotoken can pull any pending revenue collected from Behodler
      * @param pullPendingFeeRevenue true if yes, false if no
      */
-    function togglePullPendingFeeRevenue(bool pullPendingFeeRevenue)
-        external
-        onlyReceiver
-    {
+  function togglePullPendingFeeRevenue(bool pullPendingFeeRevenue) external onlyReceiver {
         config.pullPendingFeeRevenue = pullPendingFeeRevenue;
     }
 
@@ -368,10 +341,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
      *@param exempt the contract to be made exempt
      *@param status type of fee exemption to be made. Eg. exit fee
      */
-    function setFeeExemptionStatusFor(address exempt, FeeExemption status)
-        external
-        onlyReceiver
-    {
+  function setFeeExemptionStatusFor(address exempt, FeeExemption status) external onlyReceiver {
         feeExemptionStatus[exempt] = status;
     }
 
@@ -379,10 +349,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
      * @notice in the event of a liquidityReceiver upgrade
      * @param liquidityReceiver the new liquidityReceiver address
      */
-    function transferToNewLiquidityReceiver(address liquidityReceiver)
-        external
-        onlyReceiver
-    {
+  function transferToNewLiquidityReceiver(address liquidityReceiver) external onlyReceiver {
         if (liquidityReceiver == address(0)) {
             revert Error.AddressNonZero();
         }
@@ -395,22 +362,14 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
      * @param recipient the recipient of the newly minted tokens
      * @return minted quantity of pyrotokens minted
      */
-    function mint(address recipient, uint256 amount)
-        public
-        updateReserve
-        initialized
-        returns (uint256 minted)
-    {
+  function mint(address recipient, uint256 amount) public updateReserve initialized returns (uint256 minted) {
         //redeemRate() is altered by a change in the reserves and so must be captured before hand.
         uint256 _redeemRate = redeemRate();
         IERC20 baseToken = config.baseToken;
-
         //fee on transfer token safe
         uint256 balanceBefore = baseToken.balanceOf(address(this));
         baseToken.safeTransferFrom(msg.sender, address(this), amount);
-        uint256 changeInBalance = baseToken.balanceOf(address(this)) -
-            balanceBefore;
-
+    uint256 changeInBalance = baseToken.balanceOf(address(this)) - balanceBefore;
         //r = R/T where r is the redeem rate, R is the base token reserve and T is the PyroToken supply.
         // This says that 1 unit of this PyroToken is worth r units of base token.
         //=> 1 pyroToken = 1/r base tokens
@@ -423,10 +382,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
     @param recipient recipient of the redeemed base tokens
     @param amount of pyroTokens to transfer from recipient
      */
-    function redeem(address recipient, uint256 amount)
-        external
-        returns (uint256)
-    {
+  function redeem(address recipient, uint256 amount) external returns (uint256) {
         return _redeem(recipient, msg.sender, amount);
     }
 
@@ -440,9 +396,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
         uint256 ts = _totalSupply;
         if (ts == 0) return ONE;
 
-        return
-            ((config.baseToken.balanceOf(address(this)) + aggregateBaseCredit) *
-                ONE) / (ts);
+    return ((config.baseToken.balanceOf(address(this)) + aggregateBaseCredit) * ONE) / (ts);
     }
 
     /**@notice Standard ERC20 transfer
@@ -450,12 +404,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
      *@param recipient the recipient of the token
      *@param amount the amount of tokens to transfer
      */
-    function transfer(address recipient, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
+  function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -475,9 +424,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
 
         uint256 currentAllowance = _allowances[sender][msg.sender];
 
-        if (
-            currentAllowance != type(uint256).max && msg.sender != rebaseWrapper
-        ) {
+    if (currentAllowance != type(uint256).max && msg.sender != rebaseWrapper) {
             if (currentAllowance < amount) {
                 revert AllowanceExceeded(currentAllowance, amount);
             }
@@ -592,10 +539,9 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
     ) public view returns (uint256) {
         uint256 senderStatus = uint256(feeExemptionStatus[sender]);
         uint256 receiverStatus = uint256(feeExemptionStatus[receiver]);
+
         if (
-            (senderStatus >= 1 && senderStatus <= 4) ||
-            (receiverStatus == 2 ||
-                (receiverStatus >= 4 && receiverStatus <= 6))
+      (senderStatus >= 1 && senderStatus <= 4) || (receiverStatus == 2 || (receiverStatus >= 4 && receiverStatus <= 6))
         ) {
             return 0;
         }
@@ -607,11 +553,7 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
      *@param amount transfer amount
      *@param redeemer of pyroToken for underlying base token
      */
-    function calculateRedemptionFee(uint256 amount, address redeemer)
-        public
-        view
-        returns (uint256)
-    {
+  function calculateRedemptionFee(uint256 amount, address redeemer) public view returns (uint256) {
         uint256 status = uint256(feeExemptionStatus[redeemer]);
         if (status > 2 && status != 5) return 0;
         return (amount << 1) / 100;
@@ -625,7 +567,6 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
         uint256 _redeemRate = redeemRate();
         _balances[owner] -= amount;
         uint256 fee = calculateRedemptionFee(amount, owner);
-
         uint256 net = amount - fee;
         //r = R/T where r is the redeem rate, R is the base token reserve and T is the PyroToken supply.
         // This says that 1 unit of this PyroToken is worth r units of base token.
@@ -653,7 +594,6 @@ contract PyroToken is PyroERC20, RG.ReentrancyGuard {
         }
         uint256 senderBalance = _balances[sender];
         uint256 fee = calculateTransferFee(amount, sender, recipient);
-
         _totalSupply -= fee;
 
         uint256 netReceived = amount - fee;
