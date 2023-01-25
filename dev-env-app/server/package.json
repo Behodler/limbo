@@ -1,9 +1,8 @@
 {
-  "name": "@vavite/example-reloader-fastify",
-  "type": "module",
+  "name": "@behodler/dev-env-server",
   "private": true,
   "scripts": {
-    "dev": "node-dev --loader ts-node/esm src/server.ts"
+    "dev": "node-dev src/server.ts"
   },
   "files": [
     "dist"
@@ -17,6 +16,8 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "fastify": "^4.11.0"
+    "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "fastify": "^4.11.0",
+    "hardhat": "^2.12.6"
   }
 }
