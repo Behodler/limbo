@@ -1,6 +1,6 @@
 {
   "extends": "@tsconfig/node16/tsconfig.json",
-  "include": ["src", "hardhat.config.ts"],
+  "include": ["src"],
   "exclude": ["node_modules"],
 	"compilerOptions": {
 		"target": "es2020",
@@ -10,6 +10,8 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"moduleResolution": "Node",
-    "lib": ["ES2021"]
+    "lib": ["ES2021"],
+    "noImplicitAny": false,
+    "resolveJsonModule": true
   }
 }
