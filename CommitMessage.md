@@ -7,10 +7,6 @@ Limbo can now reward staking sustainably.
 
 ## Other changes in this commit
 
-### ProxyHandler
-
-Changed minting code to transfer from base to proxyHandler so that client need only approve proxyHandler and not have to look up the proxy address.
-
 ### common.ts
 Prechecks section added to ensure deployer has sufficient tokens so that no gas is wasted for silly reasons.
 PyroFlanBooster is disabled because it is not currently compatible with cliffFace
