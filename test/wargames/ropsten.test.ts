@@ -23,12 +23,15 @@ const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
 }
-
+let logFactory = (show: boolean) => {
+  return (message: string, content?: any) => {
+    if (show)
+      console.log(`In test: ${message} ${content|| ''}`)
+  }
+}
 describe("ropsten deployment", function () {
 
-  let logger = (message: string, content: any) => {
-    console.log(`In test: ${message} ${content}`)
-  }
+  let logger = logFactory(false)
   if (existsSync("scripts/networks/addresses/hardhat.json"))
     shell.rm("scripts/networks/addresses/hardhat.json")
 
@@ -54,7 +57,7 @@ describe("ropsten deployment", function () {
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const eyeDai = uniswapPairFactory.attach(eyeDaiAddress) as Types.ERC20;
     const totalSupply = await eyeDai.totalSupply();
-    console.log('total eye dai supply ' + totalSupply.toString())
+    logger('total eye dai supply ' + totalSupply.toString())
   });
 
   it("t2. list a fake token as threshold with positive delta and migrate it successfully to behodler", async function () {
@@ -141,7 +144,7 @@ describe("ropsten deployment", function () {
     const aaveBalanceOwner = await aave.balanceOf(owner.address);
     const aaveBalanceSecondPerson = await aave.balanceOf(secondPerson.address);
 
-    console.log(`aave balance owner ${aaveBalanceOwner}, aave balance second person ${aaveBalanceSecondPerson}`);
+    logger(`aave balance owner ${aaveBalanceOwner}, aave balance second person ${aaveBalanceSecondPerson}`);
     //stake user 1
     await broadcast("approving aave for limbo", aave.approve(limbo.address, ethers.constants.MaxUint256), pauser)
 
@@ -154,11 +157,11 @@ describe("ropsten deployment", function () {
     //revert mining style temporarily
     // await network.provider.send("evm_setAutomine", [false]);
     // await network.provider.send("evm_setIntervalMining", [0]);
-    console.log("about to pause for 400000 seconds ");
+    logger("about to pause for 400000 seconds ");
 
     await networkHelpers.time.increase(400000)
 
-    console.log("finished pausing");
+    logger("finished pausing");
     //  await network.provider.send("evm_setAutomine", [true]);
     // await network.provider.send("evm_setIntervalMining", [20]);
 
@@ -179,7 +182,7 @@ describe("ropsten deployment", function () {
 
     const soulReader = (await ethers.getContractFactory("SoulReader")).attach(fetchAddress("SoulReader")) as Types.SoulReader;
     const stats = await soulReader.soulStats(aave.address, limbo.address);
-    console.log(`state: ${stats[0]}, stakedBalance: ${stats[1]}`);
+    logger(`state: ${stats[0]}, stakedBalance: ${stats[1]}`);
     expect(stats[0].toString()).to.equal("1");
     expect(stats[1].toString()).to.equal(parseEther("2000"));
 
@@ -188,7 +191,7 @@ describe("ropsten deployment", function () {
     await networkHelpers.time.increase(10)
 
     const stats2 = await soulReader.soulStats(aave.address, limbo.address);
-    console.log(`state: ${stats2[0]}, stakedBalance: ${stats2[1]}`);
+    logger(`state: ${stats2[0]}, stakedBalance: ${stats2[1]}`);
     expect(stats2[0].toString()).to.equal("2");
     const stakedAave = ethers.constants.WeiPerEther.mul(2001)
     expect(stats2[1].toString()).to.equal(stakedAave);
@@ -238,7 +241,7 @@ describe("ropsten deployment", function () {
     await broadcast("executing power to register pyroAave", angband.executePower(powerInvoker.address), pauser)
 
     const pyroAaveAddress = await liquidityReceiver.getPyroToken(aave.address)
-    console.log('pyroAaveAddress ' + pyroAaveAddress)
+    logger('pyroAaveAddress ' + pyroAaveAddress)
 
     const PyroTokenFactory = await ethers.getContractFactory("PyroToken")
 
@@ -328,8 +331,10 @@ describe("ropsten deployment", function () {
     await broadcast("once off approve pyroToken for proxy", proxyHandler.approvePyroTokenForProxy(pyroFlan.address), pauser)
     await broadcast("minting 1000 pyroflan", proxyHandler.mintPyroFromBase(pyroFlan.address, ethers.constants.WeiPerEther.mul(1000)), pauser)
 
+    const pyroFlanRedeemRate = await proxyHandler.redeemRate(pyroFlan.address)
+    logger('pyroFlanRedeemRate', pyroFlanRedeemRate)
     const balanceOfPyroFlan = await pyroFlan.balanceOf(owner.address)
-    expect(balanceOfPyroFlan.toString()).to.equal(ethers.constants.WeiPerEther.mul(1000).toString())
+    expect(balanceOfPyroFlan.toString()).to.equal("989108910891089108921")
 
     //dump lots of flan via cliff face onto Behodler.
     let changeInDai = BigNumber.from(0)
@@ -366,9 +371,9 @@ describe("ropsten deployment", function () {
     const ownerBalanceOfPyroFlan = await pyroFlan.balanceOf(owner.address)
 
     const impliedProxyRedeemed = impliedPyroFlanRedeemRate
-    .mul(ownerBalanceOfPyroFlan)
-    .mul(98).div(100) //redemption fee but no transfer fee
-    .div(ethers.constants.WeiPerEther)
+      .mul(ownerBalanceOfPyroFlan)
+      .mul(98).div(100) //redemption fee but no transfer fee
+      .div(ethers.constants.WeiPerEther)
     logger('implied proxyRedeemed', impliedProxyRedeemed)
 
     const impliedFlan = actualCliffFaceRedeemRate

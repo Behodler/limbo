@@ -194,7 +194,6 @@ contract UniswapHelper is Governable, AMMHelper {
       set.oracle.update(localVARS.behodler, localVARS.flan);
     }
 
-
     //update scx/DAI if stale
     (blockTimeStamp, period) = oracle.getLastUpdate(localVARS.behodler, localVARS.DAI);
     if (block.timestamp - blockTimeStamp > period) set.oracle.update(localVARS.behodler, localVARS.DAI);

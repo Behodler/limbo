@@ -7,7 +7,6 @@ import "./WETH10.sol";
 import "../../../facades/LachesisLike.sol";
 import "../../../facades/Burnable.sol";
 import "../../../facades/FlashLoanArbiterLike.sol";
-// import "hardhat/console.sol";
 
 /*
     Scarcity is the bonding curve token that underpins Behodler functionality
@@ -493,7 +492,6 @@ contract Behodler is Scarcity {
       inputToken.transferIn(inputSender, amount);
     }
     uint256 netInputAmount = uint256(uint128(((amount - burnToken(inputToken, amount)) / MIN_LIQUIDITY).fromUInt()));
-
     uint256 finalBalance = initialBalance + netInputAmount;
     require(uint256(finalBalance) >= MIN_LIQUIDITY, "BEHODLER: min liquidity.");
     deltaSCX = uint256(finalBalance.log_2() - (initialBalance > 1 ? initialBalance.log_2() : 0));

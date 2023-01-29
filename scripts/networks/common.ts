@@ -166,6 +166,7 @@ export function nameNetwork(networkId: number): networks {
 
 //Note: not all sections deploy contracts.
 export enum Sections {
+  PreChecks,
   Weth,
   Behodler,
   UniswapV2Clones,
@@ -199,7 +200,7 @@ export enum Sections {
   AddInitialLiquidityToBehodler,
   FlanSetMintConfig,
   FlanGenesis,
-  PyroFlanBooster,
+  // PyroFlanBooster,
   Limbo,
   MorgothTokenApproverUpdateConfig,
   RegisterFlanAndPyroOnBehodlerViaCliffFace,
@@ -228,6 +229,7 @@ export enum Sections {
 }
 
 export const SectionsToList: Sections[] = [
+  Sections.PreChecks,
   Sections.Weth,
   Sections.Behodler,
   Sections.UniswapV2Clones,
@@ -258,13 +260,14 @@ export const SectionsToList: Sections[] = [
   Sections.Flan,
   Sections.AddInitialLiquidityToBehodler,
   Sections.FlanSetMintConfig,
-  Sections.FlanGenesis,
-  Sections.PyroFlanBooster,
+
+  // Sections.PyroFlanBooster, -> Currently incompatible with CliffFace. CliffFace is more helpful for a young stablish coin whereas booster is more for a deep reference pair. Perhaps it should be unleashed in the next bear market.
   Sections.Limbo,
   Sections.DeployerSnufferCap,
   Sections.MorgothMapLiquidityReceiver,
   Sections.MorgothTokenApproverUpdateConfig,
   Sections.RegisterFlanAndPyroOnBehodlerViaCliffFace,
+  Sections.FlanGenesis,
   Sections.UniswapHelper,
   Sections.LimboOracle,
   Sections.TradeOraclePairs,
@@ -294,11 +297,11 @@ export const sectionName = (section: Sections): string => Sections[section]
 
 export type behodlerTokenNames = "EYE" | "MKR" | "OXT" | "PNK" | "LNK" | "LOOM" | "DAI" | "WEIDAI" | "EYE_DAI" | "SCX_ETH" | "SCX_EYE"
 
-export type oraclePairNames = "FLN_SCX" | "DAI_SCX" | "SCX__FLN_SCX"
+export type criticalPairNames = "FLN_SCX" | "DAI_SCX" | "SCX__FLN_SCX"
 
 export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
 
-export type tokenNames = behodlerTokenNames | limboTokenNames | oraclePairNames | "Flan"
+export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | "Flan"
 
 
 export type proposalNames = "AdjustFlanFeeOnTransferProposal" |
@@ -341,7 +344,7 @@ export type contractNames =
   | "AddressToString"
   | "TokenProxyRegistry"
   | "FlashGovernanceArbiter"
-  | "PyroFlanBooster"
+  // | "PyroFlanBooster"
   | "UniswapHelper"
   | "LimboOracle"
   | "LimboAddTokenToBehodler"

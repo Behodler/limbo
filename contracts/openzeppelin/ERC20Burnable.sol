@@ -191,50 +191,7 @@ contract ERC20 is IERC20, IERC20Metadata {
     _approve(sender, msg.sender, currentAllowance - amount);
     return true;
   }
-
-  /**
-   * @dev Atomically increases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   */
-  function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-    _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
-    return true;
-  }
-
-  /**
-   * @dev Atomically decreases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   * - `spender` must have allowance for the caller of at least
-   * `subtractedValue`.
-   */
-  function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-    uint256 currentAllowance = _allowances[msg.sender][spender];
-    if (currentAllowance < subtractedValue) {
-      revert AllowanceUnderflow(currentAllowance, subtractedValue);
-    }
-    unchecked {
-      _approve(msg.sender, spender, currentAllowance - subtractedValue);
-    }
-
-    return true;
-  }
-
+  
   /**
    * @dev Moves tokens `amount` from `sender` to `recipient`.
    *

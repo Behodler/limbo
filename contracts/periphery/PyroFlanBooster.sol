@@ -11,6 +11,7 @@ import "../facades/PyroTokenLike.sol";
 In other words, we can put a floor on the PyroFlan redeem rate growth. This means we don't need a Limbo PyroFlan pool.
 It also means we can create an above market growth that can't be bid down.
 If you mint using underlying PyroFlan, you lower the growth rate and if you redeem using the underlying, you forgo all growth since the last minting.
+@dev Currently is incompatible with a CliffFace Flan. 
 */
 contract PyroFlanBooster is Governable {
   uint256 constant FixedPointDeflator = 1e18;

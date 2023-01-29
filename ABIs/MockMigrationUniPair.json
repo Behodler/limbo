@@ -1,7 +1,6 @@
 [
   "constructor(string,string)",
   "error AllowanceExceeded(uint256,uint256)",
-  "error AllowanceUnderflow(uint256,uint256)",
   "error BurnUnderflow(uint256,uint256)",
   "error TransferUnderflow(uint256,uint256,uint256)",
   "event Approval(address indexed,address indexed,uint256)",
@@ -12,10 +11,8 @@
   "function burn(uint256) returns (bool)",
   "function burnFrom(address,uint256)",
   "function decimals() view returns (uint8)",
-  "function decreaseAllowance(address,uint256) returns (bool)",
   "function factory() view returns (address)",
   "function getReserves() view returns (uint112, uint112, uint32)",
-  "function increaseAllowance(address,uint256) returns (bool)",
   "function mint(address) returns (uint256)",
   "function name() view returns (string)",
   "function setReserves(uint112,uint112)",

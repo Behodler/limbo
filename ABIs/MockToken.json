@@ -1,7 +1,6 @@
 [
   "constructor(string,string,address[],uint256[])",
   "error AllowanceExceeded(uint256,uint256)",
-  "error AllowanceUnderflow(uint256,uint256)",
   "error BurnUnderflow(uint256,uint256)",
   "error OnlyOwner(address,address)",
   "error TransferToZeroAddress()",
@@ -15,8 +14,6 @@
   "function burn(uint256) returns (bool)",
   "function burnFrom(address,uint256)",
   "function decimals() view returns (uint8)",
-  "function decreaseAllowance(address,uint256) returns (bool)",
-  "function increaseAllowance(address,uint256) returns (bool)",
   "function mint(uint256)",
   "function name() view returns (string)",
   "function owner() view returns (address)",

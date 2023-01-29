@@ -1,38 +1,38 @@
-# Jan 25
+# Flan Genesis
 
-## Governable
+Flan Genesis in the deployment script is complete. The reference pair as well as some important oracle pairs are filled with liquidity.
+Limbo can now reward staking sustainably.
 
-Proposals which execute important functions via the DAO need to work. For instance, suppose contract X is a subcontract (ie. subclass) of Governable.sol and it has a function DoSomething which has the modifier onlySuccessfulProposal. Now suppose LimboDAO wants to call that function. It should be able to as though it's a proposal since it is the source of governance.
-LimboDAO is therefore considere a "successful proposal"
+**This concludes the deployment script logic fleshing out. On the contract side, Limbo is ready for testnet.**
 
-## CliffFace
+## Other changes in this commit
 
-Logic bug fix
+### ProxyHandler
 
-## Common.ts
+Changed minting code to transfer from base to proxyHandler so that client need only approve proxyHandler and not have to look up the proxy address.
 
-Order of deployments changed because of dependency issues. The web of dependencies is pretty intense. If I didn't write this deployment script and just tried to deploy by hand, I'd have to change the project name from Limbo to Purgatory.
+### common.ts
+Prechecks section added to ensure deployer has sufficient tokens so that no gas is wasted for silly reasons.
+PyroFlanBooster is disabled because it is not currently compatible with cliffFace
 
-## Deployment Script and Orchestrate
+## Final steps before testnet
 
-- Sections which do not deploy but which just configure are now recorded as empty blocks in the json file. This is to provide a mechanism to skip these sections on mainnet.
+1. Assist UI Dev in readying PyroToken UI
+    - Migration script hooks
+    - Handle CliffFace dynamics. Specifically, the end user must not be aware of cliff face intermediaries in PyroTokens.
+    - Adjust Swap UI to be cliff Face ready.
+2. Write brief audit report (this may just be links to issues with links to pull requests)
+3. Adjust testnet UI for proxies and new oracle simplifications.
+4. Deploy to testnet and ensure that LimboDAO can be used in absence of formal UI without causing internal screaming.
 
-- Behodler the AMM is now prejuiced with liquidity. By adding this section in the mainnet file with an empty block, it will be skipped. But in testnets, it can be run.
+## TODO after testnet is live (in no particular order)
 
-- CliffFace proxy is employed on Flan. So PyroFlan wraps CliffFaceFlan which wraps Flan. This requires proxyHandler to be exempt of pyroFlan transfer to fees. This is where deployerSnufferCap comes in. DeployerSnufferCap is a snufferCap that only has admin powers in the deployment script and immediately after, becomes inert.
-
-### TODO on Deployment Script
-
-Flan Genesis logic. Mostly to get the reference pair up and running, filled with liquidity so as to ease the fears of Womble. This can happen in parallel to the UI work.
-
-## Wargame Ropsten.ts (probably should be renamed)
-
-- Added a test to test behodler trading of a cliffFace proxy as well as the effects on the respective pyroToken. The token in question is Flan.
-
-### TODO on ropsten.ts: gas benchmarks
-
-This can actually be in other tests. But we need to benchmark the gas usage of CliffFace. I suspect it will be high. It may be that trading a cliffFace token is more gassy than Uniswap but that may be acceptable for 3 reasons:
-
-1. The benefit of CliffFace proxies to SCX can't be understated.
-2. Flan Cliff Face would go a long way in preventing Flan's price from crashing, giving us the power to mint more for rewards and adding stability to Flan.
-3. Gas prices on mainnet will probably never reach absurd levels again because of all the L2 and sidechains and because Eth architecure is becoming increasingly higher throughput. If we list Behodler and LPs on L2s then when presented with a high gas cost of using cliff face to sell Flan, users may opt to rather bridge the Flan to say Optimism and sell on Optimism Behodler or Optimism Uniswap. Gas arbitrage is becoming increasingly easy with the fee charging instant bridges. This natural tendency of mainnet to only accept large transactions is a consequence of L2s that hasn't really even begun.
+- Alter PyroFlanBooster to be CliffFace friendly.
+- Create LimboDAO UI
+- Deploy to mainnet
+- Write and audit Market for Fate (MF) contract
+- Write UI for MF
+- Deploy to L2 and persue Grand Unified Liquidity (GUL)
+- Send Woodsman onto live talkshows to promote Behodler
+- never announce new projects but simply work on them so as to avoid the accursed WEN
+- fully decentralize MorgothDAO so that I can take time off for the first time in 3 years

@@ -1,7 +1,6 @@
 [
   "constructor(address,string,string,address,address,address,uint256)",
   "error AllowanceExceeded(uint256,uint256)",
-  "error AllowanceUnderflow(uint256,uint256)",
   "error ApproveToNonZero(address,address,uint256)",
   "error BurnUnderflow(uint256,uint256)",
   "error InsufficinetFunds(uint256,uint256)",
@@ -19,8 +18,6 @@
   "function balanceOf(address) view returns (uint256)",
   "function baseToken() view returns (address)",
   "function decimals() view returns (uint8)",
-  "function decreaseAllowance(address,uint256) returns (bool)",
-  "function increaseAllowance(address,uint256) returns (bool)",
   "function initialRedeemRate() view returns (uint256)",
   "function migrateBaseReserveToNewProxy(address)",
   "function mint(address,address,uint256) returns (uint256)",

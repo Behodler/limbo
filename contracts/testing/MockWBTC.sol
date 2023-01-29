@@ -9,7 +9,6 @@ import "../openzeppelin/IERC20.sol";
 import "../periphery/Errors.sol";
 import "../../contracts/TokenProxies/TokenProxyBase.sol";
 
-
 // import "hardhat/console.sol";
 
 // import "hardhat/console.sol";
@@ -50,7 +49,7 @@ import "../../contracts/TokenProxies/TokenProxyBase.sol";
  * these events, as it isn't required by the specification.
  *
  * Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
- * functions have been added to mitigate the well-known issues around setting
+ * functions have bieen added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
 contract MockWBTC is IERC20 {
@@ -62,6 +61,7 @@ contract MockWBTC is IERC20 {
 
   string internal _name;
   string internal _symbol;
+
   /**
    * @dev Sets the values for {name} and {symbol}.
    *
@@ -176,53 +176,10 @@ contract MockWBTC is IERC20 {
     _transfer(sender, recipient, amount);
     uint256 currentAllowance = _allowances[sender][msg.sender];
 
-    if (currentAllowance != type(uint).max && amount > currentAllowance) {
+    if (currentAllowance != type(uint256).max && amount > currentAllowance) {
       revert AllowanceExceeded(currentAllowance, amount);
     }
     _approve(sender, msg.sender, currentAllowance - amount);
-    return true;
-  }
-
-  /**
-   * @dev Atomically increases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   */
-  function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-    _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
-    return true;
-  }
-
-  /**
-   * @dev Atomically decreases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   * - `spender` must have allowance for the caller of at least
-   * `subtractedValue`.
-   */
-  function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-    uint256 currentAllowance = _allowances[msg.sender][spender];
-    if (currentAllowance < subtractedValue) {
-      revert AllowanceUnderflow(currentAllowance, subtractedValue);
-    }
-    unchecked {
-      _approve(msg.sender, spender, currentAllowance - subtractedValue);
-    }
-
     return true;
   }
 

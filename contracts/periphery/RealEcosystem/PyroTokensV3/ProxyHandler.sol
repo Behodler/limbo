@@ -64,4 +64,12 @@ contract ProxyHandler {
     uint256 proxyRedeemed = pyro.redeem(address(this), pyroAmount);
     return proxy.redeem(address(this), msg.sender, proxyRedeemed);
   }
+
+  function redeemRate(address pyroToken) public view returns (uint256) {
+    PyroTokenLike pyro = PyroTokenLike(pyroToken);
+    (, IERC20 proxyToken, , ) = PyroTokenLike(pyroToken).config();
+    TokenProxyBaseLike proxy = TokenProxyBaseLike(address(proxyToken));
+
+    return (pyro.redeemRate() * proxy.redeemRate()) / (1 ether);
+  }
 }
