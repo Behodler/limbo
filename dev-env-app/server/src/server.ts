@@ -103,6 +103,14 @@ async function createSnapshot() {
 }
 
 async function restoreSnapshot(request) {
+  /* TODO
+  * If we create multiple snapshots and restore the one that was created first
+  * (for the lowest block number), the old snapshots are invalidated and trying
+  * to restore them fails.
+  *
+  * I need to implement removing invalid snapshots from the array. Should be easy, I'm
+  * leaving this comment here so I don't forget.
+  * */
   if (devEnvChildProcess) {
     fastify.log.info('restoring snapshot')
 
