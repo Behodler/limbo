@@ -16,11 +16,14 @@ const fastify: FastifyInstance = Fastify({
   },
 })
 
-let devEnvChildProcess: ChildProcess | undefined | {
-  killed: boolean
-  node: Promise<void>
-  deployedAddresses: any
-}
+let devEnvChildProcess:
+  | ChildProcess
+  | undefined
+  | {
+      killed: boolean
+      node: Promise<void>
+      deployedAddresses: any
+    }
 let devEnvSnapshots: SnapshotRestorer[] = []
 
 const paths = {
@@ -99,17 +102,19 @@ async function createSnapshot() {
   }
 }
 
-async function restoreSnapshot() {
+async function restoreSnapshot(request) {
   if (devEnvChildProcess) {
     fastify.log.info('restoring snapshot')
 
     try {
-      const snapshotId = devEnvSnapshots[0]?.snapshotId
+      const snapshot = devEnvSnapshots.find(
+        ({ snapshotId }) => snapshotId === request.body?.snapshotId,
+      )
 
-      if (snapshotId) {
-        fastify.log.info(`restoring snapshot ${snapshotId}`)
-        await devEnvSnapshots[0].restore()
-        fastify.log.info(`snapshot ${snapshotId} restored`)
+      if (snapshot?.snapshotId) {
+        fastify.log.info(`restoring snapshot ${snapshot.snapshotId}`)
+        await snapshot.restore()
+        fastify.log.info(`snapshot ${snapshot.snapshotId} restored`)
         return true
       } else {
         fastify.log.info('invalid snapshot id')
