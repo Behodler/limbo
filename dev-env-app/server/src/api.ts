@@ -1,12 +1,10 @@
 import { ethers } from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
-import { SnapshotRestorer, takeSnapshot } from '@nomicfoundation/hardhat-network-helpers'
+import { takeSnapshot } from '@nomicfoundation/hardhat-network-helpers'
 
 import { BehodlerDevEnvFastifyInstance } from './types'
 
 export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
-  let devEnvSnapshots: SnapshotRestorer[] = []
-
   fastify.post('/create-snapshot', createSnapshot)
   fastify.post('/restore-snapshot', restoreSnapshot)
   fastify.get('/get-snapshots', getSnapshotIds)
@@ -57,10 +55,10 @@ export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
 
       try {
         const snapshot = await takeSnapshot()
-        devEnvSnapshots.push(snapshot)
-        return createInfoResponse('snapshot saved', { snapshotId: snapshot.snapshotId })
+        fastify.behodlerDevEnv.snapshots.push(snapshot)
+        return createInfoResponse(`snapshot ${snapshot.snapshotId} saved`, { snapshotId: snapshot.snapshotId })
       } catch (error) {
-        return createErrorResponse('creating snapshot failed', { error })
+        return createErrorResponse(`creating snapshot failed: ${error}`, { error })
       }
     } else {
       return createInfoResponse('dev env not started')
@@ -80,18 +78,18 @@ export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
       fastify.log.info('restoring snapshot')
 
       try {
-        const snapshot = devEnvSnapshots.find(
+        const snapshot = fastify.behodlerDevEnv.snapshots.find(
           ({ snapshotId }) => snapshotId === request.body?.snapshotId,
         )
 
         if (snapshot?.snapshotId) {
           fastify.log.info(`restoring snapshot ${snapshot.snapshotId}`)
           await snapshot.restore()
-          return createInfoResponse('snapshot restored', { snapshotId: snapshot.snapshotId })
+          return createInfoResponse(`snapshot ${snapshot.snapshotId} restored`, { snapshotId: snapshot.snapshotId })
         } else {
-          return createInfoResponse('invalid snapshot id', {
+          return createInfoResponse(`invalid snapshot id: ${snapshot?.snapshotId}`, {
             snapshotId: snapshot?.snapshotId,
-            savedSnapshotIds: devEnvSnapshots.map(({ snapshotId }) => snapshotId),
+            savedSnapshotIds: fastify.behodlerDevEnv.snapshots.map(({ snapshotId }) => snapshotId),
           })
         }
       } catch (error) {
@@ -104,8 +102,8 @@ export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
 
   function getSnapshotIds() {
     if (fastify.behodlerDevEnv?.active) {
-      const snapshotIds = devEnvSnapshots.map(({ snapshotId }) => snapshotId)
-      return createInfoResponse('saved snapshot ids fetched', { snapshotIds })
+      const snapshotIds = fastify.behodlerDevEnv.snapshots.map(({ snapshotId }) => snapshotId)
+      return createInfoResponse(`saved snapshot ids fetched: ${snapshotIds.join(', ')}`, { snapshotIds })
     } else {
       return createInfoResponse('dev env not started')
     }

@@ -8,7 +8,9 @@ export type BehodlerDevEnv = {
   deployedAddresses?: { [name: string]: string }
 }
 
+export type StartDevEnv = () => Promise<void>
+
 export interface BehodlerDevEnvFastifyInstance extends FastifyInstance {
   behodlerDevEnv?: BehodlerDevEnv
-  startDevEnv?: () => Promise<void>
+  startDevEnv?: StartDevEnv
 }

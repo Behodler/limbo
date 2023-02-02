@@ -1,7 +1,7 @@
 import Fastify from 'fastify'
 
 import { api } from './api'
-import { BehodlerDevEnvFastifyInstance } from './types'
+import { BehodlerDevEnvFastifyInstance, BehodlerDevEnv, StartDevEnv } from './types'
 import { startDevEnvPlugin } from './startDevEnv'
 
 function initApp(): BehodlerDevEnvFastifyInstance {
@@ -13,18 +13,19 @@ function initApp(): BehodlerDevEnvFastifyInstance {
     },
   })
 
-  function setBehodlerDevEnv(behodlerDevEnv) {
-    fastify.behodlerDevEnv = behodlerDevEnv
-  }
-
-  function setStartDevEnv(startDevEnv) {
-    fastify.startDevEnv = startDevEnv
-  }
-
   fastify.decorate('behodlerDevEnv', undefined)
   fastify.decorate('startDevEnv', undefined)
   fastify.register(api)
-  fastify.register(startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }))
+  fastify.register(
+    startDevEnvPlugin({
+      setBehodlerDevEnv: (behodlerDevEnv: BehodlerDevEnv) => {
+        fastify.behodlerDevEnv = behodlerDevEnv
+      },
+      setStartDevEnv: (startDevEnv: StartDevEnv) => {
+        fastify.startDevEnv = startDevEnv
+      },
+    }),
+  )
 
   return fastify
 }

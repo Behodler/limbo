@@ -17,7 +17,7 @@ export function startDevEnvPlugin({
 }): FastifyPluginCallback {
   return function (fastify: BehodlerDevEnvFastifyInstance, opts, done): void {
     async function startHardhatNodeAndDeployBehodlerContracts(): Promise<BehodlerDevEnv> {
-      const node = hre.run('node', { noDeploy: true })
+      const node: Promise<any> = hre.run('node', { noDeploy: true })
       fastify.log.info('started hardhat node')
       const { chainId } = await hre.ethers.provider.getNetwork()
       fastify.log.info('deploying Behodler contracts')
