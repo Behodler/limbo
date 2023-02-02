@@ -1,4 +1,5 @@
-export type ProcessMessage = {
-  type: string
-  data?: any
+export type DevEnvNode = {
+  active: boolean
+  node?: Promise<void>
+  deployedAddresses?: any
 }
