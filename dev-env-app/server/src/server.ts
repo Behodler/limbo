@@ -13,8 +13,28 @@ function initApp(): BehodlerDevEnvFastifyInstance {
     },
   })
 
+  function createResponse(message, data = {}) {
+    return {
+      message,
+      ...data,
+    }
+  }
+
+  function createInfoResponse(message, data = {}) {
+    fastify.log.info(message)
+    return createResponse(message, data)
+  }
+
+  function createErrorResponse(message, data = {}) {
+    fastify.log.error(message)
+    return createResponse(message, data)
+  }
+
   fastify.decorate('behodlerDevEnv', undefined)
   fastify.decorate('startDevEnv', undefined)
+  fastify.decorate('createInfoResponse', createInfoResponse)
+  fastify.decorate('createErrorResponse', createErrorResponse)
+
   fastify.register(api)
   fastify.register(
     startDevEnvPlugin({

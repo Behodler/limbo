@@ -10,7 +10,16 @@ export type BehodlerDevEnv = {
 
 export type StartDevEnv = () => Promise<void>
 
+export type ResponseObject = {
+  message: string
+  data?: {}
+}
+
+export type CreateResponse = (message: string, data?: {}) => ResponseObject
+
 export interface BehodlerDevEnvFastifyInstance extends FastifyInstance {
   behodlerDevEnv?: BehodlerDevEnv
   startDevEnv?: StartDevEnv
+  createInfoResponse?: CreateResponse
+  createErrorResponse?: CreateResponse
 }
