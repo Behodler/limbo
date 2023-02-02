@@ -1,24 +1,12 @@
-import hre, { ethers } from 'hardhat'
+import { ethers } from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import { SnapshotRestorer, takeSnapshot } from '@nomicfoundation/hardhat-network-helpers'
-import fs from 'fs'
-import path from 'path'
 
-import { DevEnvNode } from './types'
-import { safeDeploy } from '../../../scripts/networks/orchestrate'
+import { BehodlerDevEnvFastifyInstance } from './types'
 
-export function api(fastify, _, done) {
-  let devEnvNode: DevEnvNode = { active: false }
+export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
   let devEnvSnapshots: SnapshotRestorer[] = []
 
-  const paths = {
-    hardhatDeployedAddresses: path.resolve(
-      __dirname,
-      '../../../scripts/networks/addresses/hardhat.json',
-    ),
-  }
-
-  fastify.post('/start', startDevEnv)
   fastify.post('/create-snapshot', createSnapshot)
   fastify.post('/restore-snapshot', restoreSnapshot)
   fastify.get('/get-snapshots', getSnapshotIds)
@@ -63,43 +51,8 @@ export function api(fastify, _, done) {
     return createResponse(message, data)
   }
 
-  async function startHardhatNodeAndDeployBehodlerContracts(): Promise<DevEnvNode> {
-    const node = hre.run('node', { noDeploy: true })
-    fastify.log.info('started hardhat node')
-    const { chainId } = await hre.ethers.provider.getNetwork()
-    fastify.log.info('deploying Behodler contracts')
-    const deployedAddresses = await safeDeploy(chainId, 2, 9)
-    fastify.log.info('deployment complete')
-    return { active: true, node, deployedAddresses }
-  }
-
-  async function startDevEnv() {
-    try {
-      fastify.log.info('starting dev env')
-
-      if (devEnvNode.active) {
-        return createInfoResponse('dev env already running', {
-          deployedAddresses: devEnvNode.deployedAddresses,
-        })
-      }
-
-      if (fs.existsSync(paths.hardhatDeployedAddresses)) {
-        fastify.log.info(`removing ${paths.hardhatDeployedAddresses}`)
-        fs.rmSync(paths.hardhatDeployedAddresses)
-        fastify.log.info('file removed, starting dev env')
-      }
-
-      devEnvNode = await startHardhatNodeAndDeployBehodlerContracts()
-      return createInfoResponse('dev env started', {
-        deployedAddresses: devEnvNode.deployedAddresses,
-      })
-    } catch (error) {
-      return createErrorResponse('starting dev env failed', { error })
-    }
-  }
-
   async function createSnapshot() {
-    if (devEnvNode.active) {
+    if (fastify.behodlerDevEnv?.active) {
       fastify.log.info('creating snapshot')
 
       try {
@@ -123,7 +76,7 @@ export function api(fastify, _, done) {
      * I need to implement removing invalid snapshots from the array. Should be easy, I'm
      * leaving this comment here so I don't forget.
      * */
-    if (devEnvNode.active) {
+    if (fastify.behodlerDevEnv?.active) {
       fastify.log.info('restoring snapshot')
 
       try {
@@ -150,7 +103,7 @@ export function api(fastify, _, done) {
   }
 
   function getSnapshotIds() {
-    if (devEnvNode.active) {
+    if (fastify.behodlerDevEnv?.active) {
       const snapshotIds = devEnvSnapshots.map(({ snapshotId }) => snapshotId)
       return createInfoResponse('saved snapshot ids fetched', { snapshotIds })
     } else {

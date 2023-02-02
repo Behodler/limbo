@@ -1,6 +1,7 @@
 {
   "name": "@behodler/dev-env-server",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "node-dev src/server.ts"
   },
