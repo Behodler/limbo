@@ -6,11 +6,11 @@ export default function (fastify: BehodlerDevEnvFastifyInstance, _, done): void 
 
   function getDeploymentAddresses() {
     if (fastify.behodlerDevEnv?.active) {
-      return (
-        fastify.behodlerDevEnv?.deployedAddresses
-          ? fastify?.createInfoResponse?.('deployment addresses fetched', fastify.behodlerDevEnv?.deployedAddresses)
-          : fastify?.createInfoResponse?.('no deployment addresses found')
-      )
+      return fastify.behodlerDevEnv?.deployedAddresses
+        ? fastify?.createInfoResponse?.('deployment addresses fetched', {
+            contracts: fastify.behodlerDevEnv?.deployedAddresses,
+          })
+        : fastify?.createInfoResponse?.('no deployment addresses found')
     } else {
       return fastify?.createInfoResponse?.('dev env not started')
     }
