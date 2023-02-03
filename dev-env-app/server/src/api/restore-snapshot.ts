@@ -13,7 +13,6 @@ export default function (fastify: BehodlerDevEnvFastifyInstance, _, done): void 
           ({ snapshotId }) => snapshotId === request.body?.snapshotId,
         )
 
-
         if (snapshot?.snapshotId) {
           const snapshotIndex = fastify.behodlerDevEnv.snapshots.indexOf(snapshot)
           fastify.log.info(`restoring snapshot ${snapshot.snapshotId}`)

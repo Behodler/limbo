@@ -1,8 +1,12 @@
 import Fastify from 'fastify'
+import parseArgv from 'minimist'
 
 import { api } from './api'
 import { BehodlerDevEnvFastifyInstance, BehodlerDevEnv, StartDevEnv } from './types'
 import { startDevEnvPlugin } from './startDevEnv'
+
+const parsedArgv = parseArgv(process.argv)
+const serverPort = parsedArgv.p || parsedArgv.port || 6667
 
 function initApp(): BehodlerDevEnvFastifyInstance {
   const fastify: BehodlerDevEnvFastifyInstance = Fastify({
@@ -53,6 +57,6 @@ function initApp(): BehodlerDevEnvFastifyInstance {
 ;(async () => {
   const fastify = initApp()
   await fastify.ready()
-  await fastify.listen({ port: 6667 })
+  await fastify.listen({ port: serverPort })
   await fastify?.startDevEnv?.()
 })()
