@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "node-dev -- src/server.ts",
+    "start": "ts-node --transpileOnly src/server.ts",
     "create-snapshot": "node bin/create-snapshot.js",
     "restore-snapshot": "node bin/restore-snapshot.js",
     "get-snapshots": "node bin/get-snapshots.js",
