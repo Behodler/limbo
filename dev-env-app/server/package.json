@@ -2,7 +2,11 @@
   "name": "@behodler/dev-env-server",
   "private": true,
   "scripts": {
-    "dev": "node-dev -- src/server.ts"
+    "dev": "node-dev -- src/server.ts",
+    "create-snapshot": "node bin/create-snapshot.js",
+    "restore-snapshot": "node bin/restore-snapshot.js",
+    "get-snapshots": "node bin/get-snapshots.js",
+    "get-deployment-addresses": "node bin/get-deployment-addresses.js"
   },
   "files": [
     "dist"
