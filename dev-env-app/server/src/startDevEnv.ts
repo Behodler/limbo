@@ -1,4 +1,5 @@
 import hre from 'hardhat'
+import '@nomiclabs/hardhat-ethers'
 import fs from 'fs'
 import path from 'path'
 import { FastifyPluginCallback } from 'fastify'
