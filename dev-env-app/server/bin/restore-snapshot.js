@@ -10,7 +10,7 @@ if (!snapshotId) {
 }
 
 if (typeof snapshotId !== 'string') {
-  console.error('snapshot id must be a string, try eg. yarn restore-snapshot --id \'"my-snapshot-id"\'')
+  console.error(`Snapshot id must be a string, try eg. yarn restore-snapshot --id '"0x1"'. Note the quotes. The provided value was interpreted as a number: ${snapshotId}`)
   process.exit(1)
 }
 
