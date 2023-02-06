@@ -49,6 +49,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     //Pyrotokens3:
     case Sections.LiquidityReceiverNew: return deployNewLiquidityReceiver
     case Sections.BehodlerSeedNew: return reseedBehodler
+    case Sections.RefreshTokensOnBehodler: return refreshTokensOnBehodler
     case Sections.ConfigureIronCrown: return async (params: IDeploymentParams) => { logger("deliberately not implemented"); return {} as OutputAddress }
     case Sections.MorgothMapLiquidityReceiver: return mapLiquidityReceiver
     case Sections.MorgothMapPyroWeth10Proxy: return async (params: IDeploymentParams) => { logger("deliberately not implemented"); return {} as OutputAddress }
@@ -113,7 +114,7 @@ interface ethersLib {
   [key: string]: string
 }
 
-const getContractFromSection = (existing: AddressFileStructure) =>
+export const getContractFromSection = (existing: AddressFileStructure) =>
   async function <T extends Contract>(section: Sections,
     contractName: contractNames,
     factoryName?: string,
@@ -1248,6 +1249,41 @@ const mapLiquidityReceiver: IDeploymentFunction = async function (params: IDeplo
   return {}
 }
 
+const refreshTokensOnBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  let deploy = deploymentFactory(Sections.BehodlerSeedNew, params.existing, params.pauser)
+  const getContract = await getContractFromSection(params.existing)
+  const fetchTokenAddress = fetchTokenAddressFactory(params.existing)
+
+  const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
+  const refreshPowerInvokerFactory = await ethers.getContractFactory("RefreshTokenOnBehodler")
+  const tokens = params.existing["BehodlerTokens"]
+  let keys = Object.keys(tokens)
+  let addresses = keys.map(k => tokens[k])
+
+  const refreshPowerInvoker = await deploy<Types.RefreshTokenOnBehodler>("RefreshTokenOnBehodler", refreshPowerInvokerFactory, params.pauser, angband.address)
+  for (let i = 0; i < addresses.length; i++) {
+    logger('adding address to power: ' + addresses[i])
+    await broadcast(`Adding token ${addresses[i]} to power invoker`, refreshPowerInvoker.addToken(addresses[i]), params.pauser)
+  }
+
+  await broadcast("angbad authorizing refresh power", angband.authorizeInvoker(refreshPowerInvoker.address, true), params.pauser)
+  await broadcast("executing power invoker", angband.executePower(refreshPowerInvoker.address), params.pauser)
+
+  const behodler = await getBehodler(params.existing)
+  let invalidSet: string[] = []
+  for (let i = 0; i < addresses.length; i++) {
+    const address = addresses[i]
+    logger('about to check address ' + address)
+    const valid = await behodler.validTokens(address)
+    if (!valid)
+      invalidSet.push(address)
+  }
+  if (invalidSet.length > 0) {
+    throw "some tokens not valid" + JSON.stringify(invalidSet)
+  }
+  return {}
+}
+
 const reseedBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.BehodlerSeedNew, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
@@ -1510,7 +1546,7 @@ const deployLachesis: IDeploymentFunction = async function (params: IDeploymentP
   await broadcast("Lachesis approve lnk", lachesis.measure(lnk.address, true, false), params.pauser)
   await broadcast("Lachesis approve loom", lachesis.measure(loom.address, true, false), params.pauser)
   await broadcast("Lachesis approve dai", lachesis.measure(dai.address, true, false), params.pauser)
-  await broadcast("Lachesis approve weiDai", lachesis.measure(weiDai.address, false, true), params.pauser)
+  await broadcast("Lachesis approve weiDai", lachesis.measure(weiDai.address, true, true), params.pauser)
 
   await broadcast("Lachesis approve eyeDai", lachesis.measure(eyedai.address, true, false), params.pauser)
   await broadcast("Lachesis approve scxEth", lachesis.measure(scxeth.address, true, false), params.pauser)

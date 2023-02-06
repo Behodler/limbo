@@ -184,6 +184,7 @@ export enum Sections {
   BigConstants,
   LiquidityReceiverNew,
   BehodlerSeedNew,
+  RefreshTokensOnBehodler,
   ConfigureIronCrown,//not necessary in testnet but good to keep in mind
   MorgothMapLiquidityReceiver,
   MorgothMapPyroWeth10Proxy,
@@ -244,6 +245,7 @@ export const SectionsToList: Sections[] = [
   Sections.BigConstants,
   Sections.LiquidityReceiverNew,
   Sections.BehodlerSeedNew,
+  Sections.RefreshTokensOnBehodler,
   Sections.ConfigureScarcityPower,
   Sections.ConfigureIronCrown,
 
@@ -359,3 +361,4 @@ export type contractNames =
   | "CrossingLib"
   | "MigrationLib"
   | "SoulLib"
+  |"RefreshTokenOnBehodler"
