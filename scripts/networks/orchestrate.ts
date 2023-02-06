@@ -7,7 +7,7 @@ import '@nomiclabs/hardhat-ethers'
 import path from 'path'
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 export async function safeDeploy(
   chainId: number | undefined,
