@@ -2,10 +2,12 @@ import { writeFileSync, existsSync, readFileSync } from "fs";
 import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder, networks } from "./common";
 import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-const hre = require("hardhat");
+import hre from 'hardhat'
+import '@nomiclabs/hardhat-ethers'
+import path from 'path'
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 export async function safeDeploy(
   chainId: number | undefined,
@@ -45,7 +47,7 @@ export async function deployToNetwork(
 ): Promise<OutputAddress> {
   /*
     Steps:
-    1. load addresses for group by testnet id. 
+    1. load addresses for group by testnet id.
         1.1 If missing or empty, load deployment script and run
         1.2 else loop back to 1.
     2. combine all addresses into one object
@@ -157,7 +159,7 @@ class Loader {
 
   private async populateExistingFromFile() {
     logger('in populate')
-    this.fileName = `${process.cwd()}/scripts/networks/addresses/${this.network}.json`;
+    this.fileName = path.resolve(__dirname, `./addresses/${this.network}.json`);
     const foundFile = existsSync(this.fileName);
     if (foundFile) {
       const blob = readFileSync(this.fileName);

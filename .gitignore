@@ -148,3 +148,6 @@ contracts/remix/
 *.zip
 *.backup
 RESULTS.TXT
+
+.idea
+tmp/

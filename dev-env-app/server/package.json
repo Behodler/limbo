@@ -1,0 +1,30 @@
+{
+  "name": "@behodler/dev-env-server",
+  "private": true,
+  "scripts": {
+    "dev": "node-dev -- src/server.ts",
+    "start": "ts-node --transpileOnly src/server.ts",
+    "create-snapshot": "node bin/create-snapshot.js",
+    "restore-snapshot": "node bin/restore-snapshot.js",
+    "get-snapshots": "node bin/get-snapshots.js",
+    "get-deployment-addresses": "node bin/get-deployment-addresses.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@fastify/one-line-logger": "^1.1.1",
+    "@tsconfig/node16": "^1.0.3",
+    "@types/node": "^18.11.18",
+    "minimist": "^1.2.7",
+    "node-dev": "^8.0.0",
+    "prettier": "^2.8.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "fastify": "^4.11.0",
+    "hardhat": "^2.12.6"
+  }
+}
