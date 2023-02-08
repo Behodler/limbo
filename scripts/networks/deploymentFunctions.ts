@@ -78,7 +78,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.Limbo: return deployLimbo
     case Sections.MorgothTokenApproverUpdateConfig: return morgothTokenAppoverUpdateConfig
 
-    //FLAN Genesis 
+    //FLAN Genesis
     case Sections.Flan: return deployFlan
     case Sections.RegisterFlanAndPyroOnBehodlerViaCliffFace: return registerFlanOnBehodlerViaCliffFace
     case Sections.FlanSetMintConfig: return flanSetConfig
@@ -245,7 +245,7 @@ const endConfigForAllGovernables: IDeploymentFunction = async function (params: 
   return {}
 }
 
-//currently only Limbo  
+//currently only Limbo
 const setAllGovernable: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   const getContract = await getContractFromSection(params.existing)
   const limbo = await getLimbo(params.existing)
@@ -1358,7 +1358,7 @@ const deployNewLiquidityReceiver: IDeploymentFunction = async function (params: 
   await liquidityReceiver.registerPyroToken(eyedai, "PyroEYE_DAI", "Peye_dai", 18)
   await liquidityReceiver.registerPyroToken(scxeth, "PyroSCX_ETH", "Pscx_eth", 18)
   await liquidityReceiver.registerPyroToken(scxeye, "PyroSCX_EYE", "Pscx_eye", 18)
-  await liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "PWETH", 18) //pyroWeth10 
+  await liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "PWETH", 18) //pyroWeth10
   return addresses
 }
 
@@ -1444,7 +1444,7 @@ const deployPyroWeth10ProxyOld: IDeploymentFunction = async function (params: ID
   return OutputAddressAdder<Types.PyroWeth10Proxy>({}, "PyroWeth10Proxy", pyroWeth10Proxy)
 }
 
-const fetchOldPyroToken = (existing: AddressFileStructure) => async (contract: contractNames): Promise<Types.Pyrotoken> => {
+const fetchOldPyroToken = (existing: AddressFileStructure) => async (contract: contractNames): Promise<Types.PyroTokenV2> => {
   const getContract = await getContractFromSection(existing)
   const token = contract === "Weth" ? await getContract(Sections.Weth, "Weth", "WETH10") :
     await getContract(Sections.BehodlerTokens, contract)
@@ -1454,8 +1454,8 @@ const fetchOldPyroToken = (existing: AddressFileStructure) => async (contract: c
 
   const pyroAddress = await LR.baseTokenMapping(baseTokenAddress)
   logger('pyro address: ' + pyroAddress)
-  const pyroFactory = await ethers.getContractFactory("Pyrotoken")
-  return pyroFactory.attach(pyroAddress) as Types.Pyrotoken
+  const pyroFactory = await ethers.getContractFactory("PyroToken_V2")
+  return pyroFactory.attach(pyroAddress) as Types.PyroTokenV2
 }
 
 const fetchTokenAddressFactory = (existing: AddressFileStructure) => async (contract: contractNames) => {
