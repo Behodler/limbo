@@ -2,6 +2,18 @@
 
 Nodejs server for creating a local dev environment for the Behodler front-end apps. Starts an HTTP server, runs a local hardhat node, and exposes API for creating and restoring network state snapshots.
 
+## Hardhat config
+
+The script is currently using the root `hardhat.config.ts` of this repo. Before using the app, make sure `minting` JSON field for the `hardhat` network is set as follows:
+```
+hardhat: {
+  mining: {
+    auto: false,
+    interval: 2,
+  }
+}
+```
+
 ## Development and usage
 
 Currently, the app is not published as an npm package and it can only be used locally.
