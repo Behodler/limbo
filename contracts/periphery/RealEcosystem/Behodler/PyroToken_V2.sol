@@ -9,7 +9,7 @@ abstract contract ERC20MetaData {
   function name() public virtual returns (string memory);
 }
 
-contract Pyrotoken is IERC20 {
+contract PyroToken_V2 is IERC20 {
   bool public constant REAL = true;
   event Mint(address minter, address baseToken, address pyroToken, uint256 redeemRate);
   event Redeem(address redeemer, address baseToken, address pyroToken, uint256 redeemRate);

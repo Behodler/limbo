@@ -3,7 +3,7 @@ pragma solidity ^0.7.1;
 
 import "../facades/LiquidityReceiverLike.sol";
 import "../facades/FlanLike.sol";
-import "../facades/PyrotokenLike.sol";
+import "../facades/PyroTokenLike_071.sol";
 import "../Powers.sol";
 
 contract FlanGenesisRegisterPyroFlan is PowerInvoker {
@@ -27,7 +27,7 @@ contract FlanGenesisRegisterPyroFlan is PowerInvoker {
 
     function orchestrate() internal override returns (bool) {
         params.liquidityReceiver.registerPyroToken(address(params.flan));
-        PyrotokenLike pyroflan = PyrotokenLike(
+        PyroTokenLike_071 pyroflan = PyroTokenLike_071(
             params.liquidityReceiver.baseTokenMapping(address(params.flan))
         );
         params.flan.approve(address(pyroflan), uint256(-1));
