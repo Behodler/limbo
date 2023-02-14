@@ -1,7 +1,9 @@
-# New Morgoth Power: RefreshTokenOnBehodler
-When running against a test network, the deployment script creates new tokens for trading on Behodler and approves them on Lachesis. However,
-the tokens are not updated on Behodler. 
-A new morgoth power simply refreshes Behodler to be in sync with Lachesis
+# CliffFace gas consumption
+It looks like a swap on Behodler through CliffFace proxy costs about as much as Uniswap. These figures will only become clear on a public testnet. 
+If that's true, we essentially get the amazing protection of CliffFace while still being on par with UniV2.
+On layer 2, these costs won't matter as much but the benefits will be even more pronounced. 
+Some minor optimizations were a added but it's important to not get stuck optimizing now. Release to mainnet is top priority.
 
-# Gas measurement in next commits.
-Some gas measurement code will still be coming on this branch but the PR is so the UI dev can proceed without bugs in testnet.
+# Immediate next steps
+I'll be ensuring that deployment script successfully deploys only the PyroToken section so that we can deploy to mainnet. UI dev is ensuring all migration use cases in local testnet are successful. 
+PyroToken V3 launches after that.

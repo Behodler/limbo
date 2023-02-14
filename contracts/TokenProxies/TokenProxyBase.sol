@@ -50,9 +50,10 @@ contract TokenProxyBase is ERC20 {
     uint256 R_amp,
     address proxyRecipient,
     address baseSource,
-    uint256 amount
+    uint256 amount,
+    uint256 existingRedeemRate
   ) internal returns (uint256 proxy) {
-    uint256 marginalRedeemRate = (redeemRate() * R_amp) / ONE;
+    uint256 marginalRedeemRate = ((existingRedeemRate > 0 ? existingRedeemRate : redeemRate()) * R_amp) / ONE;
     uint256 balanceBefore = IERC20(baseToken).balanceOf(address(this));
 
     IERC20(baseToken).safeTransferFrom(baseSource, address(this), amount);
@@ -69,7 +70,6 @@ contract TokenProxyBase is ERC20 {
   ) public virtual returns (uint256 proxy) {
     uint256 _redeemRate = redeemRate();
     uint256 balanceBefore = IERC20(baseToken).balanceOf(address(this));
-
     IERC20(baseToken).safeTransferFrom(baseSource, address(this), amount);
     uint256 baseAmount = IERC20(baseToken).balanceOf(address(this)) - balanceBefore;
     proxy = baseAmount.toProxy(_redeemRate);

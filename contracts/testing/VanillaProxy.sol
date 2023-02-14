@@ -23,11 +23,11 @@ contract VanillaProxy is TokenProxyBase {
     address proxyRecipient,
     address baseSource,
     uint256 amount
-  ) public override returns (uint) {
-    return mint(R_amp, proxyRecipient, baseSource, amount);
+  ) public override returns (uint256) {
+    return mint(R_amp, proxyRecipient, baseSource, amount, 0);
   }
 
-  function redeemSelf(address recipient, uint256 amount) public returns (uint) {
-    return redeem(msg.sender,recipient,amount);
+  function redeemSelf(address recipient, uint256 amount) public returns (uint256) {
+    return redeem(msg.sender, recipient, amount);
   }
 }

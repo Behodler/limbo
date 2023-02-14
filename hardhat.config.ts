@@ -30,7 +30,7 @@ export default {
   },
   gasReporter: {
     optimizer: true,
-    outputFile: "gasReport.json",
+    outputFile: "gasReport.txt",
     disabled: true
   },
 

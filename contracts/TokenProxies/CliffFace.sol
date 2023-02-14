@@ -21,6 +21,7 @@ import "../libraries/RedeemableMaths.sol";
 contract CliffFace is BehodlerTokenProxy {
   using SafeERC20 for IERC20;
   using RedeemableMaths for uint256;
+  uint256 constant ONE_SQUARED = ONE**2;
   address public immutable referenceToken;
   ///@dev if <1e18, then token is expected to have a higher price than referenceToken
   uint256 public immutable referenceMultiple;
@@ -49,7 +50,7 @@ contract CliffFace is BehodlerTokenProxy {
   }
 
   function seedBehodler(uint256 initialSupply, address scxDestination) public override {
-    uint256 amount = mint(initialRedeemRate, address(this), msg.sender, initialSupply);
+    uint256 amount = mint(initialRedeemRate, address(this), msg.sender, initialSupply, 0);
 
     _approve(address(this), behodler, type(uint256).max);
     uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), amount);
@@ -69,6 +70,7 @@ contract CliffFace is BehodlerTokenProxy {
     uint256 R_AMP;
     uint256 minted;
     uint256 projectedNewBalance;
+    bool condition;
   }
 
   function swapAsInput(
@@ -89,7 +91,6 @@ contract CliffFace is BehodlerTokenProxy {
     workingVars.projectedNewBalance = baseTokenAmount.toProxy(_redeemRate) + localVars.thisBalance;
     //No amplification of marginal redeem rate by default.
     workingVars.R_AMP = ONE;
-
     /*The reference token balance is considered the lower bound value for the token before protective measures kick in.
     Simple example: assume referenceMultiple doesn't exist. We have a token called HeyDai which we expect to trade at $2. 
     The reference token is Dai. If the balance of HeyDai on Behodler exceeds the balance of Dai then we know the price has dropped below $1.
@@ -98,13 +99,19 @@ contract CliffFace is BehodlerTokenProxy {
     In this case, we set the referenceMultiple to, say, 80. Then when the quantity of BigBlue on Behodler rises to more than 1/80th of the Dai balance, we know that
     BigBlue's price has fallen bellow $80, the trigger point. At this moment, marginal minting redeem rate rises.
   */
-    if ((workingVars.projectedNewBalance) * ONE > localVars.priorRefBalance * referenceMultiple) {
-      workingVars.R_AMP =
-        (workingVars.projectedNewBalance * (ONE**2)) /
-        (localVars.priorRefBalance * referenceMultiple);
-    }
-    workingVars.minted = mint(workingVars.R_AMP, address(this), msg.sender, baseTokenAmount);
 
+    unchecked {
+      workingVars.condition = workingVars.projectedNewBalance * ONE > localVars.priorRefBalance * referenceMultiple;
+    }
+    if (workingVars.condition) {
+      unchecked {
+        workingVars.R_AMP =
+          (workingVars.projectedNewBalance * (ONE_SQUARED)) /
+          (localVars.priorRefBalance * referenceMultiple);
+      }
+    }
+
+    workingVars.minted = mint(workingVars.R_AMP, address(this), msg.sender, baseTokenAmount, _redeemRate);
     if (outputToken == behodler) {
       uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), workingVars.minted);
       if (scx != outputAmount) {
