@@ -19,7 +19,7 @@ import shell from "shelljs"
 import { existsSync } from "fs";
 import { BigNumber, Contract } from "ethers";
 import { deploy } from "../helpers";
-
+import * as hre from "hardhat"
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -405,22 +405,18 @@ describe("ropsten deployment", function () {
   })
 
   describe("gas test", () => {
-
-
+    const provider = hre.network.provider
     this.afterEach(async () => {
-      const hre = await import("hardhat");
-      const provider = hre.network.provider;
+
       await provider.send("evm_setAutomine", [false]);
     })
 
     it("swap comparisons", async function () {
       let { owner, secondPerson, fetchAddress, pauser, getContract } = await loadFixture(deployEcosystem)
-
-      const hre = await import("hardhat");
-      const provider = hre.network.provider;
+      //note: fixture must be loaded with synchronous blocks before automine is enabled. This is 
+      //why we can't put the automine command in beforeEach
       await provider.send("evm_setAutomine", [true]);
-
-
+      
       const tokenFactory = await ethers.getContractFactory("MockToken")
       const eye = await tokenFactory.attach(fetchAddress("EYE")) as Types.MockToken
 
