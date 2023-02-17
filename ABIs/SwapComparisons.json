@@ -1,0 +1,6 @@
+[
+  "constructor(address,address,address,address,address)",
+  "function gasConsumed(bool) view returns (uint256)",
+  "function swapMeasureCliffFaceSwap()",
+  "function swapMeasureSimpleSwap()"
+]

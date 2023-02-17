@@ -8,9 +8,8 @@ This offers a bit more flexibility than forking the existing ropsten state and t
 You can't undeploy a contract and adding self destruct code just for testing could introduce vulnerabilities.
 */
 const { expect, assert } = require("chai");
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { parseEther } from "ethers/lib/utils";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 import { safeDeploy } from "../../scripts/networks/orchestrate";
 import { broadcast, contractNames, getPauser, stringToBytes32 } from "../../scripts/networks/common"
 import * as networkHelpers from "@nomicfoundation/hardhat-network-helpers";
@@ -18,7 +17,9 @@ import * as Types from "../../typechain"
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import shell from "shelljs"
 import { existsSync } from "fs";
-import { BigNumber } from "ethers";
+import { BigNumber, Contract } from "ethers";
+import { deploy } from "../helpers";
+import * as hre from "hardhat"
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -26,12 +27,12 @@ interface DeployedContracts {
 let logFactory = (show: boolean) => {
   return (message: string, content?: any) => {
     if (show)
-      console.log(`In test: ${message} ${content|| ''}`)
+      console.log(`In test: ${message} ${content || ''}`)
   }
 }
 describe("ropsten deployment", function () {
 
-  let logger = logFactory(false)
+  let logger = logFactory(true)
   if (existsSync("scripts/networks/addresses/hardhat.json"))
     shell.rm("scripts/networks/addresses/hardhat.json")
 
@@ -41,9 +42,23 @@ describe("ropsten deployment", function () {
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
     const fetchAddress = fetchAddressFactory(addresses)
-    logger('Addresses ', JSON.stringify(addresses, null, 4))
+    logger('addresses', JSON.stringify(addresses, null, 4))
     const pauser = await getPauser(2, "hardhat", 9);
-    return { owner, secondPerson, fetchAddress, pauser }
+    const getContractFactory = (fetchAddress: (name: contractNames) => string) => {
+
+      return async<T extends Contract>(contractName: contractNames, factoryName?: string, libraries?: ethersLib) => {
+
+        let loadName = factoryName || contractName
+        let factory = await (
+          libraries ? ethers.getContractFactory(loadName, {
+            libraries
+          }) : ethers.getContractFactory(loadName))
+
+        return factory.attach(fetchAddress(contractName)) as T;
+      }
+    }
+    const getContract = getContractFactory(fetchAddress)
+    return { owner, secondPerson, fetchAddress, pauser, getContract }
   }
 
 
@@ -389,6 +404,57 @@ describe("ropsten deployment", function () {
     expect(changeInFlan.toString()).to.equal(impliedFlan)
   })
 
+  describe("gas test", () => {
+    const provider = hre.network.provider
+    this.afterEach(async () => {
+
+      await provider.send("evm_setAutomine", [false]);
+    })
+
+    it("swap comparisons", async function () {
+      let { owner, secondPerson, fetchAddress, pauser, getContract } = await loadFixture(deployEcosystem)
+      //note: fixture must be loaded with synchronous blocks before automine is enabled. This is 
+      //why we can't put the automine command in beforeEach
+      await provider.send("evm_setAutomine", [true]);
+      
+      const tokenFactory = await ethers.getContractFactory("MockToken")
+      const eye = await tokenFactory.attach(fetchAddress("EYE")) as Types.MockToken
+
+      const eyeBalance = await eye.balanceOf(owner.address)
+      logger("eye balance", eyeBalance)
+
+      const flanFactory = await ethers.getContractFactory("Flan")
+      const flan = await flanFactory.attach(fetchAddress("Flan")) as Types.Flan
+      const tokenProxyRegistryFactory = await ethers.getContractFactory("TokenProxyRegistry")
+      const tokenProxyRegistry = await tokenProxyRegistryFactory.attach(fetchAddress("TokenProxyRegistry")) as Types.TokenProxyRegistry
+      const set = await tokenProxyRegistry.tokenProxy(flan.address)
+      logger('set', `${flan.address}, ${set.behodlerProxy}`)
+      await flan.approve(set.behodlerProxy, ethers.constants.MaxUint256)
+
+      const flanBalance = await flan.balanceOf(owner.address)
+      logger('owner flan balance', flanBalance)
+      const SwapComparisonsFactory = await ethers.getContractFactory("SwapComparisons")
+      const swapComparisons = await deploy<Types.SwapComparisons>(SwapComparisonsFactory, fetchAddress("TokenProxyRegistry"), fetchAddress("EYE"), fetchAddress("DAI"), fetchAddress("Behodler"), fetchAddress("Flan"))
+
+      await eye.approve(swapComparisons.address, ethers.constants.MaxUint256)
+      await swapComparisons.swapMeasureSimpleSwap()
+      const simpleGasConsumption = await swapComparisons.gasConsumed(true)
+      logger('simple gas consumed', simpleGasConsumption.toString())
+
+      await flan.approve(swapComparisons.address, ethers.constants.MaxUint256)
+      await swapComparisons.swapMeasureCliffFaceSwap()
+      const cliffFaceGasConsumed = await swapComparisons.gasConsumed(false)
+      logger('cliffFace gas consumed ', cliffFaceGasConsumed.toString())
+      const percentage = simpleGasConsumption.mul(100).div(cliffFaceGasConsumed)
+      logger('cliffFace gas consumed ', cliffFaceGasConsumed.toString())
+
+      logger(`simple uses ${percentage.toString()}% as much gas as cliffFace. Note different base tokens`)
+    })
+
+  })
+  interface ethersLib {
+    [key: string]: string
+  }
 })
 
 
