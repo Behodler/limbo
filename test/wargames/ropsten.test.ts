@@ -455,27 +455,6 @@ describe("ropsten deployment", function () {
   interface ethersLib {
     [key: string]: string
   }
-
-  const getAmountOut = (
-    amountIn: BigNumber,
-    reserveIn: BigNumber,
-    reserveOut: BigNumber
-  ): BigNumber => {
-
-    const amountInWithFee: BigNumber = amountIn.mul(995);
-    const numerator = amountInWithFee.mul(reserveOut);
-    const denominator = (reserveIn.mul(1000)).add(amountInWithFee);
-    const amountOut = numerator.div(denominator);
-    return amountOut
-  }
-
-  const getBehodler = async (getContract: <T extends Contract> (contractName: contractNames, factoryName?: string, libraries?: ethersLib) => Promise<T>): Promise<Types.Behodler> => {
-    const addressBalanceCheck = await getContract("AddressBalanceCheck")
-    const behodlerLib: ethersLib = {
-      AddressBalanceCheck: addressBalanceCheck.address
-    }
-    return await getContract("Behodler", "Behodler", behodlerLib) as Types.Behodler
-  }
 })
 
 
