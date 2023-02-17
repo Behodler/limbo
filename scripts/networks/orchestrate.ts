@@ -1,5 +1,8 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
-import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder, networks } from "./common";
+import {
+  OutputAddress, AddressFileStructure, logFactory, getPauser,
+  nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder, networks
+} from "./common";
 import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre from 'hardhat'
