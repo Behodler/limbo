@@ -1,10 +1,10 @@
 /*
-This is an in memory representation of the ropsten deployment script. Each test represents a scenario or "wargame" that can be tested in memory.
-Once the wargame is established, it can be used as a script for manually testing the wargame on ropsten. If the result diverges from the unit test, 
+This is an in memory representation of the public testnet deployment script. Each test represents a scenario or "wargame" that can be tested in memory.
+Once the wargame is established, it can be used as a script for manually testing the wargame on public testnet. If the result diverges from the unit test, 
 we know there's a front end error.
 This suite will be a useful area for the community to submit pull requests against when they wish to test certain cryptoeconomic aspects of Limbo before 
 issuing a proposal.
-This offers a bit more flexibility than forking the existing ropsten state and testing against that because we may wish the local and ropsten states to diverge.
+This offers a bit more flexibility than forking the existing public testnet state and testing against that because we may wish the local and public testnet states to diverge.
 You can't undeploy a contract and adding self destruct code just for testing could introduce vulnerabilities.
 */
 const { expect, assert } = require("chai");
@@ -30,7 +30,7 @@ let logFactory = (show: boolean) => {
       console.log(`In test: ${message} ${content || ''}`)
   }
 }
-describe("ropsten deployment", function () {
+describe("public testnet deployment", function () {
 
   let logger = logFactory(true)
   if (existsSync("scripts/networks/addresses/hardhat.json"))

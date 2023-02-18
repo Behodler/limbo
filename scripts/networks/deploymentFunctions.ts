@@ -6,7 +6,7 @@ import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, bro
 import * as Types from "../../typechain";
 import shell from "shelljs"
 
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 interface IDeploymentFunction {
   (params: IDeploymentParams): Promise<OutputAddress>

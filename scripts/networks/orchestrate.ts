@@ -10,7 +10,7 @@ import '@nomiclabs/hardhat-ethers'
 import path from 'path'
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 export async function safeDeploy(
   recipeOfDeployment: recipeNames,

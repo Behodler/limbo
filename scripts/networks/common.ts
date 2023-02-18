@@ -26,7 +26,7 @@ export function logFactory(visible: boolean) {
   };
 }
 
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 export async function getNonce() {
   const [deployer] = await ethers.getSigners();
@@ -304,11 +304,26 @@ interface RecipeTypes {
 
 let deploymentRecipes: RecipeTypes[] = []
 deploymentRecipes.push({ name: "testnet", recipe: testnetRecipe })
-
+deploymentRecipes.push({name:"statusquo",recipe:[
+  Sections.PreChecks,
+  Sections.Weth,
+  Sections.Behodler,
+  Sections.UniswapV2Clones,
+  Sections.BehodlerTokens,
+  Sections.Lachesis,
+  Sections.LiquidityReceiverOld,
+  // Sections.RegisterPyroWeth10,
+  Sections.PyroWeth10Proxy,
+  Sections.MultiCall,
+  Sections.Powers,
+  Sections.Angband,
+  Sections.ConfigureScarcityPower,
+  Sections.ConfigureIronCrown,
+]})
 export const fetchDeploymentRecipe = (name: recipeNames) => {
   const found = deploymentRecipes.filter(r => r.name == name)
   if (found.length === 0)
-    throw "Recipe not defined yet"
+    throw `Recipe '${name}' not defined yet`
   return found[0].recipe
 }
 
