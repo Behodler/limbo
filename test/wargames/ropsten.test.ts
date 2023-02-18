@@ -38,7 +38,7 @@ describe("ropsten deployment", function () {
 
   async function deployEcosystem() {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = (await safeDeploy(1337, 2, 9)) as DeployedContracts;
+    const addresses = (await safeDeploy("testnet",1337, 2, 9)) as DeployedContracts;
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
     const fetchAddress = fetchAddressFactory(addresses)

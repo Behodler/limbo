@@ -229,7 +229,9 @@ export enum Sections {
   MorgothMapLimboDAO//end config and makeLive first
 }
 
-export const SectionsToList: Sections[] = [
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
+
+let testnetRecipe = [
   Sections.PreChecks,
   Sections.Weth,
   Sections.Behodler,
@@ -294,6 +296,21 @@ export const SectionsToList: Sections[] = [
   Sections.MorgothLimboMinionAndPower,
   Sections.MorgothMapLimboDAO
 ]
+
+interface RecipeTypes {
+  name: recipeNames
+  recipe: Sections[]
+}
+
+let deploymentRecipes: RecipeTypes[] = []
+deploymentRecipes.push({ name: "testnet", recipe: testnetRecipe })
+
+export const fetchDeploymentRecipe = (name: recipeNames) => {
+  const found = deploymentRecipes.filter(r => r.name == name)
+  if (found.length === 0)
+    throw "Recipe not defined yet"
+  return found[0].recipe
+}
 
 export const sectionName = (section: Sections): string => Sections[section]
 
@@ -361,4 +378,4 @@ export type contractNames =
   | "CrossingLib"
   | "MigrationLib"
   | "SoulLib"
-  |"RefreshTokenOnBehodler"
+  | "RefreshTokenOnBehodler"
