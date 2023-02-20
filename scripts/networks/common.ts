@@ -319,6 +319,8 @@ deploymentRecipes.push({name:"statusquo",recipe:[
   Sections.Angband,
   Sections.ConfigureScarcityPower,
   Sections.ConfigureIronCrown,
+  Sections.RefreshTokensOnBehodler,
+  Sections.AddInitialLiquidityToBehodler
 ]})
 export const fetchDeploymentRecipe = (name: recipeNames) => {
   const found = deploymentRecipes.filter(r => r.name == name)
