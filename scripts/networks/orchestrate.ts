@@ -10,13 +10,12 @@ import '@nomiclabs/hardhat-ethers'
 import path from 'path'
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(true);
-
 export async function safeDeploy(
   recipeOfDeployment: recipeNames,
   chainId: number | undefined,
   blockTime: number,
   confirmations: number,
+  logger: (message: string) => void,
   persistPath?: string
 ): Promise<OutputAddress> {
   const file = "/tmp/deploy.lock";
@@ -32,7 +31,7 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    const addresses = deployToNetwork(recipeOfDeployment, chainId, blockTime, confirmations);
+    const addresses = deployToNetwork(recipeOfDeployment, chainId, blockTime, confirmations,logger);
     if (persistPath)
       writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
     return addresses
@@ -48,7 +47,7 @@ export async function deployToNetwork(
   chainId: number | undefined,
   blockTime: number,
   confirmations: number,
-  nonce?: number
+  logger: (message: string) => void
 ): Promise<OutputAddress> {
   /*
     Steps:
@@ -140,13 +139,14 @@ class Loader {
       }
     }
 
-    logger(`${message}not found. Deploying...`)
+    this.logger(`${message}not found. Deploying...`)
     let deploymentFunction = sectionChooser(section)
 
     let params: IDeploymentParams = {
       deployer: this.deployer,
       existing: this.existing,
-      pauser: this.pauser
+      pauser: this.pauser,
+      logger:this.logger
     }
 
     let outputAddresses = await deploymentFunction(params)
@@ -165,14 +165,14 @@ class Loader {
   }
 
   private async populateExistingFromFile() {
-    logger('in populate')
+    this.logger('in populate')
     this.fileName = path.resolve(__dirname, `./addresses/${this.network}.json`);
     const foundFile = existsSync(this.fileName);
     if (foundFile) {
       const blob = readFileSync(this.fileName);
-      logger('about to parse')
+      this.logger('about to parse')
       this.existing = JSON.parse(blob.toString()) as AddressFileStructure;
-      logger('parsed')
+      this.logger('parsed')
     }
   }
 }

@@ -11,7 +11,7 @@ const { expect, assert } = require("chai");
 import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { safeDeploy } from "../../scripts/networks/orchestrate";
-import { broadcast, contractNames, getPauser, stringToBytes32 } from "../../scripts/networks/common"
+import { contractNames, getPauser, stringToBytes32 } from "../../scripts/networks/common"
 import * as networkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import * as Types from "../../typechain"
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
@@ -20,6 +20,7 @@ import { existsSync } from "fs";
 import { BigNumber, Contract } from "ethers";
 import { deploy } from "../helpers";
 import * as hre from "hardhat"
+import { runSynchronously } from "./helpers";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -31,14 +32,14 @@ let logFactory = (show: boolean) => {
   }
 }
 describe("public testnet deployment", function () {
-
-  let logger = logFactory(true)
+  const provider = hre.network.provider
+  let logger = logFactory(false)
   if (existsSync("scripts/networks/addresses/hardhat.json"))
     shell.rm("scripts/networks/addresses/hardhat.json")
 
   async function deployEcosystem() {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = (await safeDeploy("testnet",1337, 2, 9)) as DeployedContracts;
+    const addresses = (await safeDeploy("testnet", 1337, 2, 9, logger)) as DeployedContracts;
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
     const fetchAddress = fetchAddressFactory(addresses)
@@ -63,11 +64,14 @@ describe("public testnet deployment", function () {
 
 
   it("t0. tests deployer", async function () {
-    const { fetchAddress } = await loadFixture(deployEcosystem)
+    const { fetchAddress } = await
+      runSynchronously(provider, async () => await loadFixture(deployEcosystem))
   })
 
   it("t1. illustrate a healthy deployment by having working LP tokens", async function () {
-    const { fetchAddress } = await loadFixture(deployEcosystem)
+    const { fetchAddress } =
+      await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+
     const eyeDaiAddress = fetchAddress("EYE_DAI")
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const eyeDai = uniswapPairFactory.attach(eyeDaiAddress) as Types.ERC20;
@@ -76,7 +80,9 @@ describe("public testnet deployment", function () {
   });
 
   it("t2. list a fake token as threshold with positive delta and migrate it successfully to behodler", async function () {
-    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployEcosystem)
+    const { owner, secondPerson, fetchAddress, pauser } =
+      await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+
     const aave = await (await ethers.getContractFactory("MockToken")).attach(fetchAddress("Aave")) as Types.MockToken;
     await expect(await aave.totalSupply()).to.be.gt(0);
 
@@ -106,12 +112,12 @@ describe("public testnet deployment", function () {
     logger("about to engage in governance for proposal", proposal.address)
     const ConfigureTokenApproverPowerFactory = await ethers.getContractFactory("ConfigureTokenApproverPower")
     const power = await ConfigureTokenApproverPowerFactory.attach(fetchAddress("ConfigureTokenApproverPower")) as Types.ConfigureTokenApproverPower
-    await broadcast("setting approve token", power.setApprove([aave.address], [true]), pauser)
+    await power.setApprove([aave.address], [true])
 
     const AngbandFactory = await ethers.getContractFactory("Angband")
     const angband = await AngbandFactory.attach(fetchAddress("Angband")) as Types.Angband
 
-    await broadcast("angband execute proposal", angband.executePower(power.address), pauser)
+    await angband.executePower(power.address)
 
     await proposal.parameterize(aave.address,
       ethers.constants.WeiPerEther.mul(2000)
@@ -134,7 +140,7 @@ describe("public testnet deployment", function () {
       .to.emit(proposalFactory, "LodgingStatus")
       .withArgs(proposal.address, "SUCCESS");
 
-    await broadcast("voting on proposal", dao.vote(proposal.address, "1000"), pauser)
+    await dao.vote(proposal.address, "1000")
 
     logger("voting duration", proposalConfig.votingDuration.toString())
     await networkHelpers.mine(1)
@@ -161,27 +167,22 @@ describe("public testnet deployment", function () {
 
     logger(`aave balance owner ${aaveBalanceOwner}, aave balance second person ${aaveBalanceSecondPerson}`);
     //stake user 1
-    await broadcast("approving aave for limbo", aave.approve(limbo.address, ethers.constants.MaxUint256), pauser)
+    await aave.approve(limbo.address, ethers.constants.MaxUint256)
 
-    await broadcast("limbo stake 250", limbo.stake(aave.address, parseEther("250")), pauser)
+    await limbo.stake(aave.address, parseEther("250"))
     //stake user 2.
-    await broadcast("approving aave for limbo", aave.connect(secondPerson).approve(limbo.address, ethers.constants.MaxUint256), pauser)
-    await broadcast("limbo stake second person", limbo.connect(secondPerson).stake(aave.address, parseEther("1100")), pauser);
+    await aave.connect(secondPerson).approve(limbo.address, ethers.constants.MaxUint256)
+    await limbo.connect(secondPerson).stake(aave.address, parseEther("1100"));
 
-    //wait 100 seconds
-    //revert mining style temporarily
-    // await network.provider.send("evm_setAutomine", [false]);
-    // await network.provider.send("evm_setIntervalMining", [0]);
+
     logger("about to pause for 400000 seconds ");
 
     await networkHelpers.time.increase(400000)
 
     logger("finished pausing");
-    //  await network.provider.send("evm_setAutomine", [true]);
-    // await network.provider.send("evm_setIntervalMining", [20]);
 
     //unstake some of user 1, assert flan balance
-    await broadcast("unstaking ", limbo.unstake(aave.address, parseEther("100")), pauser);
+    await limbo.unstake(aave.address, parseEther("100"));
     await networkHelpers.time.increase(5)
     await networkHelpers.mine(1);
 
@@ -216,7 +217,7 @@ describe("public testnet deployment", function () {
     //migrate token to behodler
     const aaveBalanceOnBehodlerBeforeMigrate = await aave.balanceOf(fetchAddress("Behodler"));
     expect(aaveBalanceOnBehodlerBeforeMigrate).to.equal(0);
-    await broadcast("migrating on limbo", limbo.migrate(aave.address, 0), pauser);
+    await limbo.migrate(aave.address, 0);
 
     const aaveBalanceOnBehodlerAfter = await aave.balanceOf(fetchAddress("Behodler"));
     logger('aave address', fetchAddress("Aave"))
@@ -248,12 +249,16 @@ describe("public testnet deployment", function () {
     await powers.create(powerBytes, stringToBytes32("LIQUIDITY_RECEIVER"), true, false)
     await powers.pour(powerBytes, melkor)
 
+    const setPyroDetailsPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
+    await powers.create(setPyroDetailsPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false)
+    await powers.pour(setPyroDetailsPower, melkor)
+
     const RegisterPyroV3PowerInvokerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
 
-    const powerInvoker = await broadcast("deploying RegisterPyro powerinvoker", RegisterPyroV3PowerInvokerFactory.deploy(aave.address, false, angband.address), pauser) as Types.RegisterPyroTokenV3Power
-    await broadcast("setting pyroDetails on invoker", powerInvoker.setPyroDetails("PyroAave", "PAAVE"), pauser)
-    await broadcast("authorizing invoker ", angband.authorizeInvoker(powerInvoker.address, true), pauser)
-    await broadcast("executing power to register pyroAave", angband.executePower(powerInvoker.address), pauser)
+    const powerInvoker = await deploy<Types.RegisterPyroTokenV3Power>(RegisterPyroV3PowerInvokerFactory, aave.address, false, angband.address,powers.address)
+    await powerInvoker.setPyroDetails("PyroAave", "PAAVE")
+    await angband.authorizeInvoker(powerInvoker.address, true)
+    await angband.executePower(powerInvoker.address)
 
     const pyroAaveAddress = await liquidityReceiver.getPyroToken(aave.address)
     logger('pyroAaveAddress ' + pyroAaveAddress)
@@ -263,8 +268,8 @@ describe("public testnet deployment", function () {
     const pyroAave = await PyroTokenFactory.attach(pyroAaveAddress) as Types.PyroToken
 
     await expect((await pyroAave.config()).baseToken).to.equal(aave.address)
-    await broadcast("Approving pyroAave", aave.approve(pyroAave.address, ethers.constants.MaxUint256), pauser)
-    await broadcast("minting pyroAave", pyroAave.mint(owner.address, ethers.constants.WeiPerEther.mul(10)), pauser)
+    await aave.approve(pyroAave.address, ethers.constants.MaxUint256)
+    await pyroAave.mint(owner.address, ethers.constants.WeiPerEther.mul(10))
     const balanceOfPyro = await pyroAave.balanceOf(owner.address)
     await expect(balanceOfPyro).to.equal(ethers.constants.WeiPerEther.mul(10))
     const redeemRate = (await pyroAave.redeemRate()).toString()
@@ -278,12 +283,14 @@ describe("public testnet deployment", function () {
   });
 
   it("t3. trade flan via cliff face mapping", async function () {
-    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployEcosystem)
+
+    const { owner, secondPerson, fetchAddress, pauser } =
+      await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
 
 
     const ApproveFlanMintingProposalFactory = await ethers.getContractFactory("ApproveFlanMintingProposal")
     const approveFlanMintingProposal = await ApproveFlanMintingProposalFactory.attach(fetchAddress("ApproveFlanMintingProposal")) as Types.ApproveFlanMintingProposal
-    await broadcast("parameterize proposal", approveFlanMintingProposal.parameterize(owner.address, true), pauser)
+    await approveFlanMintingProposal.parameterize(owner.address, true)
 
     const LimboDAOFactory = await ethers.getContractFactory("LimboDAO")
     const dao = await LimboDAOFactory.attach(fetchAddress("LimboDAO")) as Types.LimboDAO
@@ -291,7 +298,7 @@ describe("public testnet deployment", function () {
     const mockTokenFactory = await ethers.getContractFactory("MockToken")
     const eye = await mockTokenFactory.attach(fetchAddress("EYE")) as Types.MockToken
 
-    await broadcast("approve eye on dao", eye.approve(dao.address, ethers.constants.MaxUint256), pauser)
+    await eye.approve(dao.address, ethers.constants.MaxUint256)
 
     const proposalConfig = await dao.proposalConfig()
     await dao.burnAsset(eye.address, proposalConfig.requiredFateStake, true)
@@ -302,7 +309,7 @@ describe("public testnet deployment", function () {
       .to.emit(proposalFactory, "LodgingStatus")
       .withArgs(approveFlanMintingProposal.address, "SUCCESS");
 
-    await broadcast("voting on proposal", dao.vote(approveFlanMintingProposal.address, 100), pauser)
+    await dao.vote(approveFlanMintingProposal.address, 100)
 
     await networkHelpers.mine(1)
     await networkHelpers.time.increase(proposalConfig.votingDuration.add(10))
@@ -319,7 +326,7 @@ describe("public testnet deployment", function () {
     const balanceOfDaiOnBehodler = await dai.balanceOf(behodlerAddress)
 
     const flan = (await ethers.getContractFactory("Flan")).attach(fetchAddress("Flan")) as Types.Flan
-    await broadcast("mint flan to owner", flan.mint(owner.address, balanceOfDaiOnBehodler.mul(3)), pauser)
+    await flan.mint(owner.address, balanceOfDaiOnBehodler.mul(3))
 
     //mint pyroFlan
     //Remember the mapping is Flan -> cliffFace(Flan) -> Pyro(CliffFace(Flan)) which means liquidity Receiver maps cliff to Pyro, not Flan to pyro
@@ -338,13 +345,13 @@ describe("public testnet deployment", function () {
     expect(pyroConfig.baseToken).to.equal(behodlerFlanProxy)
 
     const flanCliffFace = (await ethers.getContractFactory("CliffFace")).attach(behodlerFlanProxy) as Types.CliffFace
-    await broadcast("approve flan on cliffFace", flan.approve(flanCliffFace.address, ethers.constants.MaxUint256), pauser)
-    await broadcast("seed behodler for cliffFace", flanCliffFace.seedBehodler(balanceOfDaiOnBehodler, owner.address), pauser)
+    await flan.approve(flanCliffFace.address, ethers.constants.MaxUint256)
+    await flanCliffFace.seedBehodler(balanceOfDaiOnBehodler, owner.address)
 
     const proxyHandler = (await ethers.getContractFactory("ProxyHandler")).attach(fetchAddress("ProxyHandler")) as Types.ProxyHandler
-    await broadcast("approve flan on proxyHandler", flan.approve(proxyHandler.address, ethers.constants.MaxUint256), pauser)
-    await broadcast("once off approve pyroToken for proxy", proxyHandler.approvePyroTokenForProxy(pyroFlan.address), pauser)
-    await broadcast("minting 1000 pyroflan", proxyHandler.mintPyroFromBase(pyroFlan.address, ethers.constants.WeiPerEther.mul(1000)), pauser)
+    await flan.approve(proxyHandler.address, ethers.constants.MaxUint256)
+    await proxyHandler.approvePyroTokenForProxy(pyroFlan.address)
+    await proxyHandler.mintPyroFromBase(pyroFlan.address, ethers.constants.WeiPerEther.mul(1000))
 
     const pyroFlanRedeemRate = await proxyHandler.redeemRate(pyroFlan.address)
     logger('pyroFlanRedeemRate', pyroFlanRedeemRate)
@@ -357,7 +364,7 @@ describe("public testnet deployment", function () {
 
     const daiBalancOfOwnerBefore = await dai.balanceOf(owner.address)
 
-    await broadcast(`dump flan into Behodler with ${outputAmount}`, flanCliffFace.swapAsInput(owner.address, dai.address, outputAmount, ethers.constants.WeiPerEther.mul((1000))), pauser)
+    await flanCliffFace.swapAsInput(owner.address, dai.address, outputAmount, ethers.constants.WeiPerEther.mul((1000)))
     const daiBalanceOfOwnerAfter = await dai.balanceOf(owner.address)
     changeInDai = daiBalanceOfOwnerAfter.sub(daiBalancOfOwnerBefore)
 
@@ -396,8 +403,8 @@ describe("public testnet deployment", function () {
       .div(ethers.constants.WeiPerEther)
 
     const ownerFlanBeforeRedeem = await flan.balanceOf(owner.address)
-    await broadcast('pyro approve proxyHandler', pyroFlan.approve(proxyHandler.address, ethers.constants.MaxUint256), pauser)
-    await broadcast("redeeming pyroFlan", proxyHandler.redeemFromPyro(pyroFlan.address, ownerBalanceOfPyroFlan), pauser)
+    await pyroFlan.approve(proxyHandler.address, ethers.constants.MaxUint256)
+    await proxyHandler.redeemFromPyro(pyroFlan.address, ownerBalanceOfPyroFlan)
     const changeInFlan = (await flan.balanceOf(owner.address)).sub(ownerFlanBeforeRedeem)
     logger('changeInFlan', changeInFlan)
     logger('impliedFlan', impliedFlan)
@@ -406,17 +413,14 @@ describe("public testnet deployment", function () {
 
   describe("gas test", () => {
     const provider = hre.network.provider
-    this.afterEach(async () => {
-
-      await provider.send("evm_setAutomine", [false]);
-    })
 
     it("swap comparisons", async function () {
-      let { owner, secondPerson, fetchAddress, pauser, getContract } = await loadFixture(deployEcosystem)
+
+      let { owner, secondPerson, fetchAddress, pauser, getContract } =
+        await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
       //note: fixture must be loaded with synchronous blocks before automine is enabled. This is 
-      //why we can't put the automine command in beforeEach
-      await provider.send("evm_setAutomine", [true]);
-      
+      //why we can't put the automine command in beforeEach\
+
       const tokenFactory = await ethers.getContractFactory("MockToken")
       const eye = await tokenFactory.attach(fetchAddress("EYE")) as Types.MockToken
 

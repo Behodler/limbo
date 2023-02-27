@@ -19,10 +19,13 @@ contract RegisterPyroTokenV3Power is PowerInvoker, Empowered {
   constructor(
     address _token,
     bool _burnable,
-    address _angband
+    address _angband,
+    address _powers
   ) PowerInvoker("REGISTER_PYRO_V3", _angband) {
     token = _token;
     burnable = _burnable;
+    initialized = true;
+    powersRegistry = PowersRegistry(_powers);
   }
 
   //optional

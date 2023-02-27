@@ -26,7 +26,7 @@ export function logFactory(visible: boolean) {
   };
 }
 
-const logger = logFactory(true);
+const logger = logFactory(false);
 
 export async function getNonce() {
   const [deployer] = await ethers.getSigners();
@@ -167,6 +167,7 @@ export function nameNetwork(networkId: number): networks {
 //Note: not all sections deploy contracts.
 export enum Sections {
   PreChecks,
+  PreCheckMelkor,
   Weth,
   Behodler,
   UniswapV2Clones,
@@ -226,7 +227,8 @@ export enum Sections {
   FlashgovSetAllToGovernable,
   EndConfigForAll,
   MorgothLimboMinionAndPower,
-  MorgothMapLimboDAO//end config and makeLive first
+  MorgothMapLimboDAO,//end config and makeLive first
+  DisableDeployerSnufferCap
 }
 
 export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
@@ -294,7 +296,8 @@ let testnetRecipe = [
   Sections.FlashgovSetAllToGovernable,
   Sections.EndConfigForAll,
   Sections.MorgothLimboMinionAndPower,
-  Sections.MorgothMapLimboDAO
+  Sections.MorgothMapLimboDAO,
+  Sections.DisableDeployerSnufferCap
 ]
 
 interface RecipeTypes {
@@ -304,24 +307,46 @@ interface RecipeTypes {
 
 let deploymentRecipes: RecipeTypes[] = []
 deploymentRecipes.push({ name: "testnet", recipe: testnetRecipe })
-deploymentRecipes.push({name:"statusquo",recipe:[
-  Sections.PreChecks,
-  Sections.Weth,
-  Sections.Behodler,
-  Sections.UniswapV2Clones,
-  Sections.BehodlerTokens,
-  Sections.Lachesis,
-  Sections.LiquidityReceiverOld,
-  // Sections.RegisterPyroWeth10,
-  Sections.PyroWeth10Proxy,
-  Sections.MultiCall,
-  Sections.Powers,
-  Sections.Angband,
-  Sections.ConfigureScarcityPower,
-  Sections.ConfigureIronCrown,
-  Sections.RefreshTokensOnBehodler,
-  Sections.AddInitialLiquidityToBehodler
-]})
+deploymentRecipes.push({
+  name: "statusquo", recipe: [
+    Sections.PreChecks,
+    Sections.Weth,
+    Sections.Behodler,
+    Sections.UniswapV2Clones,
+    Sections.BehodlerTokens,
+    Sections.Lachesis,
+    Sections.LiquidityReceiverOld,
+    // Sections.RegisterPyroWeth10,
+    Sections.PyroWeth10Proxy,
+    Sections.MultiCall,
+    Sections.Powers,
+    Sections.Angband,
+    Sections.ConfigureScarcityPower,
+    Sections.ConfigureIronCrown,
+    Sections.RefreshTokensOnBehodler,
+    Sections.AddInitialLiquidityToBehodler
+  ]
+})
+
+deploymentRecipes.push({
+  name: "onlyPyroV3", recipe: [
+    Sections.PreCheckMelkor,
+    Sections.BigConstants,
+    Sections.LiquidityReceiverNew,
+    Sections.BehodlerSeedNew,
+    Sections.RefreshTokensOnBehodler,
+    Sections.ConfigureIronCrown,
+    Sections.MorgothMapLiquidityReceiver,
+    Sections.PyroWethProxy,
+    Sections.MorgothMapPyroWeth10Proxy,
+    Sections.DeployerSnufferCap,
+
+    Sections.SnuffPyroWethProxy,
+    Sections.ProxyHandler,
+    Sections.V2Migrator,
+    Sections.DisableDeployerSnufferCap
+  ]
+})
 export const fetchDeploymentRecipe = (name: recipeNames) => {
   const found = deploymentRecipes.filter(r => r.name == name)
   if (found.length === 0)

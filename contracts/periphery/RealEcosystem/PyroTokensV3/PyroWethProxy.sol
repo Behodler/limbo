@@ -10,7 +10,7 @@ import * as Error from "./Errors.sol";
  *@author Justin Goro
  *@notice Eth->Weth->PyroWeth and reverse in one tx. Simplifies UI of working with Eth.
  */
-contract PyroWethProxy is Ownable, RG.ReentrancyGuard {
+contract PyroWethProxy is RG.ReentrancyGuard {
      bool public constant REAL = true;
     IWETH10 public weth10;
     uint256 private constant ONE = 1e18;

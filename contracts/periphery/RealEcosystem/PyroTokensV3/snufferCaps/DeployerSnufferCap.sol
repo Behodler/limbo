@@ -10,13 +10,23 @@ abstract contract GovernableLike {
 
 /**
  *@author Justin Goro
- *@notice Let's the Limbo deployer set snuffer cap details. As soon as Limbo is set to live, this snuffer cap will no longer work
+ *@notice Let's the Limbo deployer set snuffer cap details. 
+ As soon as Limbo is set to live, this snuffer cap will no longer work.
+
  */
 contract DeployerSnufferCap is SnufferCap {
-  address _limbo;
+  event DeployerSnufferCapDisabled(address indexed callingUser, uint256 blockNumber);
+  bool public disabled;
+  address deployer;
 
-  constructor(address limbo, address receiver) SnufferCap(receiver) {
-    _limbo = limbo;
+  constructor(address receiver) SnufferCap(receiver) {
+    deployer = msg.sender;
+  }
+
+  function disable() public{
+    require(msg.sender == deployer,"Only deployer can call");
+    disabled = true;
+    emit DeployerSnufferCapDisabled(msg.sender, block.number);
   }
 
   /**
@@ -30,7 +40,7 @@ contract DeployerSnufferCap is SnufferCap {
     address targetContract,
     FeeExemption exempt
   ) public override completeSnuff(pyroToken, targetContract, exempt) returns (bool) {
-    require(msg.sender == GovernableLike(_limbo).temporaryConfigurationLord(), "Only Limbo Config Lord");
+    if (disabled) revert("DeployerSnufferCap disabled");
     return true;
   }
 }
