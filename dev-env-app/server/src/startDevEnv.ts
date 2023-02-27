@@ -22,7 +22,13 @@ export function startDevEnvPlugin({
       fastify.log.info('started hardhat node')
       const { chainId } = await hre.ethers.provider.getNetwork()
       fastify.log.info('deploying Behodler contracts')
-      const deployedAddresses = await safeDeploy(chainId, 2, 9)
+      const deployedAddresses = await safeDeploy(
+        'testnet',
+        chainId,
+        30,
+        9,
+        message => fastify.log.info(`deployment: ${message}`),
+        )
       fastify.log.info('deployment complete')
       return { ...initialBehodlerDevEnv, active: true, node, deployedAddresses }
     }
