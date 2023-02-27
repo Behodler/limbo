@@ -1,5 +1,8 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
-import { OutputAddress, AddressFileStructure, logFactory, getPauser, nameNetwork, Sections, sectionName, SectionsToList, OutputAddressAdder, networks } from "./common";
+import {
+  OutputAddress, AddressFileStructure, logFactory, getPauser,
+  nameNetwork, Sections, sectionName, fetchDeploymentRecipe, networks, recipeNames
+} from "./common";
 import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre from 'hardhat'
@@ -7,12 +10,12 @@ import '@nomiclabs/hardhat-ethers'
 import path from 'path'
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
-const logger = logFactory(false);
-
 export async function safeDeploy(
+  recipeOfDeployment: recipeNames,
   chainId: number | undefined,
   blockTime: number,
   confirmations: number,
+  logger: (message: string) => void,
   persistPath?: string
 ): Promise<OutputAddress> {
   const file = "/tmp/deploy.lock";
@@ -28,7 +31,7 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    const addresses = deployToNetwork(chainId, blockTime, confirmations);
+    const addresses = deployToNetwork(recipeOfDeployment, chainId, blockTime, confirmations,logger);
     if (persistPath)
       writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
     return addresses
@@ -40,10 +43,11 @@ export async function safeDeploy(
 }
 
 export async function deployToNetwork(
+  recipeName: recipeNames,
   chainId: number | undefined,
   blockTime: number,
   confirmations: number,
-  nonce?: number
+  logger: (message: string) => void
 ): Promise<OutputAddress> {
   /*
     Steps:
@@ -59,14 +63,16 @@ export async function deployToNetwork(
     throw "unknown chain";
   }
 
+  const recipe = fetchDeploymentRecipe(recipeName)
+
   const networkName = nameNetwork(chainId);
   const pauser = await getPauser(blockTime, networkName, confirmations);
 
   let loader = new Loader(networkName, logger, deployer, pauser)
 
-  const iterations = SectionsToList.length;
+  const iterations = recipe.length;
   for (let i = 0; i < iterations; i++) {
-    const currentSection: Sections = SectionsToList[i]
+    const currentSection: Sections = recipe[i]
     logger(" ")
     logger("#######################################################")
     logger(sectionName(currentSection).toUpperCase() + ": ")
@@ -133,13 +139,14 @@ class Loader {
       }
     }
 
-    logger(`${message}not found. Deploying...`)
+    this.logger(`${message}not found. Deploying...`)
     let deploymentFunction = sectionChooser(section)
 
     let params: IDeploymentParams = {
       deployer: this.deployer,
       existing: this.existing,
-      pauser: this.pauser
+      pauser: this.pauser,
+      logger:this.logger
     }
 
     let outputAddresses = await deploymentFunction(params)
@@ -158,14 +165,14 @@ class Loader {
   }
 
   private async populateExistingFromFile() {
-    logger('in populate')
+    this.logger('in populate')
     this.fileName = path.resolve(__dirname, `./addresses/${this.network}.json`);
     const foundFile = existsSync(this.fileName);
     if (foundFile) {
       const blob = readFileSync(this.fileName);
-      logger('about to parse')
+      this.logger('about to parse')
       this.existing = JSON.parse(blob.toString()) as AddressFileStructure;
-      logger('parsed')
+      this.logger('parsed')
     }
   }
 }

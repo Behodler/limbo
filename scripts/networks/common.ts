@@ -167,6 +167,7 @@ export function nameNetwork(networkId: number): networks {
 //Note: not all sections deploy contracts.
 export enum Sections {
   PreChecks,
+  PreCheckMelkor,
   Weth,
   Behodler,
   UniswapV2Clones,
@@ -226,10 +227,13 @@ export enum Sections {
   FlashgovSetAllToGovernable,
   EndConfigForAll,
   MorgothLimboMinionAndPower,
-  MorgothMapLimboDAO//end config and makeLive first
+  MorgothMapLimboDAO,//end config and makeLive first
+  DisableDeployerSnufferCap
 }
 
-export const SectionsToList: Sections[] = [
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
+
+let testnetRecipe = [
   Sections.PreChecks,
   Sections.Weth,
   Sections.Behodler,
@@ -292,8 +296,63 @@ export const SectionsToList: Sections[] = [
   Sections.FlashgovSetAllToGovernable,
   Sections.EndConfigForAll,
   Sections.MorgothLimboMinionAndPower,
-  Sections.MorgothMapLimboDAO
+  Sections.MorgothMapLimboDAO,
+  Sections.DisableDeployerSnufferCap
 ]
+
+interface RecipeTypes {
+  name: recipeNames
+  recipe: Sections[]
+}
+
+let deploymentRecipes: RecipeTypes[] = []
+deploymentRecipes.push({ name: "testnet", recipe: testnetRecipe })
+deploymentRecipes.push({
+  name: "statusquo", recipe: [
+    Sections.PreChecks,
+    Sections.Weth,
+    Sections.Behodler,
+    Sections.UniswapV2Clones,
+    Sections.BehodlerTokens,
+    Sections.Lachesis,
+    Sections.LiquidityReceiverOld,
+    // Sections.RegisterPyroWeth10,
+    Sections.PyroWeth10Proxy,
+    Sections.MultiCall,
+    Sections.Powers,
+    Sections.Angband,
+    Sections.ConfigureScarcityPower,
+    Sections.ConfigureIronCrown,
+    Sections.RefreshTokensOnBehodler,
+    Sections.AddInitialLiquidityToBehodler
+  ]
+})
+
+deploymentRecipes.push({
+  name: "onlyPyroV3", recipe: [
+    Sections.PreCheckMelkor,
+    Sections.BigConstants,
+    Sections.LiquidityReceiverNew,
+    Sections.BehodlerSeedNew,
+    Sections.RefreshTokensOnBehodler,
+    Sections.ConfigureIronCrown,
+    Sections.MorgothMapLiquidityReceiver,
+    Sections.PyroWethProxy,
+    Sections.MorgothMapPyroWeth10Proxy,
+    Sections.DeployerSnufferCap,
+
+    Sections.SnuffPyroWethProxy,
+    Sections.ProxyHandler,
+    Sections.V2Migrator,
+    Sections.DisableDeployerSnufferCap
+  ]
+})
+export const fetchDeploymentRecipe = (name: recipeNames) => {
+  const found = deploymentRecipes.filter(r => r.name == name)
+  if (found.length === 0)
+    throw `Recipe '${name}' not defined yet`
+  return found[0].recipe
+}
 
 export const sectionName = (section: Sections): string => Sections[section]
 
@@ -361,4 +420,4 @@ export type contractNames =
   | "CrossingLib"
   | "MigrationLib"
   | "SoulLib"
-  |"RefreshTokenOnBehodler"
+  | "RefreshTokenOnBehodler"

@@ -1,5 +1,5 @@
 [
-  "constructor(address,bool,address)",
+  "constructor(address,bool,address,address)",
   "event OwnershipTransferred(address indexed,address indexed)",
   "event PowerInvoked(address,bytes32,bytes32)",
   "function angband() view returns (address)",

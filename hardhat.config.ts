@@ -56,10 +56,7 @@ export default {
           runs: 200,
         },
       },
-
-      //comment out mining block for non wargame tests
       mining: {
-        auto: false,
         interval: 2,
       },
     },
