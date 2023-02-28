@@ -7,26 +7,48 @@ import { FastifyPluginCallback } from 'fastify'
 import { BehodlerDevEnv, BehodlerDevEnvFastifyInstance } from './types'
 import { safeDeploy } from '../../../scripts/networks/orchestrate'
 
-const initialBehodlerDevEnv: BehodlerDevEnv = {
-  active: false,
-  snapshots: [],
-}
+// DEPLOYMENT SETTINGS
+const DEPLOYED_ADDRESSES_JSON_FILE_PATH = path.resolve(
+  __dirname,
+  '../../../scripts/networks/addresses/hardhat.json',
+)
+const MINING_INTERVAL_MS = 10000
+const BLOCK_TIME_MS = 10000
+const CONFIRMATIONS_NUMBER = 8
+const AUTO_MINING_ENABLED = false
+const DEPLOYMENT_RECIPE_NAME = 'testnet'
 
 export function startDevEnvPlugin({
   setBehodlerDevEnv,
   setStartDevEnv,
 }): FastifyPluginCallback {
+  const initialBehodlerDevEnv: BehodlerDevEnv = {
+    active: false,
+    snapshots: [],
+  }
+
   return function (fastify: BehodlerDevEnvFastifyInstance, opts, done): void {
     async function startHardhatNodeAndDeployBehodlerContracts(): Promise<BehodlerDevEnv> {
       const node: Promise<any> = hre.run('node', { noDeploy: true })
       fastify.log.info('started hardhat node')
       const { chainId } = await hre.ethers.provider.getNetwork()
+
+      fastify.log.info(`setting auto mining to ${AUTO_MINING_ENABLED}`)
+      await hre.network.provider.send("evm_setAutomine", [AUTO_MINING_ENABLED]);
+      fastify.log.info(`auto mining ${AUTO_MINING_ENABLED ? 'enabled' : 'disabled'}`)
+
+      if (!AUTO_MINING_ENABLED) {
+        fastify.log.info(`setting mining interval to ${MINING_INTERVAL_MS / 1000} seconds`)
+        await hre.network.provider.send("evm_setIntervalMining", [AUTO_MINING_ENABLED]);
+        fastify.log.info(`mining interval set to ${MINING_INTERVAL_MS / 1000} seconds`)
+      }
+
       fastify.log.info('deploying Behodler contracts')
       const deployedAddresses = await safeDeploy(
-        'testnet',
+        DEPLOYMENT_RECIPE_NAME,
         chainId,
-        30,
-        9,
+        BLOCK_TIME_MS / 1000,
+        CONFIRMATIONS_NUMBER,
         message => fastify.log.info(`deployment: ${message}`),
         )
       fastify.log.info('deployment complete')
@@ -41,14 +63,9 @@ export function startDevEnvPlugin({
           return fastify.log.info('dev env already running')
         }
 
-        const hardhatDeployedAddressesFilePath = path.resolve(
-          __dirname,
-          '../../../scripts/networks/addresses/hardhat.json',
-        )
-
-        if (fs.existsSync(hardhatDeployedAddressesFilePath)) {
-          fastify.log.info(`removing ${hardhatDeployedAddressesFilePath}`)
-          fs.rmSync(hardhatDeployedAddressesFilePath)
+        if (fs.existsSync(DEPLOYED_ADDRESSES_JSON_FILE_PATH)) {
+          fastify.log.info(`removing ${DEPLOYED_ADDRESSES_JSON_FILE_PATH}`)
+          fs.rmSync(DEPLOYED_ADDRESSES_JSON_FILE_PATH)
           fastify.log.info('file removed, starting dev env')
         }
 
