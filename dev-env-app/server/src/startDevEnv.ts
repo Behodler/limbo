@@ -19,10 +19,7 @@ const CONFIRMATIONS_NUMBER = 9
 const AUTO_MINING_ENABLED = false
 const DEPLOYMENT_RECIPE_NAME = 'testnet'
 
-export function startDevEnvPlugin({
-  setBehodlerDevEnv,
-  setStartDevEnv,
-}): FastifyPluginCallback {
+export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): FastifyPluginCallback {
   const initialBehodlerDevEnv: BehodlerDevEnv = {
     active: false,
     snapshots: [],
@@ -35,12 +32,14 @@ export function startDevEnvPlugin({
       const { chainId } = await hre.ethers.provider.getNetwork()
 
       fastify.log.info(`setting auto mining to ${AUTO_MINING_ENABLED}`)
-      await hre.network.provider.send("evm_setAutomine", [AUTO_MINING_ENABLED]);
+      await hre.network.provider.send('evm_setAutomine', [AUTO_MINING_ENABLED])
       fastify.log.info(`auto mining ${AUTO_MINING_ENABLED ? 'enabled' : 'disabled'}`)
 
       if (!AUTO_MINING_ENABLED) {
-        fastify.log.info(`setting mining interval to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`)
-        await hre.network.provider.send("evm_setIntervalMining", [DEPLOYMENT_MINING_INTERVAL_MS]);
+        fastify.log.info(
+          `setting mining interval to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`,
+        )
+        await hre.network.provider.send('evm_setIntervalMining', [DEPLOYMENT_MINING_INTERVAL_MS])
         fastify.log.info(`mining interval set to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`)
       }
 
@@ -51,12 +50,12 @@ export function startDevEnvPlugin({
         BLOCK_TIME_MS / 1000,
         CONFIRMATIONS_NUMBER,
         message => fastify.log.info(`deployment: ${message}`),
-        )
+      )
       fastify.log.info('deployment complete')
 
       if (!AUTO_MINING_ENABLED) {
         fastify.log.info(`setting mining interval to ${WORKING_MINING_INTERVAL_MS / 1000} seconds`)
-        await hre.network.provider.send("evm_setIntervalMining", [WORKING_MINING_INTERVAL_MS]);
+        await hre.network.provider.send('evm_setIntervalMining', [WORKING_MINING_INTERVAL_MS])
         fastify.log.info(`mining interval set to ${WORKING_MINING_INTERVAL_MS / 1000} seconds`)
       }
 
