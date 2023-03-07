@@ -20,7 +20,6 @@ import { existsSync } from "fs";
 import { BigNumber, Contract } from "ethers";
 import { deploy } from "../helpers";
 import * as hre from "hardhat"
-import { runSynchronously } from "./helpers";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -28,23 +27,23 @@ interface DeployedContracts {
 let logFactory = (show: boolean) => {
   return (message: string, content?: any) => {
     if (show)
-      console.log(`In test: ${message} ${content || ''}`)
+      console.log(`JS: ${message} ${content || ''}`)
   }
 }
 describe("public testnet deployment", function () {
   const provider = hre.network.provider
-  let logger = logFactory(false)
+  let logger = logFactory(true)
   if (existsSync("scripts/networks/addresses/hardhat.json"))
     shell.rm("scripts/networks/addresses/hardhat.json")
 
   async function deployEcosystem() {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = (await safeDeploy("testnet", 1337, 2, 9, logger)) as DeployedContracts;
+    const addresses = (await safeDeploy("testnet", 1337, 2, 1, logger)) as DeployedContracts;
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
     const fetchAddress = fetchAddressFactory(addresses)
     logger('addresses', JSON.stringify(addresses, null, 4))
-    const pauser = await getPauser(2, "hardhat", 9);
+    const pauser = await getPauser(2, "hardhat", 1);
     const getContractFactory = (fetchAddress: (name: contractNames) => string) => {
 
       return async<T extends Contract>(contractName: contractNames, factoryName?: string, libraries?: ethersLib) => {
@@ -64,13 +63,11 @@ describe("public testnet deployment", function () {
 
 
   it("t0. tests deployer", async function () {
-    const { fetchAddress } = await
-      runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+    const { fetchAddress } =  await loadFixture(deployEcosystem)
   })
 
   it("t1. illustrate a healthy deployment by having working LP tokens", async function () {
-    const { fetchAddress } =
-      await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+    const { fetchAddress } =await loadFixture(deployEcosystem)
 
     const eyeDaiAddress = fetchAddress("EYE_DAI")
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
@@ -81,7 +78,7 @@ describe("public testnet deployment", function () {
 
   it("t2. list a fake token as threshold with positive delta and migrate it successfully to behodler", async function () {
     const { owner, secondPerson, fetchAddress, pauser } =
-      await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+      await loadFixture(deployEcosystem)
 
     const aave = await (await ethers.getContractFactory("MockToken")).attach(fetchAddress("Aave")) as Types.MockToken;
     await expect(await aave.totalSupply()).to.be.gt(0);
@@ -284,8 +281,7 @@ describe("public testnet deployment", function () {
 
   it("t3. trade flan via cliff face mapping", async function () {
 
-    const { owner, secondPerson, fetchAddress, pauser } =
-      await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployEcosystem)
 
 
     const ApproveFlanMintingProposalFactory = await ethers.getContractFactory("ApproveFlanMintingProposal")
@@ -416,8 +412,7 @@ describe("public testnet deployment", function () {
 
     it("swap comparisons", async function () {
 
-      let { owner, secondPerson, fetchAddress, pauser, getContract } =
-        await runSynchronously(provider, async () => await loadFixture(deployEcosystem))
+      let { owner, secondPerson, fetchAddress, pauser, getContract } = await loadFixture(deployEcosystem)
       //note: fixture must be loaded with synchronous blocks before automine is enabled. This is 
       //why we can't put the automine command in beforeEach\
 

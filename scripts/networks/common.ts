@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { Contract, ContractFactory } from "ethers";
+import { Contract, ContractFactory, ContractTransaction } from "ethers";
 import * as Web3 from 'web3'
 import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
 
@@ -26,7 +26,7 @@ export function logFactory(visible: boolean) {
   };
 }
 
-const logger = logFactory(false);
+const logger = logFactory(true);
 
 export async function getNonce() {
   const [deployer] = await ethers.getSigners();
@@ -45,7 +45,7 @@ function pauserFactory(duration: number, network: string, confirmations: number)
 
   return async function () {
     const initialBlock = await provider.getBlockNumber();
-
+    console.log('PAUSE FACTORY')
     let currentBlock = await provider.getBlockNumber();
 
     while (currentBlock - initialBlock < confirmations) {
@@ -53,7 +53,7 @@ function pauserFactory(duration: number, network: string, confirmations: number)
       const remaining = confirmations - (currentBlock - initialBlock);
       //  logger(`${remaining} blocks remaining. Pausing for ${duration / 1000} seconds`);
       // logger("                                                       ");
-      await pause(duration);
+      await pause(confirmations);
       const current = await provider.getBlockNumber();
       //logger("new current block " + current);
       currentBlock = current;
@@ -64,19 +64,33 @@ function pauserFactory(duration: number, network: string, confirmations: number)
 export function getPauser(blockTime: number, network: string, confirmations: number) {
   return pauserFactory(blockTime, network, confirmations);
 }
-
-async function pause(duration: number) {
-  await mine(1)
-  await time.increase(duration)
-  await mine(1)
+//Three options: either actually pause for block time, try time increasing only or just mine
+async function pause(confirmations: number) {
+  console.log(`PAUSING FOR ${confirmations} blocks`)
+  // await time.increase(duration)
+  await mine(confirmations)
 }
 
-export async function broadcast(name: string, transaction: Promise<any>, pauser: Function) {
-  logger("*****************TX:  " + name + "*****************");
-  logger("                                                         ");
-  const result = await transaction;
-  await pauser();
-  return result
+async function syncPause(milliseconds: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+export function broadcastFactory(confirmations: number) {
+  return async function broadcast(name: string, transaction: Promise<ContractTransaction>) {
+    logger("*****************TX:  " + name + "*****************");
+    logger("                                                         ");
+    const result = await transaction;
+    try {
+      logger(`            waiting ${confirmations} blocks to confirm`)
+      const receipt = await result.wait(confirmations)
+
+    } catch {
+      logger('wait not found')
+    }
+    return result
+  }
 }
 
 export interface IDeployer<T extends Contract> {
@@ -110,7 +124,7 @@ export function deploymentFactory(
     //if (gasOverride) gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
     // gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
 
-    gasArgs.push(await getNonce());
+    // gasArgs.push(await getNonce());
     logger('args ' + JSON.stringify(gasArgs))
     let existingAddress: string | undefined = undefined
     if (sectionAddresses && sectionAddresses[name]) {
@@ -119,16 +133,17 @@ export function deploymentFactory(
 
     let contract: T
     logger('deploy tx for ' + name)
+    // await pauser()
     if (existingAddress && isContractAddress(existingAddress)) {
       contract = await factory.attach(existingAddress) as T
     } else if (customDeploymentCode) {
       logger('      deploy tx: custom')
-      contract = await broadcast("custom deployment", customDeploymentCode(), pauser) as T
+      contract = await customDeploymentCode() as T;
       logger('      custom address ' + contract.address)
     }
     else {
       logger('      deploy tx: standard')
-      contract = await broadcast("standard deployment", factory.deploy(...gasArgs), pauser);
+      contract = await factory.deploy(...gasArgs) as T
     }
     logger('     ----->deployment complete: ' + contract.address)
     try {
@@ -137,8 +152,8 @@ export function deploymentFactory(
         throw "Test Contract detected."
     } catch { }
     logger("pausing for deployment of " + name + " at " + new Date().toTimeString());
-    await pauser();
-    //await contract.deployed();
+    // await pauser();
+    await contract.deployed();
     return contract;
   }
 }
@@ -336,11 +351,12 @@ deploymentRecipes.push({
     Sections.BehodlerSeedNew,
     Sections.RefreshTokensOnBehodler,
     Sections.ConfigureIronCrown,
-    Sections.MorgothMapLiquidityReceiver,
+  
     Sections.PyroWethProxy,
     Sections.MorgothMapPyroWeth10Proxy,
     Sections.DeployerSnufferCap,
-
+    Sections.MorgothMapLiquidityReceiver,
+    
     Sections.SnuffPyroWethProxy,
     Sections.ProxyHandler,
     Sections.V2Migrator,

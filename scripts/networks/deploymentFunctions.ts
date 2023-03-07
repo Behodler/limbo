@@ -1,8 +1,8 @@
 import { ethers, network } from "hardhat";
 import { id, parseBytes32String, parseEther, parseTransaction, parseUnits } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, BigNumberish, Contract, ContractFactory } from "ethers";
-import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, broadcast, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, criticalPairNames, tokenNames, behodlerTokenNames } from "./common";
+import { BigNumber, BigNumberish, Contract, ContractFactory, ContractTransaction } from "ethers";
+import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, criticalPairNames, tokenNames, behodlerTokenNames } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
 
@@ -26,6 +26,7 @@ enum FeeExemption {
 }
 
 export function sectionChooser(section: Sections): IDeploymentFunction {
+
   switch (section) {
     case Sections.PreChecks: return prechecks
     case Sections.PreCheckMelkor: return precheckMelkor
@@ -138,7 +139,8 @@ export interface IDeploymentParams {
   deployer: SignerWithAddress,
   existing: AddressFileStructure,
   pauser: Function,
-  logger: (message: string) => void
+  logger: (message: string) => void,
+  broadcast: (name: string, transaction: Promise<ContractTransaction>) => Promise<ContractTransaction>
 }
 
 
@@ -174,13 +176,13 @@ const configureUniswapHelper: IDeploymentFunction = async function (params: IDep
   return {}
 }
 
-const getOrCreateUniPairFactory = (uniswapFactory: Types.UniswapV2Factory, pauser: Function, logger: (message: string) => void) => {
+const getOrCreateUniPairFactory = (uniswapFactory: Types.UniswapV2Factory, pauser: Function, logger: (message: string) => void, broadcast: (name: string, transaction: Promise<ContractTransaction>) => Promise<ContractTransaction>) => {
   return async (token0: Types.ERC20, token1: Types.ERC20): Promise<Types.UniswapV2Pair> => {
     let pairAddress = await uniswapFactory.getPair(token0.address, token1.address)
     logger(`pair for  <${token0.address}, ${token1.address}>...`)
     if (pairAddress == ethers.constants.AddressZero) {
       logger(`not found. Creating...`)
-      await broadcast("Creating Uniswap pair", uniswapFactory.createPair(token0.address, token1.address), pauser)
+      await broadcast("Creating Uniswap pair", uniswapFactory.createPair(token0.address, token1.address))
     }
     else logger('found')
     pairAddress = await uniswapFactory.getPair(token0.address, token1.address)
@@ -211,7 +213,7 @@ const mapLimboDAO: IDeploymentFunction = async function (params: IDeploymentPara
 const disabledDeploymentSnufferCap: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   const getContract = await getContractFromSection(params.existing)
   const deployerSnufferCap = await getContract<Types.DeployerSnufferCap>(Sections.DeployerSnufferCap, "DeployerSnufferCap")
-  await broadcast("ending deployer snuffer cap", deployerSnufferCap.disable(), params.pauser)
+  await params.broadcast("ending deployer snuffer cap", deployerSnufferCap.disable())
   return {}
 }
 
@@ -225,14 +227,14 @@ const morgothMapLimboMinionAndPower: IDeploymentFunction = async function (param
   const minion = stringToBytes32("Smaug")
   const addTokenPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
 
-  await broadcast("pour add token to limbo power invoker", powersRegistry.pour(addTokenPower, minion), params.pauser)
-  await broadcast("bond limbo power invoker to Smaug", powersRegistry.bondUserToMinion(limbo.address, minion), params.pauser)
+  await params.broadcast("pour add token to limbo power invoker", powersRegistry.pour(addTokenPower, minion))
+  await params.broadcast("bond limbo power invoker to Smaug", powersRegistry.bondUserToMinion(limbo.address, minion))
 
   const limboAddTokenToBehodlerPower = await getContract<Types.LimboAddTokenToBehodler>(Sections.Morgoth_LimboAddTokenToBehodler, "LimboAddTokenToBehodler")
   const configureScarcityPower = stringToBytes32("CONFIGURE_SCARCITY")
   const powerMinion = stringToBytes32("Celebrimbor") //not technically a minion but mislead by Sauron
-  await broadcast("bond limbo powerInvoker to Celebrimbor", powersRegistry.bondUserToMinion(limboAddTokenToBehodlerPower.address, powerMinion), params.pauser)
-  await broadcast("pour configure scarcity to limbo add token power invoker", powersRegistry.pour(configureScarcityPower, powerMinion), params.pauser)
+  await params.broadcast("bond limbo powerInvoker to Celebrimbor", powersRegistry.bondUserToMinion(limboAddTokenToBehodlerPower.address, powerMinion))
+  await params.broadcast("pour configure scarcity to limbo add token power invoker", powersRegistry.pour(configureScarcityPower, powerMinion))
   return {}
 }
 
@@ -281,7 +283,7 @@ const deployAllLimboDAOProposals: IDeploymentFunction = async function (params: 
   const details = names.
     map(async (name): Promise<proposalListItem> => {
       const factory = await ethers.getContractFactory(name)
-      const contract = await deploy(name, factory, params.pauser, dao.address)
+      const contract = await deploy(name, factory, params.pauser, dao.address, name)
       await proposalFactory.toggleWhitelistProposal(contract.address)
       return { name, contract }
     })
@@ -348,7 +350,7 @@ const morgothTokenAppoverUpdateConfig: IDeploymentFunction = async function (par
   const limbo = await getLimbo(params.existing)
   const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
 
-  await broadcast("Morgoth token update", morgothTokenApprover.updateConfig(tokenProxyRegistry.address, referenceToken.address, behodler.address, limbo.address, flan.address), params.pauser)
+  await params.broadcast("Morgoth token update", morgothTokenApprover.updateConfig(tokenProxyRegistry.address, referenceToken.address, behodler.address, limbo.address, flan.address))
   return {}
 }
 
@@ -400,7 +402,7 @@ const limboDAOSeed: IDeploymentFunction = async function (params: IDeploymentPar
   })
 
   const flashGov = await getContract(Sections.FlashGovernanceArbiter, "FlashGovernanceArbiter") as Types.FlashGovernanceArbiter
-  await broadcast("set flash gov on limboDAO", limboDAO.setFlashGoverner(flashGov.address), params.pauser)
+  await params.broadcast("set flash gov on limboDAO", limboDAO.setFlashGoverner(flashGov.address))
   const limboDAOFlashGov = await limboDAO.getFlashGoverner()
   params.logger(`actual flashGov ${flashGov.address}. LimboDAO's flashGov ${limboDAOFlashGov}`)
   params.logger('limboDAO seed called')
@@ -507,21 +509,21 @@ const tradeOraclePairs: IDeploymentFunction = async function (params: IDeploymen
   const uniswapV2Router = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
 
 
-  await broadcast("approve flan on router", flan.approve(uniswapV2Router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("approve scx on routee", scx.approve(uniswapV2Router.address, ethers.constants.MaxUint256), params.pauser)
+  await params.broadcast("approve flan on router", flan.approve(uniswapV2Router.address, ethers.constants.MaxUint256))
+  await params.broadcast("approve scx on routee", scx.approve(uniswapV2Router.address, ethers.constants.MaxUint256))
 
 
-  await broadcast("sending flan to fln_scx pair", flan.transfer(fln_scx.address, flanBalance.div(10)), params.pauser)
-  await broadcast("sending scx to scx__fln_scx pair", scx.transfer(scx__fln_scx.address, scxBalance.div(10)), params.pauser)
-  await broadcast("sending scx to dai_scx pair", scx.transfer(dai_scx.address, scxBalance.div(10)), params.pauser)
+  await params.broadcast("sending flan to fln_scx pair", flan.transfer(fln_scx.address, flanBalance.div(10)))
+  await params.broadcast("sending scx to scx__fln_scx pair", scx.transfer(scx__fln_scx.address, scxBalance.div(10)))
+  await params.broadcast("sending scx to dai_scx pair", scx.transfer(dai_scx.address, scxBalance.div(10)))
 
   const blockNumber = await ethers.provider.getBlockNumber()
   const timestamp = (await ethers.provider.getBlock(blockNumber - 1)).timestamp
-  const deadline = timestamp + 1000
+  const deadline = ethers.constants.MaxUint256
 
   const tradeOnUni = async (inputToken: Contract, outputToken: Contract, inputAmount: BigNumberish): Promise<BigNumber> => {
     const balanceOfOutputtBefore = await (outputToken as Types.ERC20).balanceOf(params.deployer.address)
-    await broadcast("swaping through Uniswap router", uniswapV2Router.swapExactTokensForTokens(inputAmount, 1000, [inputToken.address, outputToken.address], params.deployer.address, deadline), params.pauser)
+    await params.broadcast("swaping through Uniswap router", uniswapV2Router.swapExactTokensForTokens(inputAmount, 1000, [inputToken.address, outputToken.address], params.deployer.address, deadline))
     await params.pauser()
     await params.pauser()
     const balanceOfOutputAfter = await (outputToken as Types.ERC20).balanceOf(params.deployer.address)
@@ -555,9 +557,9 @@ const registerOraclePairs: IDeploymentFunction = async function (params: IDeploy
   const dai_scx = await getPair("DAI_SCX")
   const scx__fln_scx = await getPair("SCX__FLN_SCX")
 
-  await broadcast(`register pair ${fln_scx.address}`, limboOracle.RegisterPair(fln_scx.address, samplePeriod), params.pauser)
-  await broadcast(`register pair ${dai_scx.address}`, limboOracle.RegisterPair(dai_scx.address, samplePeriod), params.pauser)
-  await broadcast(`register pair ${scx__fln_scx.address}`, limboOracle.RegisterPair(scx__fln_scx.address, samplePeriod), params.pauser)
+  await params.broadcast(`register pair ${fln_scx.address}`, limboOracle.RegisterPair(fln_scx.address, samplePeriod))
+  await params.broadcast(`register pair ${dai_scx.address}`, limboOracle.RegisterPair(dai_scx.address, samplePeriod))
+  await params.broadcast(`register pair ${scx__fln_scx.address}`, limboOracle.RegisterPair(scx__fln_scx.address, samplePeriod))
   return {}
 }
 
@@ -586,7 +588,7 @@ const deployLimbo: IDeploymentFunction = async function (params: IDeploymentPara
   const limbo = await deploy<Types.Limbo>("Limbo", LimboFactory,
     params.pauser, flan.address, dao.address)
 
-  await broadcast("whitelist flan minting for Limbo", flan.whiteListMinting(limbo.address, true), params.pauser)
+  await params.broadcast("whitelist flan minting for Limbo", flan.whiteListMinting(limbo.address, true))
 
   let addresses = OutputAddressAdder<Types.Limbo>({}, "Limbo", limbo)
   addresses = OutputAddressAdder(addresses, "CrossingLib", crossingLib)
@@ -626,7 +628,7 @@ const deployUniswapHelper: IDeploymentFunction = async function (params: IDeploy
   await uniswapHelper.setDAI(dai)
 
   const flan = await getContract(Sections.Flan, "Flan")
-  await broadcast("whitelist flan minting for uniswapHelper", flan.whiteListMinting(uniswapHelper.address, true), params.pauser)
+  await params.broadcast("whitelist flan minting for uniswapHelper", flan.whiteListMinting(uniswapHelper.address, true))
 
   return OutputAddressAdder<Types.UniswapHelper>({}, "UniswapHelper", uniswapHelper)
 }
@@ -688,23 +690,24 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
   const powersRegistry = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
 
   const addTokenAndValuePowerFactory = await ethers.getContractFactory("AddTokenAndValueToBehodlerPower")
+
   const registerPyroTokenPowerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
 
   const registerPyroTokenPower = stringToBytes32("REGISTER_PYRO_V3")
-  await broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false), params.pauser)
+
+  await params.broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false))
 
   const addTokenToBehodlerPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
   const powerMinion = stringToBytes32("Witchking")
-  await broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false), params.pauser)
+  await params.broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false))
 
-  await broadcast("pour 'add token to behodler' power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")), params.pauser)
-  await broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, powerMinion), params.pauser)
+  await params.broadcast("pour 'add token to behodler' power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")))
+  await params.broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, powerMinion))
   //create permissions etc
   return async function (
     tokenToRegister: Types.ERC20,
     amountToTransfer: BigNumber
   ): Promise<BigNumber> {
-
     const registerPyroTokenPowerInvoker = await deploy<Types.RegisterPyroTokenV3Power>("RegisterPyroTokenV3Power", registerPyroTokenPowerFactory, params.pauser,
       tokenToRegister.address,
       false,
@@ -722,17 +725,19 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
       registerPyroTokenPowerInvoker.address
     )
 
-    await broadcast("transferring token to Behodler power", tokenToRegister.transfer(addTokenAndValuePowerInvoker.address, amountToTransfer), params.pauser)
+    params.logger(`tokenToRegister address ${tokenToRegister.address}, balance ${(await tokenToRegister.balanceOf(params.deployer.address)).toString()}`)
+    await params.broadcast("transferring token to Behodler power", tokenToRegister.transfer(addTokenAndValuePowerInvoker.address, amountToTransfer))
 
-    await broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePowerInvoker.address, powerMinion), params.pauser)
+    await params.broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePowerInvoker.address, powerMinion))
 
-    await broadcast("Angband authorise invoker addTokenPower", angband.authorizeInvoker(addTokenAndValuePowerInvoker.address, true), params.pauser)
-    await broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroTokenPowerInvoker.address, true), params.pauser)
+    await params.broadcast("Angband authorise invoker addTokenPower", angband.authorizeInvoker(addTokenAndValuePowerInvoker.address, true))
+    await params.broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroTokenPowerInvoker.address, true))
 
     const behodler = await getBehodler(params.existing)
 
     const scxBalanceOfDeployerBefore = await behodler.balanceOf(params.deployer.address)
-    await broadcast("angband execute addReference Pair power", angband.executePower(addTokenAndValuePowerInvoker.address), params.pauser)
+    console.log('NULL token ' + tokenToRegister.address)
+    await params.broadcast("angband execute addReference Pair power", angband.executePower(addTokenAndValuePowerInvoker.address))
     const increaseInSCX = (await behodler.balanceOf(params.deployer.address)).sub(scxBalanceOfDeployerBefore)
 
     params.logger('increase in scx balance from addition ' + increaseInSCX.toString())
@@ -762,14 +767,15 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
 
   // 6. Mint Flan equal in value (assuming $1) to SCX minted.
   const daiBalanceOnBehodler = await dai.balanceOf(behodler.address)
-  await broadcast("minting flan to deployer", flan.mint(params.deployer.address, daiBalanceOnBehodler.mul(5)), params.pauser)
+  await params.broadcast("minting flan to deployer", flan.mint(params.deployer.address, daiBalanceOnBehodler.mul(5)))
 
 
   // 7. Pair with SCX in UniV2 -> generates SCX/FLN LP token: LP_1
   const uniswapFactory = await getContract<Types.UniswapV2Factory>(Sections.UniswapV2Clones, "UniswapV2Factory")
-  const uniGetOrCreate = await getOrCreateUniPairFactory(uniswapFactory, params.pauser, params.logger)
+  params.logger('about to create reference pair')
+  const uniGetOrCreate = await getOrCreateUniPairFactory(uniswapFactory, params.pauser, params.logger, params.broadcast)
   const referencePair = await uniGetOrCreate(flan, behodler as Types.ERC20)
-
+  params.logger('reference pair ' + referencePair.address)
   let addresses = OutputAddressAdder<Types.UniswapV2Pair>({}, "FLN_SCX", referencePair)
 
   const estimatedSCXPrice = ethers.constants.WeiPerEther.mul(500)
@@ -789,9 +795,9 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const router = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
 
   const scxToTransferToRP = flanBalanceOnBehodler.mul(ethers.constants.WeiPerEther).div(scxPrice)
-  await broadcast("SCX approve of router", behodler.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("Flan approve of router", flan.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("router mint RP", router.addLiquidity(behodler.address, flan.address, scxToTransferToRP, daiBalanceOnBehodler, 0, 0, params.deployer.address, ethers.constants.MaxUint256), params.pauser)
+  await params.broadcast("SCX approve of router", behodler.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast("Flan approve of router", flan.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast("router mint RP", router.addLiquidity(behodler.address, flan.address, scxToTransferToRP, daiBalanceOnBehodler, 0, 0, params.deployer.address, ethers.constants.MaxUint256))
 
   // 8. Lachesis.measure (SCX/FLN LP, true, false) -> mints SCX_2. Need a power to do this as might be lieve behodler
   //Remember to verify it is legit on Behodler.
@@ -818,14 +824,14 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   params.logger('scx__fln_scx address: ' + scx__fln_scx.address)
 
   const balanceOfOraclePairBefore = await scx__fln_scx.balanceOf(params.deployer.address)
-  await broadcast("approving router for RP", referencePair.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("approving router for SCX", behodler.approve(router.address, ethers.constants.MaxUint256), params.pauser)
+  await params.broadcast("approving router for RP", referencePair.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast("approving router for SCX", behodler.approve(router.address, ethers.constants.MaxUint256))
 
   params.logger(`balanceOfRP ${balanceOfRP.toString()}, quantityOfSCXToTransferToOraclePair ${quantityOfSCXToTransferToOraclePair.toString()}`)
-  await broadcast("router minting of scx__fln_scx",
+  await params.broadcast("router minting of scx__fln_scx",
     router.addLiquidity(referencePair.address, behodler.address, balanceOfRP, quantityOfSCXToTransferToOraclePair,
       0, 0, params.deployer.address, ethers.constants.MaxUint256)
-    , params.pauser)
+  )
 
   const increaseInOraclePair = (await scx__fln_scx.balanceOf(params.deployer.address)).sub(balanceOfOraclePairBefore)
   if (increaseInOraclePair.isZero()) {
@@ -839,13 +845,17 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   // 11. On Uni, create dai_scx and seed with as much Dai as possible.
   const daiBalance = await dai.balanceOf(params.deployer.address)
   const scxToPairWithDai = daiBalance.mul(ethers.constants.WeiPerEther).div(scxPrice)
-  params.logger('scx to pair with dai ' + scxToPairWithDai)
-  await broadcast("approving dai on router", dai.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("approving scx on router", behodler.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("router mint of dai/scx", router.addLiquidity(dai.address, behodler.address, daiBalance, scxToPairWithDai, 0, 0, params.deployer.address, ethers.constants.MaxUint256), params.pauser)
+  const scxBalance = (await behodler.balanceOf(params.deployer.address)).toString()
+  params.logger(`dai address ${dai.address}, scx address ${behodler.address}`)
+  params.logger(`pair balances of Dai and SCX dai_scx: dai ${daiBalance.toString()},  scx ${scxToPairWithDai.toString()}. Actual SCX ${scxBalance}`)
+
+  await params.broadcast("approving dai on router", dai.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast("approving scx on router", behodler.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast("router mint of dai/scx", router.addLiquidity(dai.address, behodler.address, daiBalance, scxToPairWithDai, 0, 0, params.deployer.address, ethers.constants.MaxUint256))
 
   // 12. TokenProxyRegistry.createCliffFace (dai_scx)
   const dai_scx = await uniGetOrCreate(dai, behodler)
+  params.logger('DAI_SCX address: ' + dai_scx.address)
   addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "DAI_SCX", dai_scx)
   const daiValueOfScx_Dai = daiBalance.mul(2)
   const daiPriceOfSCX_Dai = daiValueOfScx_Dai.div((await dai_scx.totalSupply()))
@@ -853,23 +863,32 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   params.logger("referenceMultiple of scx_dai proxy" + referenceMultiple)
 
   const morgothTokenApprover = await getMorgothTokenApprover(params.existing)
-  await morgothTokenApprover.generateCliffFaceProxy(dai_scx.address, referenceMultiple, false)
+  await params.broadcast("generate dai_scx cliff face", morgothTokenApprover.generateCliffFaceProxy(dai_scx.address, referenceMultiple, false))
 
   // 13. Lachesis.measure(dai_scx cliff, true, false) and deposit to mint SCX
   const dai_scxBalance = await dai_scx.balanceOf(params.deployer.address)
+  params.logger("dai_scx balance of deployer " + dai_scxBalance)
+
   const dai_scx_cliffFace = (await tokenProxyRegistry.tokenProxy(dai_scx.address)).behodlerProxy
   params.logger('dai_scx_cliff face ' + dai_scx_cliffFace)
 
-  const ERC20Factory = await ethers.getContractFactory("ERC20")
-  const daiSCXCliffToken = await ERC20Factory.attach(dai_scx_cliffFace) as Types.ERC20
+  const ERC20Factory = await ethers.getContractFactory("CliffFace")
+  const daiSCXCliffToken = await ERC20Factory.attach(dai_scx_cliffFace) as Types.CliffFace
+
+  await params.broadcast("Approve dai_scx cliff on behodler", daiSCXCliffToken.approveBehodlerFor(behodler.address))
+  await params.broadcast("Approve dai_scx on its cliff", dai_scx.approve(daiSCXCliffToken.address, ethers.constants.MaxUint256))
+  await params.broadcast("mint dai_scx cliffFace", daiSCXCliffToken.mint(params.deployer.address, params.deployer.address, dai_scxBalance))
+
+  const dai_scxCliffBalance = await daiSCXCliffToken.balanceOf(params.deployer.address)
+  params.logger("dai_scx cliff balance " + dai_scxCliffBalance.toString())
   const daiBalanceOnBehoder = await dai.balanceOf(behodler.address)
   const unitsOfDai_SCXToAdd = daiBalanceOnBehoder.div(daiPriceOfSCX_Dai)
   const increaseInSCXFromAddingDai_SCX = await addTokenToBehodler(daiSCXCliffToken, unitsOfDai_SCXToAdd)
 
   // 14. Create and seed Flan/EYE UniV2 LP
   const eye = await getContract<Types.ERC20>(Sections.BehodlerTokens, "EYE", "ERC20")
-  await broadcast('Flan approve router', flan.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast('EYE approve router', eye.approve(router.address, ethers.constants.MaxUint256), params.pauser)
+  await params.broadcast('Flan approve router', flan.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast('EYE approve router', eye.approve(router.address, ethers.constants.MaxUint256))
   const eyeInBehodler = await eye.balanceOf(behodler.address)
 
   const flanBalance = await flan.balanceOf(params.deployer.address)
@@ -886,7 +905,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   params.logger('EYE per Flan' + eyePerFlan.toString())
   params.logger(`flan ${flanToAdd.toString()} and eye ${eyeToAdd} to FLAN/EYE.`)
 
-  await broadcast("creating FLAN/EYE LP", router.addLiquidity(flan.address, eye.address, flanToAdd, eyeToAdd, 0, 0, params.deployer.address, ethers.constants.MaxUint256), params.pauser)
+  await params.broadcast("creating FLAN/EYE LP", router.addLiquidity(flan.address, eye.address, flanToAdd, eyeToAdd, 0, 0, params.deployer.address, ethers.constants.MaxUint256))
   const flanEYE = await uniGetOrCreate(flan, eye)
   // 15. Lachesis.measure (Flan/EYE LP, true, false) and mint SCX
   const totalSupply = await flanEYE.totalSupply()
@@ -901,11 +920,11 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const pyroFlanAddress = await liquidityReceiver.getPyroToken(flanCliffFace.address)
   const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
   const pyroFlan = (await ethers.getContractFactory("PyroToken")).attach(pyroFlanAddress) as Types.PyroToken
-  await broadcast("approve flanCliffFace for flan", flan.approve(flanCliffFace.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("approve pyroFlan for flanCliffFace", proxyHandler.approvePyroTokenForProxy(pyroFlan.address), params.pauser)
+  await params.broadcast("approve flanCliffFace for flan", flan.approve(flanCliffFace.address, ethers.constants.MaxUint256))
+  await params.broadcast("approve pyroFlan for flanCliffFace", proxyHandler.approvePyroTokenForProxy(pyroFlan.address))
   const flanBalanceBeforePyroMint = await flan.balanceOf(params.deployer.address)
   params.logger(`flan balance ${flanBalanceBeforePyroMint} just before minting PyroFlan using ${daiBalanceOnBehoder}`)
-  await broadcast("mint pyroFlan", proxyHandler.mintPyroFromBase(pyroFlanAddress, daiBalanceOnBehoder), params.pauser)
+  await params.broadcast("mint pyroFlan", proxyHandler.mintPyroFromBase(pyroFlanAddress, daiBalanceOnBehoder))
   const pyroFlanBalance = await pyroFlan.balanceOf(params.deployer.address)
   params.logger('pyroFlan minted ' + pyroFlanBalance)
   const pyroFlanRedeemRate = await proxyHandler.redeemRate(pyroFlanAddress)
@@ -914,8 +933,8 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
 
   params.logger(`pairing ${pyroFlanBalance} PyroFlan with ${scxToPairOnPyroFlanSCXLP} SCX remaining balance ${(await behodler.balanceOf(params.deployer.address))}`)
 
-  await broadcast("approving router for PyroFlan", pyroFlan.approve(router.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast("minting pyroFlan/SCX LP", router.addLiquidity(pyroFlanAddress, behodler.address, pyroFlanBalance, scxToPairOnPyroFlanSCXLP, 0, 0, params.deployer.address, ethers.constants.MaxUint256), params.pauser)
+  await params.broadcast("approving router for PyroFlan", pyroFlan.approve(router.address, ethers.constants.MaxUint256))
+  await params.broadcast("minting pyroFlan/SCX LP", router.addLiquidity(pyroFlanAddress, behodler.address, pyroFlanBalance, scxToPairOnPyroFlanSCXLP, 0, 0, params.deployer.address, ethers.constants.MaxUint256))
 
   // 17. Lachesis.measure (PyroFlan/SCX LP, true, false), mint
   const pyroFlan_SCX = await uniGetOrCreate(pyroFlan, behodler)
@@ -951,6 +970,7 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
 
 
 const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  console.log('IN REGISTER FLAN')
   let deploy = deploymentFactory(Sections.Flan, params.existing, params.pauser)
   const getContract = await getContractFromSection(params.existing)
 
@@ -960,7 +980,7 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   const seventy_percent = ethers.constants.WeiPerEther.mul(1428571429)
     .div(1000000000)
 
-  await broadcast("Cliff face for Flan", morgothTokenApprover.generateCliffFaceProxy(flan.address, seventy_percent, false), params.pauser)
+  await params.broadcast("Cliff face for Flan", morgothTokenApprover.generateCliffFaceProxy(flan.address, seventy_percent, false))
 
   const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
 
@@ -975,7 +995,7 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   const addTokenAndValuePowerFactory = await ethers.getContractFactory("AddTokenAndValueToBehodlerPower")
   params.logger('about to exeucte line 977. powers: ' + powersRegistry.address);
   const registerPyroTokenPower = stringToBytes32("REGISTER_PYRO_V3")
-  await broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false), params.pauser)
+  await params.broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false))
 
   const registerPyroTokenPowerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
 
@@ -1006,12 +1026,12 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   const CliffFaceFactory = await ethers.getContractFactory("CliffFace")
   const cliffFace = await CliffFaceFactory.attach(behodlerToken) as Types.CliffFace
   const cliffFaceBalanceOnPowerBefore = await cliffFace.balanceOf(addTokenAndValuePower.address)
-  await broadcast("approving flan transfer into cliff face", flan.approve(cliffFace.address, ethers.constants.MaxUint256), params.pauser)
-  await broadcast(`mint ${daiBalanceOnBehoder} flan cliffFace into addtokenpower`, cliffFace.mint(addTokenAndValuePower.address, params.deployer.address, daiBalanceOnBehoder), params.pauser)
-  await broadcast("approve flan on behodler for cliffface", cliffFace.approveBehodlerFor(flan.address), params.pauser)
+  await params.broadcast("approving flan transfer into cliff face", flan.approve(cliffFace.address, ethers.constants.MaxUint256))
+  await params.broadcast(`mint ${daiBalanceOnBehoder} flan cliffFace into addtokenpower`, cliffFace.mint(addTokenAndValuePower.address, params.deployer.address, daiBalanceOnBehoder))
+  await params.broadcast("approve flan on behodler for cliffface", cliffFace.approveBehodlerFor(flan.address))
   const cliffFaceBalanceOnPowerrAfter = await cliffFace.balanceOf(addTokenAndValuePower.address)
 
-  await broadcast("addTokenPower.setPyroDetais", registerPyroPower.setPyroDetails("PyroFlan", "PyroFLN"), params.pauser)
+  await params.broadcast("addTokenPower.setPyroDetais", registerPyroPower.setPyroDetails("PyroFlan", "PyroFLN"))
 
   /*
   Create a power for registering a pyroToken
@@ -1024,17 +1044,17 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   const addTokenToBehodlerPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
 
   const powerMinion = stringToBytes32("Witchking")
-  await broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePower.address, powerMinion), params.pauser)
+  await params.broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePower.address, powerMinion))
 
-  await broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false), params.pauser)
+  await params.broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false))
 
-  await broadcast("pour 'add token to behodler' power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")), params.pauser)
-  await broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, powerMinion), params.pauser)
-  await broadcast("Angband authorise invoker addTokenPower", angband.authorizeInvoker(addTokenAndValuePower.address, true), params.pauser)
-  await broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroPower.address, true), params.pauser)
+  await params.broadcast("pour 'add token to behodler' power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")))
+  await params.broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, powerMinion))
+  await params.broadcast("Angband authorise invoker addTokenPower", angband.authorizeInvoker(addTokenAndValuePower.address, true))
+  await params.broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroPower.address, true))
 
   const scxBalanceOfDeployerBefore = await behodler.balanceOf(params.deployer.address)
-  await broadcast("angband execute addToken power", angband.executePower(addTokenAndValuePower.address), params.pauser)
+  await params.broadcast("angband execute addToken power", angband.executePower(addTokenAndValuePower.address))
   const increaseInSCX = (await behodler.balanceOf(params.deployer.address)).sub(scxBalanceOfDeployerBefore)
 
   params.logger(`SCX generated from Flan listing: ${increaseInSCX.div(ethers.constants.WeiPerEther.div(10000)).toNumber() / 10000}`)
@@ -1048,7 +1068,7 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   const deployerSnufferCap = await getContract<Types.DeployerSnufferCap>(Sections.DeployerSnufferCap, "DeployerSnufferCap")
   const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
   params.logger(`pyroFlan ${pyroFlan.address}, proxyHandler ${proxyHandler.address}`);
-  await broadcast("snuffing fees for pyroFlan on ProxyHandler", deployerSnufferCap.snuff(pyroFlan.address, proxyHandler.address, FeeExemption.RECEIVER_EXEMPT), params.pauser)
+  await params.broadcast("snuffing fees for pyroFlan on ProxyHandler", deployerSnufferCap.snuff(pyroFlan.address, proxyHandler.address, FeeExemption.RECEIVER_EXEMPT))
 
   const baseToken = (await pyroFlan.config()).baseToken
   if (baseToken !== behodlerToken)
@@ -1066,9 +1086,9 @@ const deployFlashGovernanceArbiter: IDeploymentFunction = async function (params
 
   const flashGovernanceArbFactory = await ethers.getContractFactory("FlashGovernanceArbiter")
   const flashGovArb = await deploy<Types.FlashGovernanceArbiter>("FlashGovernanceArbiter", flashGovernanceArbFactory, params.pauser, dao.address)
-  await broadcast("flashGov configure security", flashGovArb.configureSecurityParameters(10, 86400, 5), params.pauser)
-  await broadcast("flashGov configure gov", flashGovArb.configureFlashGovernance(eye, ethers.constants.One.mul(1000), "518400", true), params.pauser)
-  await broadcast("dao setFlashGov", dao.setFlashGoverner(flashGovArb.address), params.pauser)
+  await params.broadcast("flashGov configure security", flashGovArb.configureSecurityParameters(10, 86400, 5))
+  await params.broadcast("flashGov configure gov", flashGovArb.configureFlashGovernance(eye, ethers.constants.One.mul(1000), "518400", true))
+  await params.broadcast("dao setFlashGov", dao.setFlashGoverner(flashGovArb.address))
 
   return OutputAddressAdder<Types.FlashGovernanceArbiter>({}, "FlashGovernanceArbiter", flashGovArb)
 }
@@ -1146,11 +1166,11 @@ const deployMorgothTokenApprover: IDeploymentFunction = async function (params: 
   addresses = OutputAddressAdder(addresses, "ProxyDeployer", proxyDeployer)
 
   const powers = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
-  await broadcast("creating approver power", powers.create(stringToBytes32("CONFIGURE_TOKEN_APPROVER"), stringToBytes32("MorgothTokenApprover"), true, false), params.pauser)
-  await broadcast("pouring approver power into Melkor", powers.pour(stringToBytes32("CONFIGURE_TOKEN_APPROVER"), stringToBytes32("Melkor")), params.pauser)
+  await params.broadcast("creating approver power", powers.create(stringToBytes32("CONFIGURE_TOKEN_APPROVER"), stringToBytes32("MorgothTokenApprover"), true, false))
+  await params.broadcast("pouring approver power into Melkor", powers.pour(stringToBytes32("CONFIGURE_TOKEN_APPROVER"), stringToBytes32("Melkor")))
 
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
-  await broadcast("authorizing approver power", angband.authorizeInvoker(MTA.address, true), params.pauser)
+  await params.broadcast("authorizing approver power", angband.authorizeInvoker(MTA.address, true))
   return OutputAddressAdder<Types.MorgothTokenApprover>(addresses, "MorgothTokenApprover", MTA)
 }
 
@@ -1214,7 +1234,7 @@ const snuffPyroWethProxy: IDeploymentFunction = async function (params: IDeploym
   const pyroWeth = await PyroWethFactory.attach(pyroWethAddress) as Types.PyroToken
   const currentExemption = await pyroWeth.feeExemptionStatus(pyroWethProxy.address)
   if (currentExemption !== FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT)
-    await broadcast("Snuffing fees on PyroWethProxy", snufferCap.snuff(pyroWethAddress, pyroWethProxy.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT), params.pauser)
+    await params.broadcast("Snuffing fees on PyroWethProxy", snufferCap.snuff(pyroWethAddress, pyroWethProxy.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT))
   else
     params.logger("PyroWethProxy already exempt. Skipping...")
   return {}
@@ -1225,8 +1245,10 @@ const deployPyroWethProxy: IDeploymentFunction = async function (params: IDeploy
   const getContract = await getContractFromSection(params.existing)
 
   const weth = await getContract(Sections.Weth, "Weth", "WETH10")
+  const liquidityReceiver = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver")
+  const pyroWethAddress = await liquidityReceiver.getPyroToken(weth.address)
   const pyroWethProxyFactory = await ethers.getContractFactory("PyroWethProxy")
-  const pyroWethProxy = await deploy<Types.PyroWethProxy>("PyroWethProxy", pyroWethProxyFactory, params.pauser, weth.address)
+  const pyroWethProxy = await deploy<Types.PyroWethProxy>("PyroWethProxy", pyroWethProxyFactory, params.pauser, pyroWethAddress)
   return OutputAddressAdder<Types.PyroWethProxy>({}, "PyroWethProxy", pyroWethProxy)
 }
 
@@ -1241,9 +1263,12 @@ const deployDeployerSnufferCap: IDeploymentFunction = async function (params: ID
   const pyroWethProxy = await getContract<Types.PyroWethProxy>(Sections.PyroWethProxy, "PyroWethProxy")
   const weth = await getContract(Sections.Weth, "Weth", "WETH10")
   const pyroWethAddress = await liquidityReceiver.getPyroToken(weth.address)
-
-  await broadcast("setting snuffer cap", liquidityReceiver.setSnufferCap(deployerSnufferCap.address), params.pauser)
-  await broadcast("Set pyroweth proxy fee exemption", deployerSnufferCap.snuff(pyroWethAddress, pyroWethProxy.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT), params.pauser)
+  const liquidityREceiverOwner = (await liquidityReceiver.owner()).toString()
+  params.logger("LR owner: " + liquidityREceiverOwner + ", deployer " + params.deployer.address)
+  //TODO: set snuffer cap power
+  //BUG:
+  await params.broadcast("setting snuffer cap", liquidityReceiver.setSnufferCap(deployerSnufferCap.address))
+  await params.broadcast("Set pyroweth proxy fee exemption", deployerSnufferCap.snuff(pyroWethAddress, pyroWethProxy.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT))
 
   return OutputAddressAdder<Types.DeployerSnufferCap>({}, "DeployerSnufferCap", deployerSnufferCap)
 }
@@ -1273,11 +1298,11 @@ const refreshTokensOnBehodler: IDeploymentFunction = async function (params: IDe
   const refreshPowerInvoker = await deploy<Types.RefreshTokenOnBehodler>("RefreshTokenOnBehodler", refreshPowerInvokerFactory, params.pauser, angband.address)
   for (let i = 0; i < addresses.length; i++) {
     params.logger('adding address to power: ' + addresses[i])
-    await broadcast(`Adding token ${addresses[i]} to power invoker`, refreshPowerInvoker.addToken(addresses[i]), params.pauser)
+    await params.broadcast(`Adding token ${addresses[i]} to power invoker`, refreshPowerInvoker.addToken(addresses[i]))
   }
 
-  await broadcast("angbad authorizing refresh power", angband.authorizeInvoker(refreshPowerInvoker.address, true), params.pauser)
-  await broadcast("executing power invoker", angband.executePower(refreshPowerInvoker.address), params.pauser)
+  await params.broadcast("angbad authorizing refresh power", angband.authorizeInvoker(refreshPowerInvoker.address, true))
+  await params.broadcast("executing power invoker", angband.executePower(refreshPowerInvoker.address))
 
   const behodler = await getBehodler(params.existing)
   let invalidSet: string[] = []
@@ -1313,8 +1338,8 @@ const reseedBehodler: IDeploymentFunction = async function (params: IDeploymentP
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
 
   //approve power on morgoth
-  await broadcast("create power configure scarcity", powersRegistry.create(scarcityPower, stringToBytes32("BEHODLER"), true, false), params.pauser)
-  await broadcast("pour power", powersRegistry.pour(scarcityPower, stringToBytes32("Melkor")), params.pauser)
+  await params.broadcast("create power configure scarcity", powersRegistry.create(scarcityPower, stringToBytes32("BEHODLER"), true, false))
+  await params.broadcast("pour power", powersRegistry.pour(scarcityPower, stringToBytes32("Melkor")))
 
   const melkorIsDeployer = await powersRegistry.isUserMinion(params.deployer.address, stringToBytes32("Melkor"))
   params.logger('Melkor is deployer: ' + melkorIsDeployer)
@@ -1327,9 +1352,9 @@ const reseedBehodler: IDeploymentFunction = async function (params: IDeploymentP
   const seedBehodler = await deploy<Types.SeedBehodlerPower>("SeedBehodlerPower", SeedBehodlerFactory, params.pauser, angband.address)
 
   //execute power
-  await broadcast("parameterize seedBehodler power", seedBehodler.parameterize(weth.address, lachesis.address, flashLoanArbiter, liquidityReceiver.address, weidaiReserve, dai, weiDai), params.pauser)
-  await broadcast("angband authorize power", angband.authorizeInvoker(seedBehodler.address, true), params.pauser)
-  await broadcast("angband execute power", angband.executePower(seedBehodler.address), params.pauser)
+  await params.broadcast("parameterize seedBehodler power", seedBehodler.parameterize(weth.address, lachesis.address, flashLoanArbiter, liquidityReceiver.address, weidaiReserve, dai, weiDai))
+  await params.broadcast("angband authorize power", angband.authorizeInvoker(seedBehodler.address, true))
+  await params.broadcast("angband execute power", angband.executePower(seedBehodler.address))
   return OutputAddressAdder<Types.SeedBehodlerPower>({}, "SeedBehodlerPower", seedBehodler)
 }
 
@@ -1392,7 +1417,7 @@ const deployAngband: IDeploymentFunction = async function (params: IDeploymentPa
   let addresses = await OutputAddressAdder<Types.Angband>({}, "Angband", angband)
 
   //finalizeSetup
-  await broadcast("angband finalize", angband.finalizeSetup(), params.pauser)
+  await params.broadcast("angband finalize", angband.finalizeSetup())
 
   //transfer behodler, lachesis, LR_old and PyroWeth10Proxy to angband
   const behodler = await getBehodler(params.existing)
@@ -1400,17 +1425,17 @@ const deployAngband: IDeploymentFunction = async function (params: IDeploymentPa
   const LR_old = await getContract<Types.Ownable>(Sections.LiquidityReceiverOld, "LiquidityReceiverV1")
   const pyroWeth10Proxy = await getContract<Types.Ownable>(Sections.PyroWeth10Proxy, "PyroWeth10Proxy")
 
-  await broadcast("transfer behodler to angband", behodler.transferOwnership(angband.address), params.pauser)
-  await broadcast("transfer lachesis to angband", lachesis.transferOwnership(angband.address), params.pauser)
-  await broadcast("transfer LR to angband", LR_old.transferOwnership(angband.address), params.pauser)
-  await broadcast("transfer pyroWeth10Proxy to angband", pyroWeth10Proxy.transferOwnership(angband.address), params.pauser)
+  await params.broadcast("transfer behodler to angband", behodler.transferOwnership(angband.address))
+  await params.broadcast("transfer lachesis to angband", lachesis.transferOwnership(angband.address))
+  await params.broadcast("transfer LR to angband", LR_old.transferOwnership(angband.address))
+  await params.broadcast("transfer pyroWeth10Proxy to angband", pyroWeth10Proxy.transferOwnership(angband.address))
 
   //setBehodler
-  await broadcast("angband set behodler", angband.setBehodler(behodler.address, lachesis.address), params.pauser)
+  await params.broadcast("angband set behodler", angband.setBehodler(behodler.address, lachesis.address))
 
   //map domains for proxies
-  await broadcast("angband map LR_OLD", angband.mapDomain(LR_old.address, stringToBytes32("LR_OLD")), params.pauser)
-  await broadcast("angband map pyroweth10", angband.mapDomain(pyroWeth10Proxy.address, stringToBytes32("PyroWeth10Proxy")), params.pauser)
+  await params.broadcast("angband map LR_OLD", angband.mapDomain(LR_old.address, stringToBytes32("LR_OLD")))
+  await params.broadcast("angband map pyroweth10", angband.mapDomain(pyroWeth10Proxy.address, stringToBytes32("PyroWeth10Proxy")))
   return addresses
 }
 
@@ -1509,15 +1534,15 @@ const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: 
   const scxeth = await fetchTokenAddress("SCX_ETH")
   const scxeye = await fetchTokenAddress("SCX_EYE")
 
-  await broadcast("LR1 registerMKR", LR1.registerPyroToken(mkr), params.pauser)
-  await broadcast("LR1 registerOXT", LR1.registerPyroToken(oxt), params.pauser)
-  await broadcast("LR1 registerPNK", LR1.registerPyroToken(pnk), params.pauser)
-  await broadcast("LR1 registerLNK", LR1.registerPyroToken(lnk), params.pauser)
-  await broadcast("LR1 registerLOOM", LR1.registerPyroToken(loom), params.pauser)
-  await broadcast("LR1 registerEYEDAI", LR1.registerPyroToken(eyedai), params.pauser)
-  await broadcast("LR1 registerSCXETH", LR1.registerPyroToken(scxeth), params.pauser)
-  await broadcast("LR1 registerSCXEYE", LR1.registerPyroToken(scxeye), params.pauser)
-  await broadcast("LR1 registerWETH", LR1.registerPyroToken(weth.address), params.pauser)
+  await params.broadcast("LR1 registerMKR", LR1.registerPyroToken(mkr))
+  await params.broadcast("LR1 registerOXT", LR1.registerPyroToken(oxt))
+  await params.broadcast("LR1 registerPNK", LR1.registerPyroToken(pnk))
+  await params.broadcast("LR1 registerLNK", LR1.registerPyroToken(lnk))
+  await params.broadcast("LR1 registerLOOM", LR1.registerPyroToken(loom))
+  await params.broadcast("LR1 registerEYEDAI", LR1.registerPyroToken(eyedai))
+  await params.broadcast("LR1 registerSCXETH", LR1.registerPyroToken(scxeth))
+  await params.broadcast("LR1 registerSCXEYE", LR1.registerPyroToken(scxeye))
+  await params.broadcast("LR1 registerWETH", LR1.registerPyroToken(weth.address))
 
   return OutputAddressAdder<Types.LiquidityReceiverV1>({}, "LiquidityReceiverV1", LR1)
 }
@@ -1531,7 +1556,7 @@ const deployLachesis: IDeploymentFunction = async function (params: IDeploymentP
   const behodler = await getBehodler(params.existing)
   const LachesisFactory = await ethers.getContractFactory("Lachesis")
   const lachesis = await deploy<Types.Lachesis>("Lachesis", LachesisFactory, params.pauser, uniswap.address, sushiswap.address)
-  await broadcast("Lachesis set behodler", lachesis.setBehodler(behodler.address), params.pauser)
+  await params.broadcast("Lachesis set behodler", lachesis.setBehodler(behodler.address))
 
   const fetchToken = async (contract: contractNames) =>
     await getContract(Sections.BehodlerTokens, contract, "ERC677")
@@ -1549,19 +1574,19 @@ const deployLachesis: IDeploymentFunction = async function (params: IDeploymentP
   const scxeye = await fetchToken("SCX_EYE")
   const weth = await getContract(Sections.Weth, "Weth", "WETH10")
 
-  await broadcast("Lachesis approve eye", lachesis.measure(eye.address, true, true), params.pauser)
-  await broadcast("Lachesis approve mkr", lachesis.measure(mkr.address, true, false), params.pauser)
-  await broadcast("Lachesis approve oxt", lachesis.measure(oxt.address, true, false), params.pauser)
-  await broadcast("Lachesis approve pnk", lachesis.measure(pnk.address, true, false), params.pauser)
-  await broadcast("Lachesis approve lnk", lachesis.measure(lnk.address, true, false), params.pauser)
-  await broadcast("Lachesis approve loom", lachesis.measure(loom.address, true, false), params.pauser)
-  await broadcast("Lachesis approve dai", lachesis.measure(dai.address, true, false), params.pauser)
-  await broadcast("Lachesis approve weiDai", lachesis.measure(weiDai.address, true, true), params.pauser)
+  await params.broadcast("Lachesis approve eye", lachesis.measure(eye.address, true, true))
+  await params.broadcast("Lachesis approve mkr", lachesis.measure(mkr.address, true, false))
+  await params.broadcast("Lachesis approve oxt", lachesis.measure(oxt.address, true, false))
+  await params.broadcast("Lachesis approve pnk", lachesis.measure(pnk.address, true, false))
+  await params.broadcast("Lachesis approve lnk", lachesis.measure(lnk.address, true, false))
+  await params.broadcast("Lachesis approve loom", lachesis.measure(loom.address, true, false))
+  await params.broadcast("Lachesis approve dai", lachesis.measure(dai.address, true, false))
+  await params.broadcast("Lachesis approve weiDai", lachesis.measure(weiDai.address, true, true))
 
-  await broadcast("Lachesis approve eyeDai", lachesis.measure(eyedai.address, true, false), params.pauser)
-  await broadcast("Lachesis approve scxEth", lachesis.measure(scxeth.address, true, false), params.pauser)
-  await broadcast("Lachesis approve scxEye", lachesis.measure(scxeye.address, true, false), params.pauser)
-  await broadcast("Lachesis approve weth", lachesis.measure(weth.address, true, false), params.pauser)
+  await params.broadcast("Lachesis approve eyeDai", lachesis.measure(eyedai.address, true, false))
+  await params.broadcast("Lachesis approve scxEth", lachesis.measure(scxeth.address, true, false))
+  await params.broadcast("Lachesis approve scxEye", lachesis.measure(scxeye.address, true, false))
+  await params.broadcast("Lachesis approve weth", lachesis.measure(weth.address, true, false))
 
   return OutputAddressAdder<Types.Lachesis>({} as OutputAddress, "Lachesis", lachesis)
 }
@@ -1575,7 +1600,7 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
 
   const Token = await ethers.getContractFactory("MockToken");
   const eye = await deploy<Types.MockToken>("EYE", Token, params.pauser, "EYE", "EYE", [], []);
-  await broadcast("minting eye to deployer", eye.mint(ethers.constants.WeiPerEther.mul(500_000)), params.pauser)
+  await params.broadcast("minting eye to deployer", eye.mint(ethers.constants.WeiPerEther.mul(500_000)))
 
   const maker = await deploy<Types.MockToken>("MKR", Token, params.pauser, "MAKER", "MKR", [], []);
   const oxt = await deploy<Types.MockToken>("OXT", Token, params.pauser, "OXT", "OXT", [], []);
@@ -1588,7 +1613,7 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
 
   const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair")
   const pairDeployer = (token0: string, token1: string) => async (): Promise<Contract> => {
-    await broadcast("creating pair", uniswapContract.createPair(token0, token1), params.pauser)
+    await params.broadcast("creating pair", uniswapContract.createPair(token0, token1))
     const result = await uniswapContract.getPair(token0, token1)
     return UniswapPairFactory.attach(result)
   }
@@ -1653,7 +1678,7 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   const balanceOfScxWeth = await scx_eth.balanceOf(params.deployer.address)
   const balanceOfScXEye = await scx_eye.balanceOf(params.deployer.address)
 
-  // await broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
+  // await params.broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
 
   const liquidity: tokenAmount[] = [
     { token: dai, amount: 10_000 },
@@ -1671,8 +1696,8 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
     const amount = ethers.constants.WeiPerEther.mul(item.amount)
     //if token is Dai, we need extra for Flan Genesis
     const mintAmount = item.token.address == dai.address ? amount.mul(2) : amount
-    await broadcast(`minting token ${item.token.address}`, item.token.mint(mintAmount), params.pauser)
-    await broadcast('transferring to behodler', item.token.transfer(behodler.address, amount), params.pauser)
+    await params.broadcast(`minting token ${item.token.address}`, item.token.mint(mintAmount))
+    await params.broadcast('transferring to behodler', item.token.transfer(behodler.address, amount))
   }
 
   const pairLiquidity = [
@@ -1685,7 +1710,7 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
     const pair = pairLiquidity[i]
     const token = pair[0] as Types.UniswapV2Pair
     const amount = pair[1] as BigNumber
-    await broadcast("transferring liquidity to behodler", token.transfer(behodler.address, amount), params.pauser)
+    await params.broadcast("transferring liquidity to behodler", token.transfer(behodler.address, amount))
   }
 
   return {}

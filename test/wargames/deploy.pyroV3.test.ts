@@ -13,6 +13,7 @@ import { BigNumber, Contract, ContractFactory } from "ethers";
 import { deploy } from "../helpers";
 import * as hre from "hardhat"
 import { getContractFromSection } from "../../scripts/networks/deploymentFunctions";
+import { EthereumProvider } from "hardhat/types";
 const web3 = require("web3");
 interface DeployedContracts {
   [name: string]: string;
@@ -23,9 +24,10 @@ let logFactory = (show: boolean) => {
       console.log(`${message} ${content || ''}`)
   }
 }
-const deployRecipe = async (recipe: recipeNames, log: boolean): Promise<DeployedContracts> => {
+const deployRecipe = async (recipe: recipeNames, log: boolean, provider: EthereumProvider): Promise<DeployedContracts> => {
   let recipeLogger = logFactory(log)
-  return await safeDeploy(recipe, 1337, 2, 9, recipeLogger) as DeployedContracts
+  await provider.send("evm_setAutomine", [true]);
+  return await safeDeploy(recipe, 1337, 2, 1, recipeLogger) as DeployedContracts
 }
 describe("pyroV3 addition to mainnet", function () {
   const provider = hre.network.provider
@@ -44,7 +46,7 @@ describe("pyroV3 addition to mainnet", function () {
 
   async function deployStatusQuo(log: boolean) {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = await deployRecipe("statusquo", log);
+    const addresses = await deployRecipe("statusquo", log, provider);
 
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
@@ -71,7 +73,7 @@ describe("pyroV3 addition to mainnet", function () {
 
   this.afterEach(async () => {
     logger('after each executed.');
-    await provider.send("evm_setAutomine", [false]);
+    // await provider.send("evm_setAutomine", [false]);
   })
 
   it("t0. tests deployer", async function () {
@@ -81,7 +83,7 @@ describe("pyroV3 addition to mainnet", function () {
 
   it("t1. assert statusQuo recipe", async function () {
     const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithoutLogging)
-    await provider.send("evm_setAutomine", [true]);
+    // await provider.send("evm_setAutomine", [true]);
     const MockTokenFactory = await ethers.getContractFactory("MockToken")
     const link = await MockTokenFactory.attach(fetchAddress("LNK")) as Types.MockToken
     const eye = await MockTokenFactory.attach(fetchAddress("EYE")) as Types.MockToken
@@ -130,9 +132,9 @@ describe("pyroV3 addition to mainnet", function () {
   it("t2. assert OnlyPyroV3 recipe", async function () {
 
     // 1. Deploy status quo.
-    await provider.send("evm_setAutomine", [false]);
-    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithoutLogging)
-    await provider.send("evm_setAutomine", [true]);
+    // await provider.send("evm_setAutomine", [false]);
+    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithLogging)
+    // await provider.send("evm_setAutomine", [true]);
     const liquidityReceiverV1Factory = await getNamedFactory("LiquidityReceiverV1")
     const liquidityReceiverV1 = await getTypedContract<Types.LiquidityReceiverV1>(fetchAddress("LiquidityReceiverV1"), liquidityReceiverV1Factory)
     const addresses = {
@@ -198,9 +200,9 @@ describe("pyroV3 addition to mainnet", function () {
     }
 
     // 3. Deploy Pyro V3 upgrade.
-    await provider.send("evm_setAutomine", [false]);
-    const pyroDeployments = await deployRecipe("onlyPyroV3", true)
-    await provider.send("evm_setAutomine", [true]);
+    
+    const pyroDeployments = await deployRecipe("onlyPyroV3", true, provider)
+    
 
     const fetchPyroAddress = (contract: contractNames) => pyroDeployments[contract]
 
@@ -309,12 +311,12 @@ describe("pyroV3 addition to mainnet", function () {
 
 
   it("t3. OnlyPyroV3 must not accidentally deploy Flan or PyroFlan", async function () {
-    await provider.send("evm_setAutomine", [false]);
+    // await provider.send("evm_setAutomine", [false]);
     const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithoutLogging)
-    const pyroDeployments = await deployRecipe("onlyPyroV3", true)
+    const pyroDeployments = await deployRecipe("onlyPyroV3", true, provider)
 
 
-    await provider.send("evm_setAutomine", [true]);
+    // await provider.send("evm_setAutomine", [true]);
     const fetchPyroAddress = (contract: contractNames) => pyroDeployments[contract]
 
     const flanFromPyro = fetchPyroAddress("Flan")

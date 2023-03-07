@@ -1,7 +1,7 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import {
   OutputAddress, AddressFileStructure, logFactory, getPauser,
-  nameNetwork, Sections, sectionName, fetchDeploymentRecipe, networks, recipeNames
+  nameNetwork, Sections, sectionName, fetchDeploymentRecipe, networks, recipeNames, broadcastFactory
 } from "./common";
 import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -68,7 +68,7 @@ export async function deployToNetwork(
   const networkName = nameNetwork(chainId);
   const pauser = await getPauser(blockTime, networkName, confirmations);
 
-  let loader = new Loader(networkName, logger, deployer, pauser)
+  let loader = new Loader(networkName, logger, deployer, pauser,confirmations)
 
   const iterations = recipe.length;
   for (let i = 0; i < iterations; i++) {
@@ -96,17 +96,20 @@ class Loader {
   deployer: SignerWithAddress
   pauser: Function
   fileName: string = ""
+  confirmations:number
 
   constructor(network: networks,
     logger: (message: string) => void,
     deployer: SignerWithAddress,
-    pauser: Function) {
+    pauser: Function,
+    confirmations:number) {
     this.network = network;
     this.existing = {} as AddressFileStructure;
     this.logger = logger;
     this.deployer = deployer;
     this.pauser = pauser;
     this.populateExistingFromFile();
+    this.confirmations = confirmations
   }
 
   flatten(): OutputAddress {
@@ -146,7 +149,8 @@ class Loader {
       deployer: this.deployer,
       existing: this.existing,
       pauser: this.pauser,
-      logger:this.logger
+      logger:this.logger,
+      broadcast:broadcastFactory(this.confirmations)
     }
 
     let outputAddresses = await deploymentFunction(params)
@@ -161,7 +165,8 @@ class Loader {
       this.network,
       this.logger,
       this.deployer,
-      this.pauser)
+      this.pauser,
+      this.confirmations)
   }
 
   private async populateExistingFromFile() {

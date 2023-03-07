@@ -6,18 +6,20 @@ import { FastifyPluginCallback } from 'fastify'
 
 import { BehodlerDevEnv, BehodlerDevEnvFastifyInstance } from './types'
 import { safeDeploy } from '../../../scripts/networks/orchestrate'
+import { RunTaskFunction } from 'hardhat/types'
+import { recipeNames } from '../../../scripts/networks/common'
 
 // DEPLOYMENT SETTINGS
 const DEPLOYED_ADDRESSES_JSON_FILE_PATH = path.resolve(
   __dirname,
   '../../../scripts/networks/addresses/hardhat.json',
 )
-const DEPLOYMENT_MINING_INTERVAL_MS = 10
-const WORKING_MINING_INTERVAL_MS = 1000
+const DEPLOYMENT_MINING_INTERVAL_MS = 500
+const WORKING_MINING_INTERVAL_MS = DEPLOYMENT_MINING_INTERVAL_MS
 const BLOCK_TIME_MS = 20000
-const CONFIRMATIONS_NUMBER = 9
+const CONFIRMATIONS_NUMBER = 6
 const AUTO_MINING_ENABLED = false
-const DEPLOYMENT_RECIPE_NAME = 'testnet'
+const DEPLOYMENT_RECIPE_NAME:recipeNames = 'testnet'
 
 export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): FastifyPluginCallback {
   const initialBehodlerDevEnv: BehodlerDevEnv = {
@@ -27,7 +29,10 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
 
   return function (fastify: BehodlerDevEnvFastifyInstance, opts, done): void {
     async function startHardhatNodeAndDeployBehodlerContracts(): Promise<BehodlerDevEnv> {
-      const node: Promise<any> = hre.run('node', { noDeploy: true })
+      const node: Promise<any> = hre.run('node', { noDeploy: true,silent:true })
+
+
+
       fastify.log.info('started hardhat node')
       const { chainId } = await hre.ethers.provider.getNetwork()
 
@@ -47,7 +52,7 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
       const deployedAddresses = await safeDeploy(
         DEPLOYMENT_RECIPE_NAME,
         chainId,
-        BLOCK_TIME_MS / 1000,
+        DEPLOYMENT_MINING_INTERVAL_MS,
         CONFIRMATIONS_NUMBER,
         message => fastify.log.info(`deployment: ${message}`),
       )
@@ -78,6 +83,7 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
 
         setBehodlerDevEnv(await startHardhatNodeAndDeployBehodlerContracts())
         fastify.log.info('dev env started')
+
       } catch (error) {
         fastify.log.error(`starting dev env failed: ${error}`)
       }
