@@ -57,6 +57,7 @@ export default {
         },
       },
       mining: {
+        auto: true,
         interval: 2,
       },
     },
