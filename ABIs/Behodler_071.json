@@ -1,0 +1,4 @@
+[
+  "function seed(address,address,address,address,address,address,address)",
+  "function setSafetParameters(uint8,uint8)"
+]

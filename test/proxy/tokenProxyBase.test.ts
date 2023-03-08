@@ -10,6 +10,8 @@ const web3 = require("web3");
 interface TestSet {
   MockRebaseToken: Types.MockToken;
   MockFOTtoken: Types.MockFOTToken;
+  MockWBTC: Types.MockWBTC;
+  MockWBTCProxy: Types.TokenProxyBase
   RebaseProxy: Types.VanillaProxy;
   FOTProxy: Types.VanillaProxy;
   Registry: Types.TokenProxyRegistry;
@@ -46,12 +48,16 @@ describe("token proxy test", function () {
     const MockFoTTokenFactory = await ethers.getContractFactory("MockFOTToken");
     SET.MockFOTtoken = await deploy<Types.MockFOTToken>(MockFoTTokenFactory, "FOT", "FOT", 25);
 
+    const wbtcFactory = await ethers.getContractFactory("MockWBTC");
+    SET.MockWBTC = await deploy<Types.MockWBTC>(wbtcFactory)
+
     const proxyDAOFactory = (await ethers.getContractFactory("ProxyDAO")) as Types.ProxyDAO__factory;
     SET.DAO = await deploy<Types.ProxyDAO>(proxyDAOFactory);
+
     const TokenProxyRegistryFactory = (await ethers.getContractFactory(
       "TokenProxyRegistry"
     )) as Types.TokenProxyBase__factory;
-    SET.Registry = await deploy<Types.TokenProxyRegistry>(TokenProxyRegistryFactory, SET.DAO.address,SET.owner.address);
+    SET.Registry = await deploy<Types.TokenProxyRegistry>(TokenProxyRegistryFactory, SET.DAO.address, SET.owner.address);
 
     const VanillaProxyFactory = await ethers.getContractFactory("VanillaProxy");
     SET.RebaseProxy = await deploy<Types.VanillaProxy>(
@@ -64,7 +70,13 @@ describe("token proxy test", function () {
 
     await SET.Registry.setProxy(SET.MockRebaseToken.address, SET.RebaseProxy.address, SET.RebaseProxy.address);
 
-    let result = await executionResult(SET.MockRebaseToken.approve(SET.RebaseProxy.address, SET.MILLION));
+    const TokenProxyBase = await ethers.getContractFactory("TokenProxyBase")
+    SET.MockWBTCProxy = await deploy<Types.TokenProxyBase>(TokenProxyBase, SET.MockWBTC.address, "WBTCProx", "WBTCP", SET.Registry.address, BigNumber.from("100000000"))
+
+    let result = await executionResult(SET.Registry.setProxy(SET.MockWBTC.address, SET.MockWBTCProxy.address, ethers.constants.AddressZero));
+    expect(result.success).to.equal(true, result.error);
+
+    result = await executionResult(SET.MockRebaseToken.approve(SET.RebaseProxy.address, SET.MILLION));
     expect(result.success).to.equal(true, result.error);
 
     result = await executionResult(
@@ -92,6 +104,8 @@ describe("token proxy test", function () {
 
     await SET.Registry.setProxy(SET.MockFOTtoken.address, SET.FOTProxy.address, SET.FOTProxy.address);
   });
+
+  it("t0. setup test", async function () { })
 
   it("t1. initial redeem rate is ONE, redeeming all returns to ONE", async function () {
     let query = await queryChain(SET.RebaseProxy.redeemRate());
@@ -412,7 +426,7 @@ describe("token proxy test", function () {
       const baseToken = i == 0 ? SET.MockRebaseToken : SET.MockFOTtoken;
       const proxies = await SET.Registry.tokenProxy(baseToken.address);
 
-      
+
 
       expect(proxies[0]).to.equal(proxyToken.address);
 
@@ -447,4 +461,31 @@ describe("token proxy test", function () {
       expect(baseBalancesAfter[1].sub(baseBalancesBefore[1])).to.equal(SET.ZERO);
     });
   }
+
+  it("t12. Tokens that have fewer than 18 decimal places reliably produce proxies with 18 decimal places", async function () {
+    const ONE_BTC = BigNumber.from(10).pow(8)
+    const ONE_ETH = BigNumber.from(10).pow(18)
+
+    //mint proxy from 2 wbtc should create 2 proxy with 18 decimal places
+    await SET.MockWBTC.approve(SET.MockWBTCProxy.address,ONE_BTC.mul(5))
+    await SET.MockWBTCProxy.mint(SET.owner.address,SET.owner.address,ONE_BTC.mul(2))
+
+    const proxyMinted = await SET.MockWBTCProxy.balanceOf(SET.owner.address)
+
+    expect(BigNumber.from(proxyMinted.toString())).to.equal(ONE_ETH.mul(2))
+
+    const WBTCAfterMint = await SET.MockWBTC.balanceOf(SET.owner.address)
+    expect(WBTCAfterMint.toNumber()).to.equal(800000000)
+   
+    //redeem 0.5 proxy should increase wbtc balance by 0.5
+
+    const halfEth = ONE_ETH.mul(5).div(10)
+    await SET.MockWBTCProxy.redeem(SET.owner.address,SET.owner.address,halfEth)
+
+    const proxyAfterRedeem = await SET.MockWBTCProxy.balanceOf(SET.owner.address)
+    expect(proxyAfterRedeem.toString()).to.equal(proxyMinted.sub(halfEth).toString())
+ 
+    const wbtcAfterRedeem = await SET.MockWBTC.balanceOf(SET.owner.address)
+    expect(wbtcAfterRedeem.toString()).to.equal("850000000")
+  })
 });

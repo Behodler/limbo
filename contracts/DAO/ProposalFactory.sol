@@ -5,8 +5,6 @@ import "./Governable.sol";
 import "../openzeppelin/Ownable.sol";
 import "../periphery/Errors.sol";
 
-// import "hardhat/console.sol";
-
 ///@title Proposal
 ///@author Justin Goro
 ///@notice suggested base contract for proposals on Limbo. Not strictly enforced but strongly recommended
@@ -26,6 +24,12 @@ abstract contract Proposal {
     if(msg.sender!=dao && msg.sender!=proposalFactory){
       revert OnlyFactoryOrDAO(dao, proposalFactory);
     }
+    _;
+  }
+
+  modifier unlocked {
+    if(locked)
+    revert ProposalLocked(address(this));
     _;
   }
 

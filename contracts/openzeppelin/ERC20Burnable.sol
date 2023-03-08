@@ -8,13 +8,7 @@ pragma solidity 0.8.16;
 import "./IERC20.sol";
 import "./Ownable.sol";
 import "../periphery/Errors.sol";
-
 // import "hardhat/console.sol";
-
-// import "hardhat/console.sol";
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
- */
 
 // File temp/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
@@ -75,8 +69,8 @@ contract ERC20 is IERC20, IERC20Metadata {
 
   uint256 internal _totalSupply;
 
-  string private _name;
-  string private _symbol;
+  string internal _name;
+  string internal _symbol;
 
   /**
    * @dev Sets the values for {name} and {symbol}.
@@ -191,56 +185,13 @@ contract ERC20 is IERC20, IERC20Metadata {
     _transfer(sender, recipient, amount);
     uint256 currentAllowance = _allowances[sender][msg.sender];
 
-    if (currentAllowance != type(uint).max && amount > currentAllowance) {
+    if (currentAllowance != type(uint256).max && amount > currentAllowance) {
       revert AllowanceExceeded(currentAllowance, amount);
     }
     _approve(sender, msg.sender, currentAllowance - amount);
     return true;
   }
-
-  /**
-   * @dev Atomically increases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   */
-  function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-    _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
-    return true;
-  }
-
-  /**
-   * @dev Atomically decreases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   * - `spender` must have allowance for the caller of at least
-   * `subtractedValue`.
-   */
-  function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-    uint256 currentAllowance = _allowances[msg.sender][spender];
-    if (currentAllowance < subtractedValue) {
-      revert AllowanceUnderflow(currentAllowance, subtractedValue);
-    }
-    unchecked {
-      _approve(msg.sender, spender, currentAllowance - subtractedValue);
-    }
-
-    return true;
-  }
-
+  
   /**
    * @dev Moves tokens `amount` from `sender` to `recipient`.
    *

@@ -228,10 +228,9 @@ describe("cliffFace proxy test", function () {
     //reset Behodler for CliffFace Swap
     expect(balanceOfReferenceTokenBeforeSecondSwap.eq(balanceOfReferenceTokenBeforeSwap)).to.be.true;
 
-    const balanceOfBaseToken = await SET.BaseToken.balanceOf(SET.owner.address);
-
     //Orchestrate cliffFace swap
     const cliffFaceSlippageEffect = SET.FINNEY.mul(1992).div(100);
+    
     await SET.CliffFace.swapAsInput(
       SET.owner.address,
       SET.ReferenceToken.address,

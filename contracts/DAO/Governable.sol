@@ -4,7 +4,6 @@ import "../periphery/Errors.sol";
 import "../facades/LimboDAOLike.sol";
 import "../facades/FlashGovernanceArbiterLike.sol";
 import "../facades/ProposalFactoryLike.sol";
-// import "hardhat/console.sol";
 
 ///@title Governable
 ///@author Justin Goro
@@ -14,14 +13,12 @@ import "../facades/ProposalFactoryLike.sol";
  *       -onlySuccessfulProposals will only execute if a proposal passes with a yes vote.
  */
 abstract contract Governable {
-  FlashGovernanceArbiterLike public governer;
-
   address public temporaryConfigurationLord;
   address public DAO;
 
   /**@notice during initial setup, requiring strict multiday proposals for calibration would unecessarily delay release.
    * As long as configured is false, the contract has no governance enforcement. Calling endConfiguration is a one way operation
-   * to ensure governance mechanisms kicks in. As a user, do not interact with these contracts if configured is false.
+   * to ensure governance mechanisms kick in. As a user, do not interact with these contracts if configured is false.
    * Only the original contract deployer can call endConfiguration. This is to protect against backrunning.
    * If other variables were sneakily changed, the DAO can always correct those through traditional tedious means. Then
    * backrunning becomes a mere inconvenience
@@ -52,7 +49,6 @@ abstract contract Governable {
 
   function assertSoulUpdateProposal(address sender) internal view {
     (, , address proposalFactory) = LimboDAOLike(DAO).proposalConfig();
-    //TODO: is this if statement logic complete?
     if (configured() && sender != ProposalFactoryLike(proposalFactory).soulUpdateProposal()) {
       revert GovernanceActionFailed(configured(), sender);
     }
@@ -61,11 +57,12 @@ abstract contract Governable {
 
   function _governanceApproved(bool emergency) internal {
     bool successfulProposal = LimboDAOLike(DAO).successfulProposal(msg.sender);
-    if (successfulProposal) {
-      governer.setEnforcement(false);
+    FlashGovernanceArbiterLike refreshedGoverner = flashGoverner();
+    if (successfulProposal || msg.sender == DAO) {
+      refreshedGoverner.setEnforcement(false);
     } else if (configured()) {
-      governer.setEnforcement(true);
-      governer.assertGovernanceApproved(msg.sender, address(this), emergency);
+      refreshedGoverner.setEnforcement(true);
+      refreshedGoverner.assertGovernanceApproved(msg.sender, address(this), emergency);
     }
   }
 
@@ -75,7 +72,7 @@ abstract contract Governable {
   }
 
   function assertSuccessfulProposal(address sender) internal view {
-    if (configured() && !LimboDAOLike(DAO).successfulProposal(sender)) {
+    if (configured() && sender != DAO && !LimboDAOLike(DAO).successfulProposal(sender)) {
       revert GovernanceActionFailed(configured(), sender);
     }
   }
@@ -85,10 +82,8 @@ abstract contract Governable {
     setDAO(dao);
   }
 
-  //singleton pattern to resolve circularity of dependency without impacting gas significantly
-  function flashGoverner() internal returns (FlashGovernanceArbiterLike) {
-    if (address(governer) == address(0)) governer = FlashGovernanceArbiterLike(LimboDAOLike(DAO).getFlashGoverner());
-    return governer;
+  function flashGoverner() internal view returns (FlashGovernanceArbiterLike) {
+    return FlashGovernanceArbiterLike(LimboDAOLike(DAO).getFlashGoverner());
   }
 
   ///@param dao The LimboDAO contract address
@@ -97,6 +92,5 @@ abstract contract Governable {
       revert AccessDenied(temporaryConfigurationLord, msg.sender);
     }
     DAO = dao;
-    delete governer;
   }
 }

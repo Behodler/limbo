@@ -6,6 +6,7 @@
 pragma solidity 0.8.16;
 import "../../facades/AngbandLike.sol";
 import "../../facades/LachesisLike.sol";
+import "../../facades/TokenProxyRegistryLike.sol";
 import "../../openzeppelin/IERC20.sol";
 import "../../openzeppelin/Ownable.sol";
 
@@ -18,18 +19,18 @@ struct Power {
   bool unique;
 }
 
-abstract contract PowerInvoker {
+abstract contract PowerInvokerTest {
   event PowerInvoked(address user, bytes32 minion, bytes32 domain);
 
   Power public power;
-  PowersRegistry public registry;
+  PowersRegistryTest public registry;
   AngbandLike public angband;
   bool invoked;
 
   constructor(bytes32 _power, address _angband) {
     angband = AngbandLike(_angband);
     address _registry = angband.getAddress(angband.POWERREGISTRY());
-    registry = PowersRegistry(_registry);
+    registry = PowersRegistryTest(_registry);
     (bytes32 name, bytes32 domain, bool transferrable, bool unique) = registry.powers(_power);
     power = Power(name, domain, transferrable, unique);
   }
@@ -57,16 +58,16 @@ abstract contract PowerInvoker {
   }
 }
 
-contract Empowered is Ownable {
-  PowersRegistry internal powersRegistry;
+contract EmpoweredTest is Ownable {
+  PowersRegistryTest internal powersRegistry;
   bool initialized;
 
   function changePower(address _powers)
     public
     requiresPowerOrInitialCondition(powersRegistry.CHANGE_POWERS(), address(powersRegistry) == address(0))
   {
-    bytes32 _power = PowersRegistry(_powers).CHANGE_POWERS();
-    powersRegistry = PowersRegistry(_powers);
+    bytes32 _power = PowersRegistryTest(_powers).CHANGE_POWERS();
+    powersRegistry = PowersRegistryTest(_powers);
     require(
       msg.sender == address(this) || !initialized || powersRegistry.userHasPower(_power, msg.sender),
       "MORGOTH: forbidden power"
@@ -81,7 +82,7 @@ contract Empowered is Ownable {
   }
 
   modifier requiresPowerOnInvocation(address invoker) {
-    (bytes32 power, , , ) = PowerInvoker(invoker).power();
+    (bytes32 power, , , ) = PowerInvokerTest(invoker).power();
     require(initialized, "MORGOTH: powers not allocated.");
     require(powersRegistry.userHasPower(power, msg.sender), "MORGOTH: forbidden power");
     _;
@@ -110,7 +111,7 @@ Every user privilege is a power in MorgothDAO. At first these powers will be con
 decentralized mechanisms.
 */
 
-contract PowersRegistry is Empowered {
+contract PowersRegistryTest is EmpoweredTest {
   bytes32 public constant NULL = "NULL";
   bytes32 public constant POINT_TO_BEHODLER = "POINT_TO_BEHODLER"; // set all behodler addresses
   bytes32 public constant WIRE_ANGBAND = "WIRE_ANGBAND";
@@ -167,7 +168,7 @@ contract PowersRegistry is Empowered {
   }
 
   function seed() public {
-    powersRegistry = PowersRegistry(address(this));
+    powersRegistry = PowersRegistryTest(address(this));
 
     create("ADD_TOKEN_TO_BEHODLER", "LACHESIS", true, false);
     pour("ADD_TOKEN_TO_BEHODLER", "Melkor");
@@ -248,19 +249,19 @@ contract PowersRegistry is Empowered {
 
 // File contracts/openzeppelin/IERC20.sol
 
-// File contracts/Limbo/IdempotentPowerInvoker.sol
+// File contracts/Limbo/IdempotentPowerInvokerTest.sol
 
-abstract contract IdempotentPowerInvoker {
+abstract contract IdempotentPowerInvokerTest {
   event PowerInvoked(address user, bytes32 minion, bytes32 domain);
 
   Power public power;
-  PowersRegistry public registry;
+  PowersRegistryTest public registry;
   AngbandLike public angband;
 
   constructor(bytes32 _power, address _angband) {
     angband = AngbandLike(_angband);
     address _registry = angband.getAddress(angband.POWERREGISTRY());
-    registry = PowersRegistry(_registry);
+    registry = PowersRegistryTest(_registry);
     (bytes32 name, bytes32 domain, bool transferrable, bool unique) = registry.powers(_power);
     power = Power(name, domain, transferrable, unique);
   }
@@ -281,25 +282,11 @@ abstract contract IdempotentPowerInvoker {
   }
 }
 
-// File contracts/Limbo/TokenProxyRegistryLike.sol
 
-pragma solidity 0.8.16;
-
-abstract contract TokenProxyRegistryLike {
-  struct TokenConfig {
-    address limboProxy;
-    address behodlerProxy;
-  }
-
-  function tokenProxy(address baseToken) public virtual returns (address, address);
-
-  function TransferFromLimboTokenToBehodlerToken(address token) public virtual returns (bool);
-}
 
 // File contracts/Limbo/LimboAddTokenToBehodler.sol
 
-//TODO: this needs to be tested properly in morgoth
-contract LimboAddTokenToBehodler {
+contract LimboAddTokenToBehodlerTest {
   struct Parameters {
     address soul;
     bool burnable;
@@ -338,7 +325,7 @@ contract LimboAddTokenToBehodler {
 
   function orchestrate() internal returns (bool) {
     Parameters memory localParams =params;
-    require(localParams.soul != address(0), "MORGOTH: PowerInvoker not parameterized.");
+    require(localParams.soul != address(0), "MORGOTH: PowerInvokerTest not parameterized.");
     TokenProxyRegistryLike proxyRegistry = TokenProxyRegistryLike(localParams.tokenProxyRegistry);
 
     (, address behodlerProxy) = proxyRegistry.tokenProxy(localParams.soul);

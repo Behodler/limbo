@@ -2,6 +2,12 @@
 pragma solidity 0.8.16;
 
 abstract contract BehodlerLike {
+  function setValidToken(
+    address token,
+    bool valid,
+    bool burnable
+  ) external virtual;
+
   function withdrawLiquidityFindSCX(
     address outputToken,
     uint256 tokensToRelease,
@@ -39,4 +45,6 @@ abstract contract BehodlerLike {
     payable
     virtual
     returns (uint256 deltaSCX);
+
+  function setSafetParameters(uint8 swapPrecisionFactor, uint8 maxLiquidityExit) external virtual;
 }

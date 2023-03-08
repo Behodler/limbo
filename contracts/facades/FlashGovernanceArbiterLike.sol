@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
+import "../openzeppelin/IERC20.sol";
 
 abstract contract FlashGovernanceArbiterLike {
   function assertGovernanceApproved(
@@ -29,4 +30,15 @@ abstract contract FlashGovernanceArbiterLike {
     uint256 unlockTime,
     bool assetBurnable
   ) public virtual;
+
+  function flashGovernanceConfig()
+    public
+    view
+    virtual
+    returns (
+      uint256 amount,
+      uint256 unlockTime,
+      IERC20 asset,
+      bool assetBurnable
+    );
 }

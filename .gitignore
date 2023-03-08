@@ -132,7 +132,7 @@ addresses.json
 
 .VSCodeCounter
 
-scripts/testnet/addresses/hardhat.json
+scripts/networks/addresses/hardhat*
 /flat
 private/
 test/deployment.json
@@ -142,3 +142,12 @@ scripts/testnet/addresses/orig*
 *.pdf
 gasResults/
 gasReport*
+
+contracts/remix/
+
+*.zip
+*.backup
+RESULTS.TXT
+
+.idea
+tmp/

@@ -40,8 +40,8 @@ abstract contract LimboDAOLike {
       address,
       address,
       address,
-      address,
       bool,
+      address,
       address,
       address
     );

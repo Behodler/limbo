@@ -344,11 +344,12 @@ describe("DAO staking", function () {
    (to pedantic readers, multiple calls is included in the definition of idempotent)
    @dev we use number close for fateBalance because of minor non deterministic timestamp variance
    */
-    let iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
+    let iterations = Math.floor(Math.random() * 4 + 3) // random amount of runs between 2 and 6 times
     let numberCloseResult
     console.log('stake run on first stake ' + iterations + ' times')
     let result: IExecutionResult = {} as IExecutionResult
     for (let i = 0; i < iterations; i++) {
+      await dao.incrementFateFor(owner.address)
       const fateBefore = (await dao.fateState(owner.address)).fateBalance
       const fatePerDayBefore = (await dao.fateState(owner.address)).fatePerDay
       result = await executionResult(dao.setEYEBasedAssetStake(
@@ -359,15 +360,16 @@ describe("DAO staking", function () {
         true
       ))
       expect(result.success).to.equal(true, result.error)
+      await dao.incrementFateFor(owner.address)
       const fateAfter = (await dao.fateState(owner.address)).fateBalance
       const fatePerDayAfter = (await dao.fateState(owner.address)).fatePerDay
       if (i > 1) {
-        numberCloseResult = numberClose(fateBefore, fateAfter)
+        console.log('iteration: ' + i)
+        numberCloseResult = numberClose(fateBefore, fateAfter, 30n)
         assert.isTrue(numberCloseResult.close, numberCloseResult.message)
-        numberCloseResult = numberClose(fatePerDayBefore, fatePerDayAfter)
+        numberCloseResult = numberClose(fatePerDayBefore, fatePerDayAfter, 30n)
         assert.isTrue(numberCloseResult.close, numberCloseResult.message)
       }
-
     }
     await advanceTime(432000) // 5 days
     await dao.incrementFateFor(owner.address)

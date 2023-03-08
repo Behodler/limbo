@@ -1,7 +1,5 @@
 [
   "constructor()",
-  "error OnlyOwner(address,address)",
-  "error TransferToZeroAddress()",
   "event OwnershipTransferred(address indexed,address indexed)",
   "function ADD_TOKEN_TO_BEHODLER() view returns (bytes32)",
   "function AUTHORIZE_INVOKER() view returns (bytes32)",
@@ -30,6 +28,7 @@
   "function owner() view returns (address)",
   "function pour(bytes32,bytes32)",
   "function powers(bytes32) view returns (bytes32, bytes32, bool, bool)",
+  "function renounceOwnership()",
   "function seed()",
   "function spread(bytes32,bytes32)",
   "function transferOwnership(address)",

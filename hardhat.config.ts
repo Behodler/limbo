@@ -17,10 +17,20 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 });
 
 export default {
-  solidity: "0.8.16",
+  solidity:
+  {
+    compilers: [
+      {
+        version: "0.8.16"
+      },
+      {
+        version: "0.7.1"
+      }
+    ]
+  },
   gasReporter: {
     optimizer: true,
-    outputFile: "gasReport.json",
+    outputFile: "gasReport.txt",
     disabled: true
   },
 
@@ -35,7 +45,7 @@ export default {
   networks: {
 
     hardhat: {
-      // allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
       chainId: 1337,
       accounts: {
         mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
@@ -46,12 +56,10 @@ export default {
           runs: 200,
         },
       },
-
-      //comment out mining block for non wargame tests
-      // mining: {
-      //   auto: false,
-      //   interval: 2,
-      // },
+      mining: {
+        auto: true,
+        interval: 2,
+      },
     },
     ropsten: {
       url: `https://nd-564-762-624.p2pify.com/41adb4b5065ff74a971a8bf5e85947c7`,

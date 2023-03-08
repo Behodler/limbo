@@ -6,7 +6,7 @@ import "../contracts/DAO/Governable.sol";
 ///@author Justin Goro
 ///@title Flan
 /**
- *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on the price of DAI via various external incentives
+ *@notice The reward token for Limbo. Flan can be minted without limit and is intended to converge on a reliable price via various external incentives
  */
 contract Flan is ERC677("Flan", "FLN"), Governable {
   mapping(address => bool) public mintAllowed; //type(uint).max == whitelist
@@ -23,6 +23,7 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
   constructor(address dao) Governable(dao) {
     mintConfig.lastEpochTimeStamp = uint128(block.timestamp); //it's never going to overflow
     mintConfig.EPOCH_SIZE = 86400; //one day
+    mintConfig.maxMintPerEpoch = 50000 ether;
   }
 
   ///@notice grants unlimited minting power to a contract
@@ -48,17 +49,16 @@ contract Flan is ERC677("Flan", "FLN"), Governable {
     if (!allowed) {
       revert MintingNotWhiteListed(msg.sender);
     }
-
     MintParameters memory config = mintConfig;
     if (block.timestamp - config.lastEpochTimeStamp > config.EPOCH_SIZE) {
       config.lastEpochTimeStamp = uint128(block.timestamp); //epochs can be long to allow for dormant periods followed by busy periods
       config.aggregateMintingThisEpoch = 0;
     }
-
     config.aggregateMintingThisEpoch += amount;
     if (config.aggregateMintingThisEpoch > config.maxMintPerEpoch) {
       revert MaxMintPerEpochExceeded(config.maxMintPerEpoch, config.aggregateMintingThisEpoch);
     }
+
     mintConfig = config;
     _mint(recipient, amount);
     return true;

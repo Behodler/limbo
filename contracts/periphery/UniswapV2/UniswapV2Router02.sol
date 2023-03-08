@@ -5,7 +5,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-// import "hardhat/console.sol";
 import "../Errors.sol";
 import "./interfaces/UNIIERC20.sol";
 import "./interfaces/IUniswapV2Factory.sol";
@@ -394,8 +393,7 @@ contract UniswapV2Router02 {
   address public WETH;
 
   modifier ensure(uint256 deadline) {
-    //commented out because getting UniswapV2 to work in tests is not my life's purpose right now.
-    // require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
+    require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
     _;
   }
 
@@ -610,6 +608,67 @@ contract UniswapV2Router02 {
     require(amountOut >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
     IWETH(WETH).withdraw(amountOut);
     TransferHelper.safeTransferETH(to, amountOut);
+  }
+
+  function addLiquidity(
+    address tokenA,
+    address tokenB,
+    uint256 amountADesired,
+    uint256 amountBDesired,
+    uint256 amountAMin,
+    uint256 amountBMin,
+    address to,
+    uint256 deadline
+  )
+    external
+    virtual
+    ensure(deadline)
+    returns (
+      uint256 amountA,
+      uint256 amountB,
+      uint256 liquidity
+    )
+  {
+    (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
+    // address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+
+    //the library code relies on the original code base being unchanged. This debugging code has
+    //been changed to work with Limbo. And so the hardcoded hash has to be replaced. On mainnet, this
+    //code isn't executed.
+    address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
+    TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
+    TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+    liquidity = IUniswapV2Pair(pair).mint(to);
+  }
+
+  function _addLiquidity(
+    address tokenA,
+    address tokenB,
+    uint256 amountADesired,
+    uint256 amountBDesired,
+    uint256 amountAMin,
+    uint256 amountBMin
+  ) internal virtual returns (uint256 amountA, uint256 amountB) {
+    // create the pair if it doesn't exist yet
+    if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
+      IUniswapV2Factory(factory).createPair(tokenA, tokenB);
+    }
+
+    (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+    if (reserveA == 0 && reserveB == 0) {
+      (amountA, amountB) = (amountADesired, amountBDesired);
+    } else {
+      uint256 amountBOptimal = UniswapV2Library.quote(amountADesired, reserveA, reserveB);
+      if (amountBOptimal <= amountBDesired) {
+        require(amountBOptimal >= amountBMin, "UniswapV2Router: INSUFFICIENT_B_AMOUNT");
+        (amountA, amountB) = (amountADesired, amountBOptimal);
+      } else {
+        uint256 amountAOptimal = UniswapV2Library.quote(amountBDesired, reserveB, reserveA);
+        assert(amountAOptimal <= amountADesired);
+        require(amountAOptimal >= amountAMin, "UniswapV2Router: INSUFFICIENT_A_AMOUNT");
+        (amountA, amountB) = (amountAOptimal, amountBDesired);
+      }
+    }
   }
 
   // **** LIBRARY FUNCTIONS ****

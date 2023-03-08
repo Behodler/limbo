@@ -5,8 +5,6 @@ import "../facades/Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../openzeppelin/IERC20.sol";
 
-// import "hardhat/console.sol";
-
 ///@author Justin Goro
 /**@notice When assessing whether flash governance rules must apply, the configured status of the calling contract must be inspected
  */
@@ -35,7 +33,9 @@ contract FlashGovernanceArbiter is Governable {
 
   mapping(address => bool) enforceLimitsActive;
 
-  constructor(address dao) Governable(dao) {}
+  constructor(address dao) Governable(dao) {
+    flashGovernanceConfig.unlockTime = 6 days; //defaulted to 3 times proposal voting window
+  }
 
   struct FlashGovernanceConfig {
     uint256 amount;
@@ -62,7 +62,7 @@ contract FlashGovernanceArbiter is Governable {
 
   /**@notice sets contracts LimboDAO has authority to govern
    *@param governables candidate contracts for flash governance
-   *@param isGoverned flags whether contract is governanble FlashGovernance Arbtier
+   *@param isGoverned flags whether contract is governanble by FlashGovernanceArbiter
    */
   function setGoverned(address[] calldata governables, bool[] calldata isGoverned) external onlySuccessfulProposal {
     if (governables.length != isGoverned.length) {
@@ -100,20 +100,19 @@ contract FlashGovernanceArbiter is Governable {
       if (!emergency && (block.timestamp - security.lastFlashGovernanceAct < security.epochSize)) {
         revert FlashGovernanceEpochFull(security.epochSize, security.lastFlashGovernanceAct);
       }
+
       //if user has previously made a flashGovernanceDecision on this contract and the requisite time for judgment has passed
       //but the user has failed to withdraw their deposit then this will simply transfer the net amount required.
       //if the requisite amount has fallen since the first decision, the user will be reimbursed the difference.
       //if the amount has increased, the user's deposit in this contract will be increased
 
       int256 netTransferAmount = int256(flashGovernanceConfig.amount) - int256(current.amount);
-
       flashGovernanceConfig.asset.approve(address(this), type(uint256).max);
       flashGovernanceConfig.asset.safeNetTransferFrom(sender, address(this), netTransferAmount);
 
       current = flashGovernanceConfig;
       current.unlockTime += block.timestamp;
       pendingFlashDecision[target][sender] = current;
-
       security.lastFlashGovernanceAct = block.timestamp;
       emit flashDecision(sender, address(flashGovernanceConfig.asset), flashGovernanceConfig.amount, target);
     } else {
@@ -135,6 +134,10 @@ contract FlashGovernanceArbiter is Governable {
   ) public virtual onlySuccessfulProposal {
     flashGovernanceConfig.asset = IERC20(asset);
     flashGovernanceConfig.amount = amount;
+    (uint256 votingDuration, , ) = LimboDAOLike(DAO).proposalConfig();
+    if (unlockTime < votingDuration) {
+      revert FlashGovLockTimeMustExceedVoting(unlockTime, votingDuration);
+    }
     flashGovernanceConfig.unlockTime = unlockTime;
     flashGovernanceConfig.assetBurnable = assetBurnable;
   }
@@ -222,11 +225,11 @@ contract FlashGovernanceArbiter is Governable {
     //bonus points for readability
     if (v1 > v2) {
       if ((v2 == 0 && v1 > 1) || (v1 - v2) * 100 >= security.changeTolerance * v1) {
-        revert FlashToleranceViolated(v1,v2);
+        revert FlashToleranceViolated(v1, v2);
       }
     } else {
       if ((v1 == 0 && v2 > 1) || ((v2 - v1) * 100) >= security.changeTolerance * v1) {
-            revert FlashToleranceViolated(v1,v2);
+        revert FlashToleranceViolated(v1, v2);
       }
     }
   }

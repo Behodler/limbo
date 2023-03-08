@@ -1,0 +1,5 @@
+[
+  "function mint(uint256) payable returns (uint256)",
+  "function redeem(uint256) returns (uint256)",
+  "function redeemRate() view returns (uint256)"
+]

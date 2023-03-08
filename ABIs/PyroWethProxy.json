@@ -1,0 +1,11 @@
+[
+  "constructor(address)",
+  "error EthForwardingFailed(uint256,uint256)",
+  "error Reantrancy()",
+  "function REAL() view returns (bool)",
+  "function balanceOf(address) view returns (uint256)",
+  "function mint(uint256) payable returns (uint256)",
+  "function pyroWeth() view returns (address)",
+  "function redeem(uint256) returns (uint256)",
+  "function weth10() view returns (address)"
+]

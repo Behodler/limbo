@@ -1,6 +1,11 @@
 [
-  "constructor(address,address,address,address,address)",
+  "constructor(address,address,address)",
+  "event PowerInvoked(address,bytes32,bytes32)",
+  "function angband() view returns (address)",
+  "function configureScarcityPower() view returns (address)",
   "function invoke(bytes32,address)",
   "function parameterize(address,bool)",
-  "function params() view returns (address, bool, address, address)"
+  "function params() view returns (address, bool, address)",
+  "function power() view returns (bytes32, bytes32, bool, bool)",
+  "function registry() view returns (address)"
 ]

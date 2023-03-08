@@ -8,6 +8,7 @@
   "event Mint(address,address,uint256)",
   "event Transfer(address indexed,address indexed,uint256)",
   "function MIN_LIQUIDITY() view returns (uint256)",
+  "function REAL() view returns (bool)",
   "function addLiquidity(address,uint256) payable returns (uint256)",
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)",

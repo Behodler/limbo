@@ -1,4 +1,5 @@
 [
   "function TransferFromLimboTokenToBehodlerToken(address) returns (bool)",
+  "function setProxy(address,address,address) returns (bool)",
   "function tokenProxy(address) returns (address, address)"
 ]

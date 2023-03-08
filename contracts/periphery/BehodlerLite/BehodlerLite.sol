@@ -2,9 +2,10 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "./CommonIERC20.sol";
 import "../../periphery/Errors.sol";
+import * as RB from "../RealEcosystem/Behodler/Behodler.sol";
 
 abstract contract BurnableBehodlerLite {
   function burn(uint256 amount) public virtual;
@@ -15,6 +16,7 @@ abstract contract BurnableBehodlerLite {
 }
 
 contract ScarcityLite is CommonIERC20 {
+  bool public constant REAL = false;
   event Mint(address sender, address recipient, uint256 value);
   event Burn(uint256 value);
 
@@ -166,33 +168,7 @@ contract ScarcityLite is CommonIERC20 {
   }
 }
 
-library AddressBalanceCheck {
-  function tokenBalance(address token) public view returns (uint256) {
-    return CommonIERC20(token).balanceOf(address(this));
-  }
-
-  function shiftedBalance(address token, uint256 factor) public view returns (uint256) {
-    return CommonIERC20(token).balanceOf(address(this)) / factor;
-  }
-
-  function transferIn(
-    address token,
-    address sender,
-    uint256 value
-  ) public {
-    CommonIERC20(token).transferFrom(sender, address(this), value);
-  }
-
-  function transferOut(
-    address token,
-    address recipient,
-    uint256 value
-  ) public {
-    CommonIERC20(token).transfer(recipient, value);
-  }
-}
-
-library ABDK {
+library ABDK_lite {
   /*
    * Minimum value signed 64.64-bit fixed point number may have.
    */
@@ -322,9 +298,9 @@ contract LachesisLite {
 }
 
 contract BehodlerLite is ScarcityLite {
-  using ABDK for int128;
-  using ABDK for uint256;
-  using AddressBalanceCheck for address;
+  using ABDK_lite for int128;
+  using ABDK_lite for uint256;
+  using RB.AddressBalanceCheck for address;
   mapping(address => bool) validTokens;
   struct PrecisionFactors {
     uint8 swapPrecisionFactor;

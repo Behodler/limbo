@@ -4,6 +4,7 @@ import "./BehodlerTokenProxy.sol";
 import "../openzeppelin/ERC20Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../periphery/Errors.sol";
+import "../libraries/RedeemableMaths.sol";
 
 ///@title Cliff Face
 ///@author Justin Goro
@@ -16,11 +17,13 @@ import "../periphery/Errors.sol";
  * without passing on the contagion to Behodler. This proxy will allow LimboDAO to relax restrictions on the types of new tokens listed,
  * indirectly increasing the HOLD value for EYE.
  */
-///@dev Current uncommented mint makes the slippage rise in proportion with shitcoin falling below $1. TODO: simulations
+///@dev Current uncommented mint makes the slippage rise in proportion with shitcoin falling below $1.
 contract CliffFace is BehodlerTokenProxy {
   using SafeERC20 for IERC20;
-
+  using RedeemableMaths for uint256;
+  uint256 constant ONE_SQUARED = ONE**2;
   address public immutable referenceToken;
+  ///@dev if <1e18, then token is expected to have a higher price than referenceToken
   uint256 public immutable referenceMultiple;
   struct Variables {
     uint256 priorRefBalance;
@@ -37,8 +40,8 @@ contract CliffFace is BehodlerTokenProxy {
     address registry,
     address _referenceToken,
     uint256 multiple,
-    address _behodler, 
-    uint _initalRedeemRate
+    address _behodler,
+    uint256 _initalRedeemRate
   ) BehodlerTokenProxy(_behodler, _baseToken, name_, symbol_, registry, _initalRedeemRate) {
     referenceToken = _referenceToken;
     referenceMultiple = multiple;
@@ -47,7 +50,7 @@ contract CliffFace is BehodlerTokenProxy {
   }
 
   function seedBehodler(uint256 initialSupply, address scxDestination) public override {
-    uint256 amount = mint(initialRedeemRate, address(this), msg.sender, initialSupply);
+    uint256 amount = mint(initialRedeemRate, address(this), msg.sender, initialSupply, 0);
 
     _approve(address(this), behodler, type(uint256).max);
     uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), amount);
@@ -66,6 +69,8 @@ contract CliffFace is BehodlerTokenProxy {
     uint256 currentThisBalance;
     uint256 R_AMP;
     uint256 minted;
+    uint256 projectedNewBalance;
+    bool condition;
   }
 
   function swapAsInput(
@@ -80,18 +85,33 @@ contract CliffFace is BehodlerTokenProxy {
       revert SlippageManipulationPrevention(block.number, VARS.blockNumber);
     }
     //gather balances before swap
-    workingVars.currentRefBalance = IERC20(behodler).balanceOf(referenceToken);
+    uint256 _redeemRate = redeemRate();
+    workingVars.currentRefBalance = IERC20(referenceToken).balanceOf(behodler);
     workingVars.currentThisBalance = IERC20(address(this)).balanceOf(behodler);
+    workingVars.projectedNewBalance = baseTokenAmount.toProxy(_redeemRate) + localVars.thisBalance;
+    //No amplification of marginal redeem rate by default.
+    workingVars.R_AMP = ONE;
+    /*The reference token balance is considered the lower bound value for the token before protective measures kick in.
+    Simple example: assume referenceMultiple doesn't exist. We have a token called HeyDai which we expect to trade at $2. 
+    The reference token is Dai. If the balance of HeyDai on Behodler exceeds the balance of Dai then we know the price has dropped below $1.
+    Marginal minting redeem rate increases (through R_AMP) which protects Behodler from a drop in HeyDai.
+    Now suppose we have a token called BigBlue trading at $100. We don't want to wait until it falls to $1 before triggering protections.
+    In this case, we set the referenceMultiple to, say, 80. Then when the quantity of BigBlue on Behodler rises to more than 1/80th of the Dai balance, we know that
+    BigBlue's price has fallen bellow $80, the trigger point. At this moment, marginal minting redeem rate rises.
+  */
 
-    workingVars.R_AMP = initialRedeemRate;
-
-    if ((baseTokenAmount + localVars.thisBalance) * initialRedeemRate > localVars.priorRefBalance * referenceMultiple) {
-      workingVars.R_AMP =
-        ((baseTokenAmount + localVars.thisBalance) * (initialRedeemRate**2)) /
-        (localVars.priorRefBalance * referenceMultiple);
+    unchecked {
+      workingVars.condition = workingVars.projectedNewBalance * ONE > localVars.priorRefBalance * referenceMultiple;
     }
-    workingVars.minted = mint(workingVars.R_AMP, address(this), msg.sender, baseTokenAmount);
+    if (workingVars.condition) {
+      unchecked {
+        workingVars.R_AMP =
+          (workingVars.projectedNewBalance * (ONE_SQUARED)) /
+          (localVars.priorRefBalance * referenceMultiple);
+      }
+    }
 
+    workingVars.minted = mint(workingVars.R_AMP, address(this), msg.sender, baseTokenAmount, _redeemRate);
     if (outputToken == behodler) {
       uint256 scx = BehodlerLike(behodler).addLiquidity(address(this), workingVars.minted);
       if (scx != outputAmount) {
@@ -101,9 +121,9 @@ contract CliffFace is BehodlerTokenProxy {
       BehodlerLike(behodler).transfer(outputRecipient, scx);
     } else {
       BehodlerLike(behodler).swap(address(this), outputToken, workingVars.minted, outputAmount);
-      IERC20(baseToken).safeTransfer(outputRecipient, outputAmount);
+      IERC20(outputToken).safeTransfer(outputRecipient, outputAmount);
     }
-    //modifiers don't share local variables according to a compiler error :(
+    //modifiers don't share local variables
     localVars.priorRefBalance = workingVars.currentRefBalance;
     localVars.blockNumber = block.number;
     localVars.thisBalance = workingVars.currentThisBalance;

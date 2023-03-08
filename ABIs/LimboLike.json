@@ -1,5 +1,5 @@
 [
-  "function claimSecondaryRewards(address)",
+  "function configureCrossingParameters(address,uint256,int256,bool,uint256)",
   "function configureSoul(address,uint256,uint256,uint256,uint256,uint256)",
   "function latestIndex(address) view returns (uint256)",
   "function souls(address,uint256) view returns (uint256, uint256, uint256, uint256, uint256, uint256)",
@@ -7,7 +7,7 @@
   "function stakeFor(address,uint256,address)",
   "function tokenCrossingParameters(address,uint256) view returns (uint256, uint256, int256, uint256, bool)",
   "function unstake(address,uint256)",
-  "function unstakeFor(address,uint256,address)",
+  "function unstakeFor(address,uint256,address,uint256)",
   "function userInfo(address,address,uint256) view returns (uint256, uint256, bool)",
   "function userTokenBalance(address) returns (uint256)",
   "function withdrawERC20(address,address)"

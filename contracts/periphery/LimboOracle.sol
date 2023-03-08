@@ -122,7 +122,6 @@ contract LimboOracle is Governable {
     (uint256 price0Cumulative, uint256 price1Cumulative, uint32 blockTimestamp) = UniswapV2OracleLibrary
       .currentCumulativePrices(_pair);
     PairMeasurement memory measurement = pairMeasurements[_pair];
-    // //console.log("ORACLE: price0Cumulative %s, price1Cumulative", price0Cumulative, price1Cumulative);
 
     if (measurement.period == 0) {
       revert AssetNotRegistered(_pair);
@@ -133,7 +132,6 @@ contract LimboOracle is Governable {
       timeElapsed = blockTimestamp - measurement.blockTimestampLast; // overflow is desired
     }
 
-    //console.log("period %s, timeElapsed %s", measurement.period, timeElapsed);
     // ensure that at least one full period has passed since the last update
     if (timeElapsed < measurement.period) {
       revert WaitPeriodTooSmall(timeElapsed, measurement.period);
@@ -147,19 +145,17 @@ contract LimboOracle is Governable {
       uint224((price1Cumulative - measurement.price1CumulativeLast) / timeElapsed)
     );
 
-    //console.log(
-    //   "final price1Average %s, price0Average %s ",
-    //   measurement.price1Average.decode(),
-    //   measurement.price0Average.decode()
-    // );
     measurement.price0CumulativeLast = price0Cumulative;
     measurement.price1CumulativeLast = price1Cumulative;
     measurement.blockTimestampLast = blockTimestamp;
     pairMeasurements[_pair] = measurement;
-    //console.log("");
   }
 
   function isPair(address tokenA, address tokenB) private view returns (bool) {
     return factory.getPair(tokenA, tokenB) != address(0);
+  }
+
+  function uniSort(address tokenA, address tokenB) external pure returns (address token0, address token1) {
+    (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
   }
 }

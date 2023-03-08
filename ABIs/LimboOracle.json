@@ -16,10 +16,10 @@
   "function endConfiguration(address)",
   "function factory() view returns (address)",
   "function getLastUpdate(address,address) view returns (uint32, uint256)",
-  "function governer() view returns (address)",
   "function pairMeasurements(address) view returns (uint256, uint256, uint32, tuple(uint224), tuple(uint224), uint256)",
   "function setDAO(address)",
   "function temporaryConfigurationLord() view returns (address)",
+  "function uniSort(address,address) pure returns (address, address)",
   "function update(address,address)",
   "function updatePair(address)"
 ]

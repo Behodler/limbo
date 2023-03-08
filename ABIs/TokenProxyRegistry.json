@@ -12,11 +12,11 @@
   "function TransferFromLimboTokenToBehodlerToken(address) returns (bool)",
   "function configured() view returns (bool)",
   "function endConfiguration(address)",
-  "function governer() view returns (address)",
   "function migrateProxyTokenToNewProxyWrapper(address,address)",
   "function setDAO(address)",
   "function setPower(address)",
   "function setProxy(address,address,address) returns (bool)",
+  "function setTokenApprover(address)",
   "function temporaryConfigurationLord() view returns (address)",
   "function tokenProxy(address) view returns (address, address)"
 ]

@@ -1,0 +1,6 @@
+[
+  "constructor(address,address,address,address,address)",
+  "function invoke(bytes32,address)",
+  "function parameterize(address,bool)",
+  "function params() view returns (address, bool, address, address)"
+]

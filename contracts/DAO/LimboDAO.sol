@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 import "../openzeppelin/Ownable.sol";
-import "../openzeppelin/ERC677.sol";
+import "../facades/Burnable.sol";
 import "../Flan.sol";
 import "./ProposalFactory.sol";
 import "../facades/SwapFactoryLike.sol";
@@ -30,7 +30,6 @@ struct DomainConfig {
   address limbo;
   address flan;
   address eye;
-  address fate;
   bool live;
   address flashGoverner;
   LimboOracleLike sushiOracle;
@@ -87,7 +86,7 @@ contract LimboDAO is Ownable {
   event assetBurnt(address indexed burner, address indexed asset, uint256 fateCreated);
 
   uint256 constant ONE = 1 ether;
-  uint FATE_PRECISION = 1e9;
+  uint256 FATE_PRECISION = 1e9;
 
   DomainConfig public domainConfig;
   ProposalConfig public proposalConfig;
@@ -150,13 +149,12 @@ contract LimboDAO is Ownable {
         if (currentProposalState.fate > 0) {
           currentProposalState.decision = ProposalDecision.approved;
           (success, ) = address(currentProposalState.proposal).call(abi.encodeWithSignature("orchestrateExecute()"));
-          //deposit returned to propser
+          //deposit returned to proposer
           fateState[currentProposalState.proposer].fateBalance += proposalConfig.requiredFateStake;
           if (!success) currentProposalState.decision = ProposalDecision.failed;
         } else {
           currentProposalState.decision = ProposalDecision.rejected;
         }
-
         emit proposalExecuted(address(currentProposalState.proposal), success);
         nextProposal();
       }
@@ -203,6 +201,7 @@ contract LimboDAO is Ownable {
 
     proposalConfig.requiredFateStake = 223 * ONE; //defaulted to 50000 EYE for 24 hours
     proposalConfig.proposalFactory = proposalFactory;
+
     address sushiFactory = address(LimboOracleLike(sushiOracle).factory());
     address uniFactory = address(LimboOracleLike(uniOracle).factory());
     for (uint256 i = 0; i < sushiMetaLPs.length; i++) {
@@ -243,6 +242,7 @@ contract LimboDAO is Ownable {
     if (address(currentProposalState.proposal) != address(0)) {
       revert LodgeFailActiveProposal(address(currentProposalState.proposal), proposal);
     }
+
     //The *2 refers to 100% deposit in fate taken from the proposer.
     // If the vote succeeds, the deposit is returned, if it fails, it isn't. This makes proposals
     // that are likely to fail more costly and ties up fate of proposers, reducing incentives to over propose.
@@ -308,6 +308,10 @@ contract LimboDAO is Ownable {
     uint256 requiredFateStake,
     address proposalFactory
   ) public onlySuccessfulProposal {
+    (, uint256 unlockTime, , ) = FlashGovernanceArbiterLike(domainConfig.flashGoverner).flashGovernanceConfig();
+    if (unlockTime < votingDuration) {
+      revert FlashGovLockTimeMustExceedVoting(unlockTime, votingDuration);
+    }
     proposalConfig.votingDuration = votingDuration;
     proposalConfig.requiredFateStake = requiredFateStake;
     proposalConfig.proposalFactory = proposalFactory;
@@ -419,7 +423,7 @@ contract LimboDAO is Ownable {
     uint256 fateCreated = fateState[msg.sender].fateBalance;
     if (asset == domainConfig.eye) {
       fateCreated = amount * 10;
-      ERC677(domainConfig.eye).burn(amount);
+      Burnable(domainConfig.eye).burn(amount);
     } else {
       uint256 impliedEye = EYEEquivalentOfLP(asset, uniswap, amount);
       fateCreated = impliedEye * 20;
@@ -444,15 +448,6 @@ contract LimboDAO is Ownable {
   ///@notice if the DAO is being dismantled, it's necessary to transfer any owned items
   function transferOwnershipOfThing(address thing, address destination) public onlySuccessfulProposal {
     Ownable(thing).transferOwnership(destination);
-  }
-
-  ///@notice for proposals in voting state, how much longer until voting closes.
-  function timeRemainingOnProposal() public view returns (uint256) {
-    if (currentProposalState.decision != ProposalDecision.voting)
-      revert ProposalNotInVoting(address(currentProposalState.proposal));
-    uint256 elapsed = block.timestamp - currentProposalState.start;
-    if (elapsed > proposalConfig.votingDuration) return 0;
-    return proposalConfig.votingDuration - elapsed;
   }
 
   /**
@@ -505,7 +500,7 @@ Gas prices prevent the whale from spreading their LP balance amongst 1000s of ac
   }
 
   /**@notice seed is a goro idiom for initialize that you tend to find in all the dapps I've written.
-   * I prefer initialization funcitons to parameterized solidity constructors for reasons beyond the scope of this comment.
+   * I prefer initialization functions to parameterized solidity constructors for reasons beyond the scope of this comment.
    */
   function _seed(
     address limbo,

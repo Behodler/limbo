@@ -1,0 +1,4 @@
+[
+  "function baseTokenMapping(address) view returns (address)",
+  "function registerPyroToken(address)"
+]
