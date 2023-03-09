@@ -14,10 +14,10 @@ const DEPLOYED_ADDRESSES_JSON_FILE_PATH = path.resolve(
   __dirname,
   '../../../scripts/networks/addresses/hardhat.json',
 )
-const DEPLOYMENT_MINING_INTERVAL_MS = 500
+const DEPLOYMENT_MINING_INTERVAL_MS = 2000
 const WORKING_MINING_INTERVAL_MS = DEPLOYMENT_MINING_INTERVAL_MS
 const BLOCK_TIME_MS = 20000
-const CONFIRMATIONS_NUMBER = 6
+const CONFIRMATIONS_NUMBER = 1
 const AUTO_MINING_ENABLED = false
 const DEPLOYMENT_RECIPE_NAME:recipeNames = 'testnet'
 
@@ -29,24 +29,15 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
 
   return function (fastify: BehodlerDevEnvFastifyInstance, opts, done): void {
     async function startHardhatNodeAndDeployBehodlerContracts(): Promise<BehodlerDevEnv> {
-      const node: Promise<any> = hre.run('node', { noDeploy: true,silent:true })
-
-
+      const node: Promise<any> = hre.run('node', { noDeploy: true,silent:true, port:8550 })
 
       fastify.log.info('started hardhat node')
       const { chainId } = await hre.ethers.provider.getNetwork()
 
-      fastify.log.info(`setting auto mining to ${AUTO_MINING_ENABLED}`)
-      await hre.network.provider.send('evm_setAutomine', [AUTO_MINING_ENABLED])
-      fastify.log.info(`auto mining ${AUTO_MINING_ENABLED ? 'enabled' : 'disabled'}`)
-
-      if (!AUTO_MINING_ENABLED) {
-        fastify.log.info(
-          `setting mining interval to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`,
-        )
-        await hre.network.provider.send('evm_setIntervalMining', [DEPLOYMENT_MINING_INTERVAL_MS])
-        fastify.log.info(`mining interval set to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`)
-      }
+      fastify.log.info(`setting auto mining to ${true}`)
+      await hre.network.provider.send('evm_setAutomine', [true])
+   
+    
 
       fastify.log.info('deploying Behodler contracts')
       const deployedAddresses = await safeDeploy(
@@ -57,6 +48,18 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
         message => fastify.log.info(`deployment: ${message}`),
       )
       fastify.log.info('deployment complete')
+
+      fastify.log.info(`auto mining ${AUTO_MINING_ENABLED ? 'enabled' : 'disabled'}`)
+
+      await hre.network.provider.send('evm_setAutomine', [AUTO_MINING_ENABLED])
+
+      if (!AUTO_MINING_ENABLED) {
+        fastify.log.info(
+          `setting mining interval to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`,
+        )
+        await hre.network.provider.send('evm_setIntervalMining', [DEPLOYMENT_MINING_INTERVAL_MS])
+        fastify.log.info(`mining interval set to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`)
+      }
 
       if (!AUTO_MINING_ENABLED) {
         fastify.log.info(`setting mining interval to ${WORKING_MINING_INTERVAL_MS / 1000} seconds`)

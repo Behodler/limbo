@@ -6,7 +6,7 @@ import { BehodlerDevEnvFastifyInstance, BehodlerDevEnv, StartDevEnv } from './ty
 import { startDevEnvPlugin } from './startDevEnv'
 
 const parsedArgv = parseArgv(process.argv)
-const serverPort = parsedArgv.p || parsedArgv.port || 6667
+const serverPort = parsedArgv.p || parsedArgv.port || 6669
 
 function initApp(): BehodlerDevEnvFastifyInstance {
   const fastify: BehodlerDevEnvFastifyInstance = Fastify({
