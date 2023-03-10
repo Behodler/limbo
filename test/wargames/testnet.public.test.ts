@@ -38,12 +38,12 @@ describe("public testnet deployment", function () {
 
   async function deployEcosystem() {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = (await safeDeploy("testnet", 1337, 2, 1, logger)) as DeployedContracts;
+    const addresses = (await safeDeploy("testnet", 1337, 1, logger)) as DeployedContracts;
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
     const fetchAddress = fetchAddressFactory(addresses)
     logger('addresses', JSON.stringify(addresses, null, 4))
-    const pauser = await getPauser(2, "hardhat", 1);
+    const pauser = await getPauser("hardhat", 1);
     const getContractFactory = (fetchAddress: (name: contractNames) => string) => {
 
       return async<T extends Contract>(contractName: contractNames, factoryName?: string, libraries?: ethersLib) => {
@@ -63,11 +63,11 @@ describe("public testnet deployment", function () {
 
 
   it("t0. tests deployer", async function () {
-    const { fetchAddress } =  await loadFixture(deployEcosystem)
+    const { fetchAddress } = await loadFixture(deployEcosystem)
   })
 
   it("t1. illustrate a healthy deployment by having working LP tokens", async function () {
-    const { fetchAddress } =await loadFixture(deployEcosystem)
+    const { fetchAddress } = await loadFixture(deployEcosystem)
 
     const eyeDaiAddress = fetchAddress("EYE_DAI")
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
@@ -252,7 +252,7 @@ describe("public testnet deployment", function () {
 
     const RegisterPyroV3PowerInvokerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
 
-    const powerInvoker = await deploy<Types.RegisterPyroTokenV3Power>(RegisterPyroV3PowerInvokerFactory, aave.address, false, angband.address,powers.address)
+    const powerInvoker = await deploy<Types.RegisterPyroTokenV3Power>(RegisterPyroV3PowerInvokerFactory, aave.address, false, angband.address, powers.address)
     await powerInvoker.setPyroDetails("PyroAave", "PAAVE")
     await angband.authorizeInvoker(powerInvoker.address, true)
     await angband.executePower(powerInvoker.address)

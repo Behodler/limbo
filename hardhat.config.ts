@@ -75,9 +75,25 @@ export default {
           runs: 200,
         },
       },
+     
       // maxFeePerGas: "0x17D78400",
       // maxPriorityFeePerGas: "0x17D78400",
     },
+    sepolia:{
+      url:`http://localhost:8545`,
+      chainId:11155111,
+      accounts:{
+        mnemonic:mnemonic.phrase
+      },
+      from:mnemonic.primary,
+      gasMultiplier:2,
+      settings:{
+        optimizer:{
+          enabled:true,
+          runs:200
+        }
+      }
+    }
   },
   namedAccounts: {
     deployer: 0,

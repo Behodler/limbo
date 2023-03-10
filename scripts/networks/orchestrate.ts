@@ -13,7 +13,6 @@ const nullAddress = "0x0000000000000000000000000000000000000000";
 export async function safeDeploy(
   recipeOfDeployment: recipeNames,
   chainId: number | undefined,
-  blockTime: number,
   confirmations: number,
   logger: (message: string) => void,
   persistPath?: string
@@ -31,7 +30,7 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    const addresses = deployToNetwork(recipeOfDeployment, chainId, blockTime, confirmations,logger);
+    const addresses = deployToNetwork(recipeOfDeployment, chainId, confirmations,logger);
     if (persistPath)
       writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
     return addresses
@@ -45,7 +44,6 @@ export async function safeDeploy(
 export async function deployToNetwork(
   recipeName: recipeNames,
   chainId: number | undefined,
-  blockTime: number,
   confirmations: number,
   logger: (message: string) => void
 ): Promise<OutputAddress> {
@@ -66,7 +64,7 @@ export async function deployToNetwork(
   const recipe = fetchDeploymentRecipe(recipeName)
 
   const networkName = nameNetwork(chainId);
-  const pauser = await getPauser(blockTime, networkName, confirmations);
+  const pauser = await getPauser(networkName, confirmations);
 
   let loader = new Loader(networkName, logger, deployer, pauser,confirmations)
 

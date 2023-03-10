@@ -39,7 +39,7 @@ export async function getTXCount(deployer: SignerWithAddress) {
 }
 
 //note:duration is milliseconds 
-function pauserFactory(duration: number, network: string, confirmations: number) {
+function pauserFactory(network: string, confirmations: number) {
   const networkToUse = network == "hardhat" ? "localhost" : network;
   let provider = ethers.provider; //ethers.getDefaultProvider(networkToUse);
 
@@ -61,8 +61,8 @@ function pauserFactory(duration: number, network: string, confirmations: number)
   };
 }
 
-export function getPauser(blockTime: number, network: string, confirmations: number) {
-  return pauserFactory(blockTime, network, confirmations);
+export function getPauser(network: string, confirmations: number) {
+  return pauserFactory(network, confirmations);
 }
 //Three options: either actually pause for block time, try time increasing only or just mine
 async function pause(confirmations: number) {
@@ -161,6 +161,7 @@ export const stringToBytes32 = (s: string): string => {
   let padded = s.padEnd(32, "\0")
   return ethers.utils.hexlify(ethers.utils.arrayify(Web3.default.utils.fromAscii(padded)))
 }
+
 export type networks = "mainnet" | "goerli" | "optimism" | "kovan" | "polygon" | "hardhat" | "arbitrum one" | "sepolia"
 export function nameNetwork(networkId: number): networks {
   switch (networkId) {

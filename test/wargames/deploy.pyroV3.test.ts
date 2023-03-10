@@ -27,7 +27,7 @@ let logFactory = (show: boolean) => {
 const deployRecipe = async (recipe: recipeNames, log: boolean, provider: EthereumProvider): Promise<DeployedContracts> => {
   let recipeLogger = logFactory(log)
   await provider.send("evm_setAutomine", [true]);
-  return await safeDeploy(recipe, 1337, 2, 1, recipeLogger) as DeployedContracts
+  return await safeDeploy(recipe, 1337, 1, recipeLogger) as DeployedContracts
 }
 describe("pyroV3 addition to mainnet", function () {
   const provider = hre.network.provider
@@ -53,7 +53,7 @@ describe("pyroV3 addition to mainnet", function () {
     const fetchAddress = fetchAddressFactory(addresses)
     if (log)
       logger('addresses', JSON.stringify(addresses, null, 4))
-    const pauser = await getPauser(2, "hardhat", 9);
+    const pauser = await getPauser( "hardhat", 9);
     const getContractFactory = (fetchAddress: (name: contractNames) => string) => {
 
       return async<T extends Contract>(contractName: contractNames, factoryName?: string, libraries?: ethersLib) => {

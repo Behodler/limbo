@@ -66,7 +66,6 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
       const deployedAddresses = await safeDeploy(
         DEPLOYMENT_CONFIG.recipeName,
         chainId,
-        DEPLOYMENT_CONFIG.miningIntervalMs,
         DEPLOYMENT_CONFIG.confirmationsNumber,
         message => fastify.log.info(`deployment: ${message}`),
       )
