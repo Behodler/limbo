@@ -4,22 +4,36 @@ import fs from 'fs'
 import path from 'path'
 import { FastifyPluginCallback } from 'fastify'
 
-import { BehodlerDevEnv, BehodlerDevEnvFastifyInstance } from './types'
+import {
+  BehodlerDevEnv,
+  BehodlerDevEnvFastifyInstance,
+  BehodlerDevEnvDeploymentConfig,
+  BehodlerDevEnvRuntimeConfig,
+  BehodlerDevEnvNodeSettings,
+} from './types'
 import { safeDeploy } from '../../../scripts/networks/orchestrate'
-import { RunTaskFunction } from 'hardhat/types'
-import { recipeNames } from '../../../scripts/networks/common'
 
-// DEPLOYMENT SETTINGS
-const DEPLOYED_ADDRESSES_JSON_FILE_PATH = path.resolve(
-  __dirname,
-  '../../../scripts/networks/addresses/hardhat.json',
-)
-const DEPLOYMENT_MINING_INTERVAL_MS = 2000
-const WORKING_MINING_INTERVAL_MS = DEPLOYMENT_MINING_INTERVAL_MS
-const BLOCK_TIME_MS = 20000
-const CONFIRMATIONS_NUMBER = 1
-const AUTO_MINING_ENABLED = false
-const DEPLOYMENT_RECIPE_NAME:recipeNames = 'testnet'
+const DEPLOYMENT_CONFIG: BehodlerDevEnvDeploymentConfig = {
+  miningIntervalMs: 2000,
+  autoMining: true,
+  recipeName: 'testnet',
+  confirmationsNumber: 1,
+  addressesJSONFilePath: path.resolve(
+    __dirname,
+    '../../../scripts/networks/addresses/hardhat.json',
+  ),
+}
+
+const RUNTIME_CONFIG: BehodlerDevEnvRuntimeConfig = {
+  miningIntervalMs: 2000,
+  autoMining: false,
+}
+
+const HRE_NODE_SETTINGS: BehodlerDevEnvNodeSettings = {
+  noDeploy: true,
+  silent: true,
+  port: 8550,
+}
 
 export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): FastifyPluginCallback {
   const initialBehodlerDevEnv: BehodlerDevEnv = {
@@ -27,44 +41,43 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
     snapshots: [],
   }
 
+  const setAutoMining = async (autoMining: boolean, logger): Promise<void> => {
+    logger.info(`${DEPLOYMENT_CONFIG.autoMining ? 'enabling' : 'disabling'} auto mining`)
+    await hre.network.provider.send('evm_setAutomine', [DEPLOYMENT_CONFIG.autoMining])
+    logger.info(`auto mining ${DEPLOYMENT_CONFIG.autoMining ? 'enabled' : 'disabled'}`)
+  }
+
+  const setMiningInterval = async (miningIntervalMs: number, logger): Promise<void> => {
+    logger.info(`setting mining interval to ${miningIntervalMs / 1000} seconds`)
+    await hre.network.provider.send('evm_setIntervalMining', [miningIntervalMs])
+    logger.info(`mining interval set to ${miningIntervalMs / 1000} seconds`)
+  }
+
   return function (fastify: BehodlerDevEnvFastifyInstance, opts, done): void {
     async function startHardhatNodeAndDeployBehodlerContracts(): Promise<BehodlerDevEnv> {
-      const node: Promise<any> = hre.run('node', { noDeploy: true,silent:true, port:8550 })
-
-      fastify.log.info('started hardhat node')
+      fastify.log.info('starting hardhat node')
+      const node: Promise<any> = hre.run('node', HRE_NODE_SETTINGS)
       const { chainId } = await hre.ethers.provider.getNetwork()
 
-      fastify.log.info(`setting auto mining to ${true}`)
-      await hre.network.provider.send('evm_setAutomine', [true])
-   
-    
+      await setAutoMining(DEPLOYMENT_CONFIG.autoMining, fastify.log)
+      await setMiningInterval(DEPLOYMENT_CONFIG.miningIntervalMs, fastify.log)
 
       fastify.log.info('deploying Behodler contracts')
       const deployedAddresses = await safeDeploy(
-        DEPLOYMENT_RECIPE_NAME,
+        DEPLOYMENT_CONFIG.recipeName,
         chainId,
-        DEPLOYMENT_MINING_INTERVAL_MS,
-        CONFIRMATIONS_NUMBER,
+        DEPLOYMENT_CONFIG.miningIntervalMs,
+        DEPLOYMENT_CONFIG.confirmationsNumber,
         message => fastify.log.info(`deployment: ${message}`),
       )
       fastify.log.info('deployment complete')
 
-      fastify.log.info(`auto mining ${AUTO_MINING_ENABLED ? 'enabled' : 'disabled'}`)
-
-      await hre.network.provider.send('evm_setAutomine', [AUTO_MINING_ENABLED])
-
-      if (!AUTO_MINING_ENABLED) {
-        fastify.log.info(
-          `setting mining interval to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`,
-        )
-        await hre.network.provider.send('evm_setIntervalMining', [DEPLOYMENT_MINING_INTERVAL_MS])
-        fastify.log.info(`mining interval set to ${DEPLOYMENT_MINING_INTERVAL_MS / 1000} seconds`)
+      if (RUNTIME_CONFIG.autoMining !== DEPLOYMENT_CONFIG.autoMining) {
+        await setAutoMining(RUNTIME_CONFIG.autoMining, fastify.log)
       }
 
-      if (!AUTO_MINING_ENABLED) {
-        fastify.log.info(`setting mining interval to ${WORKING_MINING_INTERVAL_MS / 1000} seconds`)
-        await hre.network.provider.send('evm_setIntervalMining', [WORKING_MINING_INTERVAL_MS])
-        fastify.log.info(`mining interval set to ${WORKING_MINING_INTERVAL_MS / 1000} seconds`)
+      if (RUNTIME_CONFIG.miningIntervalMs !== DEPLOYMENT_CONFIG.miningIntervalMs) {
+        await setMiningInterval(RUNTIME_CONFIG.miningIntervalMs, fastify.log)
       }
 
       return { ...initialBehodlerDevEnv, active: true, node, deployedAddresses }
@@ -78,15 +91,14 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
           return fastify.log.info('dev env already running')
         }
 
-        if (fs.existsSync(DEPLOYED_ADDRESSES_JSON_FILE_PATH)) {
-          fastify.log.info(`removing ${DEPLOYED_ADDRESSES_JSON_FILE_PATH}`)
-          fs.rmSync(DEPLOYED_ADDRESSES_JSON_FILE_PATH)
+        if (fs.existsSync(DEPLOYMENT_CONFIG.addressesJSONFilePath)) {
+          fastify.log.info(`removing ${DEPLOYMENT_CONFIG.addressesJSONFilePath}`)
+          fs.rmSync(DEPLOYMENT_CONFIG.addressesJSONFilePath)
           fastify.log.info('file removed, starting dev env')
         }
 
         setBehodlerDevEnv(await startHardhatNodeAndDeployBehodlerContracts())
         fastify.log.info('dev env started')
-
       } catch (error) {
         fastify.log.error(`starting dev env failed: ${error}`)
       }
