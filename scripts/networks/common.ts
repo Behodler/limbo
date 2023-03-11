@@ -71,9 +71,10 @@ async function pause(confirmations: number) {
   await mine(confirmations)
 }
 
-async function syncPause(milliseconds: number): Promise<void> {
+async function syncPause(seconds: number): Promise<void> {
   return new Promise(resolve => {
-    setTimeout(resolve, milliseconds);
+    console.log(`pausing for ${seconds} seconds`)
+    setTimeout(resolve, seconds * 1000);
   });
 }
 
@@ -108,17 +109,14 @@ export function isContractAddress(address: string): boolean {
 export function deploymentFactory(
   section: Sections,
   existing: AddressFileStructure,
-  pauser: Function,
   customDeploymentCode?: () => Promise<Contract>
 ) {
   const sectionAddresses = existing[sectionName(section)]
   return async function <T extends Contract>(
     name: contractNames,
     factory: ContractFactory,
-    pauser: Function,
     ...args: Array<any>
   ): Promise<T> {
-
 
     let gasArgs = args || [];
     //if (gasOverride) gasArgs.push({ gasLimit: 2000000, maxFeePerGas: "0x17D78400", maxPriorityFeePerGas: "0x17D78400" });
@@ -133,6 +131,12 @@ export function deploymentFactory(
 
     let contract: T
     logger('deploy tx for ' + name)
+
+    try {
+      await mine(1)
+    } catch {
+
+    }
     // await pauser()
     if (existingAddress && isContractAddress(existingAddress)) {
       contract = await factory.attach(existingAddress) as T
@@ -352,12 +356,12 @@ deploymentRecipes.push({
     Sections.BehodlerSeedNew,
     Sections.RefreshTokensOnBehodler,
     Sections.ConfigureIronCrown,
-  
+
     Sections.PyroWethProxy,
     Sections.MorgothMapPyroWeth10Proxy,
     Sections.DeployerSnufferCap,
     Sections.MorgothMapLiquidityReceiver,
-    
+
     Sections.SnuffPyroWethProxy,
     Sections.ProxyHandler,
     Sections.V2Migrator,

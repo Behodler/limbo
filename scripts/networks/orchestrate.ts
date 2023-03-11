@@ -30,7 +30,7 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    const addresses = deployToNetwork(recipeOfDeployment, chainId, confirmations,logger);
+    const addresses = deployToNetwork(recipeOfDeployment, chainId, confirmations, logger);
     if (persistPath)
       writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
     return addresses
@@ -66,7 +66,7 @@ export async function deployToNetwork(
   const networkName = nameNetwork(chainId);
   const pauser = await getPauser(networkName, confirmations);
 
-  let loader = new Loader(networkName, logger, deployer, pauser,confirmations)
+  let loader = new Loader(networkName, logger, deployer, pauser, confirmations)
 
   const iterations = recipe.length;
   for (let i = 0; i < iterations; i++) {
@@ -94,13 +94,13 @@ class Loader {
   deployer: SignerWithAddress
   pauser: Function
   fileName: string = ""
-  confirmations:number
+  confirmations: number
 
   constructor(network: networks,
     logger: (message: string) => void,
     deployer: SignerWithAddress,
     pauser: Function,
-    confirmations:number) {
+    confirmations: number) {
     this.network = network;
     this.existing = {} as AddressFileStructure;
     this.logger = logger;
@@ -146,9 +146,8 @@ class Loader {
     let params: IDeploymentParams = {
       deployer: this.deployer,
       existing: this.existing,
-      pauser: this.pauser,
-      logger:this.logger,
-      broadcast:broadcastFactory(this.confirmations)
+      logger: this.logger,
+      broadcast: broadcastFactory(this.confirmations)
     }
 
     let outputAddresses = await deploymentFunction(params)

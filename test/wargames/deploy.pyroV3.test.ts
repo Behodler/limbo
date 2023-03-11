@@ -32,8 +32,8 @@ const deployRecipe = async (recipe: recipeNames, log: boolean, provider: Ethereu
 describe("pyroV3 addition to mainnet", function () {
   const provider = hre.network.provider
   let logger = logFactory(false)
-  if (existsSync("scripts/networks/addresses/hardhat.json"))
-    shell.rm("scripts/networks/addresses/hardhat.json")
+  if (existsSync("scripts/networks/addresses/hardhat*"))
+    shell.rm("scripts/networks/addresses/hardhat*")
 
 
   async function deployStatusQuoWithLogging() {
