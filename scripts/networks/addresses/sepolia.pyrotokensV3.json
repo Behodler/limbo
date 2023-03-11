@@ -1,0 +1,79 @@
+{
+  "PreChecks": {},
+  "Weth": {
+    "Weth": "0x27Ea89Bb6Aa798ee961D4EF44D5B433d95AD58Aa"
+  },
+  "Behodler": {
+    "AddressBalanceCheck": "0x2a0dbe3F6da4360Fc79d761529E0D02483a4706c",
+    "Behodler": "0x7F85CaEb988223Fac911F39d73930f2f49E330a6"
+  },
+  "UniswapV2Clones": {
+    "UniswapV2Factory": "0xfE5899065a8685CDa8fdF4C6e1DF4C689C3dCD45",
+    "UniswapV2Router": "0x08eD1d6512B45433597F183E41f4a5dcDAA86eb4",
+    "SushiswapV2Factory": "0xca5003c40d9Af37066Ab83dD2D0083EcC9bE0c49",
+    "SushiswapV2Router": "0x7326569f913dbA22C5038574B2dA114504b6e841"
+  },
+  "BehodlerTokens": {
+    "EYE": "0x424613beC4bd8510f0Fa8053665C8431D52E68E4",
+    "MKR": "0x1b2A581Bb885c59bfe2e98794ecB270f66AA1E7C",
+    "OXT": "0xF4eAC0bc59E6eb7ae4B20806AD32347c9bFE990C",
+    "PNK": "0xa8B98a5c115a1d23E57C4AD037B3277682C26210",
+    "LNK": "0x6232c0d2C46475b2b29879aa0f4B6CE559216b14",
+    "LOOM": "0x2f49515D86da05f9EFEbE178531f49e0A47AEdf5",
+    "DAI": "0x07Bed615b632444E7ED0A9461560725AeB1e1C62",
+    "WEIDAI": "0xd5E7eFB8CA4E3ADCbF8e103be4c3279002Cf80B7",
+    "EYE_DAI": "0x3233CbDA06EeCf8147e6474cBe1B1cdb67041aAA",
+    "SCX_ETH": "0xe8A4184D4dCFA4679b0428fF50FbD22C574c9fFb",
+    "SCX_EYE": "0xBF2De709d3c5Ea02ca1D7aECd52aa7761B6E1D99"
+  },
+  "Lachesis": {
+    "Lachesis": "0xd7db1D7080FD114C65E32Efd52149499686D1690"
+  },
+  "LiquidityReceiverOld": {
+    "LiquidityReceiverV1": "0x8516A0DABc52e6d7766c5EfE7CDb4d21B916670d"
+  },
+  "PyroWeth10Proxy": {
+    "PyroWeth10Proxy": "0x7AA60672e86cDa232A7CEf042a36920e5bCEb227"
+  },
+  "MultiCall": {
+    "Multicall": "0xf2ECa4a847D6a455Cfa78DF9D115CfDcC2e3B06a"
+  },
+  "Powers": {
+    "PowersRegistry": "0xfFc7AB7D126B63cF9941417846D8622502845A00"
+  },
+  "Angband": {
+    "Angband": "0x227D49C01B9bFDd4CFAc7920aCe558a1f9f93a34"
+  },
+  "ConfigureScarcityPower": {
+    "ConfigureScarcityPower": "0x9725339A70C9739682424Cd7688CFd6e7427F2D5"
+  },
+  "ConfigureIronCrown": {},
+  "RefreshTokensOnBehodler": {},
+  "AddInitialLiquidityToBehodler": {},
+  "PreCheckMelkor": {},
+  "BigConstants": {
+    "BigConstants": "0x5449e3f7d156Ecf609c915AC6b5B71E99C193927"
+  },
+  "LiquidityReceiverNew": {
+    "LiquidityReceiver": "0xb98300d08A10C234766f717221637A4a2ba79118"
+  },
+  "BehodlerSeedNew": {
+    "SeedBehodlerPower": "0xf359B0e0dfdCFD938bB42B8eDcA49200Ef5b8667"
+  },
+  "PyroWethProxy": {
+    "PyroWethProxy": "0x6A0171B91CAC815B3b6C91691F44B46112f1FBbA"
+  },
+  "MorgothMapPyroWeth10Proxy": {},
+  "DeployerSnufferCap": {
+    "DeployerSnufferCap": "0x392E9d1DB8BcEEBD5818FCBD98B87e1584f0b6B9"
+  },
+  "MorgothMapLiquidityReceiver": {},
+  "SnuffPyroWethProxy": {},
+  "ProxyHandler": {
+    "ProxyHandler": "0xCDb44DC7B344b80Dc5430d9d342e70612D27033f"
+  },
+  "V2Migrator": {
+    "V2Migrator": "0x605611Db465B3003Dde987Db4d8011A42259Bb56"
+  },
+  "DisableDeployerSnufferCap": {}
+}
