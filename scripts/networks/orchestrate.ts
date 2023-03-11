@@ -69,6 +69,7 @@ export async function deployToNetwork(
   let loader = new Loader(networkName, logger, deployer, pauser, confirmations)
 
   const iterations = recipe.length;
+  logger('Sections: '+iterations)
   for (let i = 0; i < iterations; i++) {
     const currentSection: Sections = recipe[i]
     logger(" ")

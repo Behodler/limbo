@@ -270,7 +270,7 @@ const setAllGovernable: IDeploymentFunction = async function (params: IDeploymen
 const deployAllLimboDAOProposals: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
   const getContract = await getContractFromSection(params.existing)
-  
+
   const proposalFactory = await getContract<Types.ProposalFactory>(Sections.ProposalFactory, "ProposalFactory")
   const dao = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
 
@@ -283,14 +283,14 @@ const deployAllLimboDAOProposals: IDeploymentFunction = async function (params: 
     'ToggleFlashGovernanceProposal',
     'UpdateProposalConfigProposal'];
 
-    let list = [] as {name:contractNames,contract:Contract}[]
-    for(let i =0;i<names.length;i++){
-      const name = names[i]
-      const factory = await ethers.getContractFactory(name)
-      const contract = await deploy(name, factory, dao.address, name)
-      await proposalFactory.toggleWhitelistProposal(contract.address)
-      list.push({name,contract})
-    }
+  let list = [] as { name: contractNames, contract: Contract }[]
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i]
+    const factory = await ethers.getContractFactory(name)
+    const contract = await deploy(name, factory, dao.address, name)
+    await proposalFactory.toggleWhitelistProposal(contract.address)
+    list.push({ name, contract })
+  }
 
 
   let addresses: OutputAddress = {}
@@ -587,7 +587,7 @@ const deployLimbo: IDeploymentFunction = async function (params: IDeploymentPara
     }
   })
   const limbo = await deploy<Types.Limbo>("Limbo", LimboFactory,
-     flan.address, dao.address)
+    flan.address, dao.address)
 
   await params.broadcast("whitelist flan minting for Limbo", flan.whiteListMinting(limbo.address, true))
 
@@ -1805,16 +1805,29 @@ export const prechecks: IDeploymentFunction = async function (params: IDeploymen
   } catch {
     //testnet
   }
-  if (!sufficientDai)
-    throw "Seed deployer with lots of Dai"
-  if (!sufficientEYE)
-    throw "Seed deployer with lots of EYE"
+  let successfulMint = false;
+  if (!sufficientDai) {
 
+    try {
+      const dai = await getContract<Types.MockToken>(Sections.BehodlerTokens, "DAI", "MockToken")
+      await dai.mint(ethers.constants.WeiPerEther.mul(10000))
+      const eye = await getContract<Types.MockToken>(Sections.BehodlerTokens, "EYE", "MockToken")
+      await eye.mint(ethers.constants.WeiPerEther.mul(50000))
+      successfulMint = true
+    } catch { }
+    if (!successfulMint)
+      throw "Error: Seed deployer with lots of Dai"
+  }
+
+  if (!sufficientEYE && !successfulMint) {
+    throw "Error: Seed deployer with lots of EYE"
+  }
 
   try {
     if (shell.ls("./contracts/DAO/Proposals").length == 8)
       throw 'mismatched contract list length'
   } catch (err) {
+    params.logger(err as string)
     if (err === 'mismatched contract list length')
       throw err
   }
