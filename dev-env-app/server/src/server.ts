@@ -4,18 +4,23 @@ import parseArgv from 'minimist'
 import { api } from './api'
 import { BehodlerDevEnvFastifyInstance, BehodlerDevEnv, StartDevEnv } from './types'
 import { startDevEnvPlugin } from './startDevEnv'
+import cors from '@fastify/cors'
 
 const parsedArgv = parseArgv(process.argv)
-const serverPort = parsedArgv.p || parsedArgv.port || 6669
-
-function initApp(): BehodlerDevEnvFastifyInstance {
+const serverPort = parsedArgv.p || parsedArgv.port || 1024
+async function initApp(): Promise<BehodlerDevEnvFastifyInstance> {
   const fastify: BehodlerDevEnvFastifyInstance = Fastify({
     logger: {
       transport: {
         target: '@fastify/one-line-logger',
       },
-    },
+    }
   })
+await fastify.register(cors,{
+  origin:true,
+  methods:"GET",
+  allowedHeaders:"*"
+})
 
   function createResponse(message, data = {}) {
     return {
@@ -55,7 +60,7 @@ function initApp(): BehodlerDevEnvFastifyInstance {
 }
 
 ;(async () => {
-  const fastify = initApp()
+  const fastify =await initApp()
   await fastify.ready()
   await fastify.listen({ port: serverPort })
   await fastify?.startDevEnv?.()
