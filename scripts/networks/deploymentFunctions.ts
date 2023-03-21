@@ -1,8 +1,10 @@
-import { ethers, network } from "hardhat";
-import { id, parseBytes32String, parseEther, parseTransaction, parseUnits } from "ethers/lib/utils";
+import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, BigNumberish, Contract, ContractFactory, ContractTransaction } from "ethers";
-import { OutputAddress, logFactory, deploymentFactory, getTXCount, getNonce, OutputAddressAdder, Sections, AddressFileStructure, contractNames, sectionName, IDeployer, stringToBytes32, criticalPairNames, tokenNames, behodlerTokenNames } from "./common";
+import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers";
+import { OutputAddress, deploymentFactory, OutputAddressAdder,
+   Sections, AddressFileStructure, contractNames, sectionName,
+  stringToBytes32, criticalPairNames, tokenNames, 
+    behodlerTokenNames, ITokenConfig } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
 
@@ -1833,3 +1835,45 @@ export const prechecks: IDeploymentFunction = async function (params: IDeploymen
   }
   return {}
 }
+
+export const extractTokenConfig = async function (params: IDeploymentParams): Promise<ITokenConfig[]> {
+  const getContract = await getContractFromSection(params.existing)
+  const LR_old = await getContract<Types.LiquidityReceiverV1>(Sections.LiquidityReceiverOld, "LiquidityReceiverV1");
+  const LR_new = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver");
+  let tokenConfigs = [] as ITokenConfig[]
+
+  const pyroTokenFactory = await ethers.getContractFactory("PyroToken")
+  const behodlerTokenSection = params.existing[sectionName(Sections.BehodlerTokens)]
+  const behodlerTokenNames = Object.keys(behodlerTokenSection)
+  for (let i = 0; i < behodlerTokenNames.length; i++) {
+    const tokenName = behodlerTokenNames[i] as contractNames
+    const token = await getContract<Types.ERC20>(Sections.BehodlerTokens, tokenName, "ERC20")
+
+    let displayName: string = tokenName
+    let pyroDisplayName = 'pyro(' + tokenName + ')'
+    if (tokenName.includes('_')) {
+      const slashed = [displayName,pyroDisplayName]
+                      .map(tokenName=>  tokenName.split('_')[0] + '/' + tokenName.split('_')[1])
+      displayName = slashed[0]
+      pyroDisplayName = slashed[1]
+    } else {
+      pyroDisplayName = pyroDisplayName.substring(0, pyroDisplayName.indexOf('('))
+        + pyroDisplayName.substring(pyroDisplayName.indexOf('(') + 1, pyroDisplayName.indexOf(')'))
+    }
+    const pyroV2Address = await LR_old.baseTokenMapping(token.address)
+    const pyroV3Address = await LR_new.getPyroToken(token.address)
+    const v3Deployed = await pyroTokenFactory.attach(pyroV3Address).deployed().catch(() => { params.logger('v3 deployment not found for ' + tokenName) })
+
+    const tokenConfig = {
+      name: tokenName,
+      displayName: displayName,
+      pyroDisplayName:v3Deployed? pyroDisplayName:'',
+      address: token.address,
+      pyroV2Address: pyroV2Address,
+      pyroV3Address: v3Deployed ? pyroV3Address : ethers.constants.AddressZero
+    } as ITokenConfig
+    tokenConfigs.push(tokenConfig)
+  }
+  return tokenConfigs
+}
+

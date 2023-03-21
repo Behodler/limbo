@@ -10,7 +10,7 @@ You can't undeploy a contract and adding self destruct code just for testing cou
 const { expect, assert } = require("chai");
 import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { safeDeploy } from "../../scripts/networks/orchestrate";
+import { safeDeploy,ContractSet } from "../../scripts/networks/orchestrate";
 import { contractNames, getPauser, stringToBytes32 } from "../../scripts/networks/common"
 import * as networkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import * as Types from "../../typechain"
@@ -38,11 +38,12 @@ describe("public testnet deployment", function () {
 
   async function deployEcosystem() {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = (await safeDeploy("testnet", 1337, 1, logger)) as DeployedContracts;
+    const set = (await safeDeploy("testnet", 1337, 1, logger)) as ContractSet;
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
-    const fetchAddress = fetchAddressFactory(addresses)
-    logger('addresses', JSON.stringify(addresses, null, 4))
+    const fetchAddress = fetchAddressFactory(set.protocol)
+    logger('protocol ', JSON.stringify(set.protocol, null, 4))
+    logger('tokenConfigs ', JSON.stringify(set.tokens, null, 4))
     const pauser = await getPauser("hardhat", 1);
     const getContractFactory = (fetchAddress: (name: contractNames) => string) => {
 

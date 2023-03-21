@@ -2,7 +2,7 @@
 const { expect } = require("chai");
 import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { safeDeploy } from "../../scripts/networks/orchestrate";
+import { ContractSet, safeDeploy } from "../../scripts/networks/orchestrate";
 import { contractNames, getPauser, recipeNames, stringToBytes32 } from "../../scripts/networks/common"
 import * as networkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import * as Types from "../../typechain"
@@ -15,6 +15,7 @@ import * as hre from "hardhat"
 import { getContractFromSection } from "../../scripts/networks/deploymentFunctions";
 import { EthereumProvider } from "hardhat/types";
 const web3 = require("web3");
+
 interface DeployedContracts {
   [name: string]: string;
 }
@@ -24,17 +25,26 @@ let logFactory = (show: boolean) => {
       console.log(`${message} ${content || ''}`)
   }
 }
-const deployRecipe = async (recipe: recipeNames, log: boolean, provider: EthereumProvider): Promise<DeployedContracts> => {
+const deployRecipe = async (recipe: recipeNames, log: boolean, provider: EthereumProvider): Promise<ContractSet> => {
   let recipeLogger = logFactory(log)
   await provider.send("evm_setAutomine", [true]);
-  return await safeDeploy(recipe, 1337, 1, recipeLogger) as DeployedContracts
+  const set = await safeDeploy(recipe, 1337, 1, recipeLogger) as ContractSet
+  console.log('set ' + JSON.stringify(set, null, 4))
+  return set
 }
 describe("pyroV3 addition to mainnet", function () {
   const provider = hre.network.provider
   let logger = logFactory(false)
-  if (existsSync("scripts/networks/addresses/hardhat*"))
-    shell.rm("scripts/networks/addresses/hardhat*")
+  const addressDir = shell.ls("scripts/networks/addresses/")
 
+  if (addressDir.includes("hardhat.json")) {
+    shell.rm("scripts/networks/addresses/hardhat*")
+  }
+
+  const lockDir = shell.ls("/tmp/")
+  if (lockDir.includes("deploy.lock")) {
+    shell.rm("/tmp/deploy.lock")
+  }
 
   async function deployStatusQuoWithLogging() {
     return await deployStatusQuo(true)
@@ -46,14 +56,15 @@ describe("pyroV3 addition to mainnet", function () {
 
   async function deployStatusQuo(log: boolean) {
     const [owner, secondPerson] = await ethers.getSigners();
-    const addresses = await deployRecipe("statusquo", log, provider);
+    const set = await deployRecipe("statusquo", log, provider);
+    console.log('protocol ' + JSON.stringify(set.protocol, null, 4))
 
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
-    const fetchAddress = fetchAddressFactory(addresses)
+    const fetchAddress = fetchAddressFactory(set.protocol)
     if (log)
-      logger('addresses', JSON.stringify(addresses, null, 4))
-    const pauser = await getPauser( "hardhat", 9);
+      logger('addresses', JSON.stringify(set, null, 4))
+    const pauser = await getPauser("hardhat", 9);
     const getContractFactory = (fetchAddress: (name: contractNames) => string) => {
 
       return async<T extends Contract>(contractName: contractNames, factoryName?: string, libraries?: ethersLib) => {
@@ -82,7 +93,7 @@ describe("pyroV3 addition to mainnet", function () {
 
 
   it("t1. assert statusQuo recipe", async function () {
-    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithoutLogging)
+    const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithLogging)
     // await provider.send("evm_setAutomine", [true]);
     const MockTokenFactory = await ethers.getContractFactory("MockToken")
     const link = await MockTokenFactory.attach(fetchAddress("LNK")) as Types.MockToken
@@ -200,17 +211,18 @@ describe("pyroV3 addition to mainnet", function () {
     }
 
     // 3. Deploy Pyro V3 upgrade.
-    
-    const pyroDeployments = await deployRecipe("onlyPyroV3", true, provider)
-    
 
-    const fetchPyroAddress = (contract: contractNames) => pyroDeployments[contract]
+    const pyroDeployments = await deployRecipe("onlyPyroV3", true, provider)
+    console.log('pyroDeployments', JSON.stringify(pyroDeployments, null, 4))
+
+    const fetchPyroAddress = (contract: contractNames) => pyroDeployments.protocol[contract]
 
     logger('pyroDeployments', JSON.stringify(pyroDeployments, null, 2))
 
     // 4. sell base token on Behodler and assert correct LR
     const behodler = await getBehodler(fetchAddress)
     const liquidityReceiverFactory = await getNamedFactory("LiquidityReceiver")
+    console.log('fetchPyroAddress("LiquidityReceiver")', fetchPyroAddress("LiquidityReceiver"))
     const liquidityReceiver = await getTypedContract<Types.LiquidityReceiver>(fetchPyroAddress("LiquidityReceiver"), liquidityReceiverFactory)
     const linkBalanceOnLRBefore = await baseTokens.link.balanceOf(liquidityReceiver.address)
     const linkOnBehodlerBefore = await baseTokens.link.balanceOf(behodler.address)
