@@ -8,8 +8,7 @@
     "restore-snapshot": "node bin/restore-snapshot.js",
     "get-snapshots": "node bin/get-snapshots.js",
     "get-deployment-addresses": "node bin/get-deployment-addresses.js",
-    "clean":"npx ts-node cleanup.ts"
- 
+    "clean": "ts-node cleanup.ts"
   },
   "files": [
     "dist"
@@ -25,6 +24,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@fastify/cors": "^8.2.1",
     "@nomiclabs/hardhat-ethers": "^2.2.2",
     "fastify": "^4.11.0",
     "hardhat": "^2.12.6"

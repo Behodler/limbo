@@ -30,7 +30,7 @@ export async function safeDeploy(
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    const addresses = deployToNetwork(recipeOfDeployment, chainId, confirmations, logger);
+    const addresses = await deployToNetwork(recipeOfDeployment, chainId, confirmations, logger);
     if (persistPath)
       writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
     return addresses
