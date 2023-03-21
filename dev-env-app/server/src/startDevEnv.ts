@@ -98,12 +98,10 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
         const behodlerDevEnv:BehodlerDevEnv = await startHardhatNodeAndDeployBehodlerContracts()
         setBehodlerDevEnv(behodlerDevEnv)
         fastify.log.info('dev env started')
-        fastify.log.info("listening on port " + HRE_NODE_SETTINGS.port)
         const { chainId } = await hre.ethers.provider.getNetwork()
         fastify.log.info('chainId ' + chainId)
         const [deployer] = await hre.ethers.getSigners();
         fastify.log.info('Deployer account ' + deployer.address)
-        fastify.log.info(JSON.stringify(behodlerDevEnv.deployedAddresses,null,4))
       } catch (error) {
         fastify.log.error(`starting dev env failed: ${error}`)
       }

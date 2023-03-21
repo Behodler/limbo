@@ -26,7 +26,7 @@
     "configurePerpetual:ropsten": "npx hardhat run --network ropsten scripts/testnet-configure-perpetual.ts",
     "configure:ropsten": "yarn configureThreshold:ropsten && yarn configurePerpetual:ropsten",
     "deploy:local2": "sudo touch scripts/testnet/addresses/hardhat.json && sudo rm scripts/testnet/addresses/hardhat.json && npx hardhat run scripts/testnet/orchestrate.ts",
-    "deploy:sepolia":"npx hardhat run --network sepolia scripts/deploy-all-sepolia.ts >SEPOLIA_LOGS.txt"
+    "deploy:sepolia": "npx hardhat run --network sepolia scripts/deploy-all-sepolia.ts >SEPOLIA_LOGS.txt"
   },
   "repository": {
     "type": "git",
@@ -72,6 +72,7 @@
     "typescript": "^4.6.2"
   },
   "dependencies": {
+    "@fastify/cors": "^8.2.1",
     "@openzeppelin/contracts": "^4.8.0",
     "@types/shelljs": "^0.8.11",
     "dir-compare": "^4.0.0",
