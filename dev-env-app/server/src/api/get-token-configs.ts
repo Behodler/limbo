@@ -6,7 +6,7 @@ export default function (fastify: BehodlerDevEnvFastifyInstance, _, done): void 
 
   function getTokenConfigs() {
     if (fastify.behodlerDevEnv?.active) {
-      return (fastify.behodlerDevEnv?.set && fastify.behodlerDevEnv?.set.tokens.length > 0)
+      return (fastify.behodlerDevEnv?.set && fastify.behodlerDevEnv?.set.tokens?.length > 0)
         ? fastify?.createInfoResponse?.('tokens found', {
           contracts: fastify.behodlerDevEnv?.set.tokens,
         })

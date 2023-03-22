@@ -6,7 +6,7 @@ export default function (fastify: BehodlerDevEnvFastifyInstance, _, done): void 
 
   function getDeploymentAddresses() {
     if (fastify.behodlerDevEnv?.active) {
-      return fastify.behodlerDevEnv?.set
+      return fastify.behodlerDevEnv?.set?.protocol
         ? fastify?.createInfoResponse?.('deployment addresses fetched', {
             contracts: fastify.behodlerDevEnv?.set.protocol,
           })

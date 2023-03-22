@@ -29,7 +29,6 @@ const deployRecipe = async (recipe: recipeNames, log: boolean, provider: Ethereu
   let recipeLogger = logFactory(log)
   await provider.send("evm_setAutomine", [true]);
   const set = await safeDeploy(recipe, 1337, 1, recipeLogger) as ContractSet
-  console.log('set ' + JSON.stringify(set, null, 4))
   return set
 }
 describe("pyroV3 addition to mainnet", function () {
@@ -57,7 +56,6 @@ describe("pyroV3 addition to mainnet", function () {
   async function deployStatusQuo(log: boolean) {
     const [owner, secondPerson] = await ethers.getSigners();
     const set = await deployRecipe("statusquo", log, provider);
-    console.log('protocol ' + JSON.stringify(set.protocol, null, 4))
 
     const fetchAddressFactory = (addresses: DeployedContracts) =>
       (name: contractNames) => addresses[name]
@@ -213,7 +211,6 @@ describe("pyroV3 addition to mainnet", function () {
     // 3. Deploy Pyro V3 upgrade.
 
     const pyroDeployments = await deployRecipe("onlyPyroV3", true, provider)
-    console.log('pyroDeployments', JSON.stringify(pyroDeployments, null, 4))
 
     const fetchPyroAddress = (contract: contractNames) => pyroDeployments.protocol[contract]
 
@@ -222,7 +219,6 @@ describe("pyroV3 addition to mainnet", function () {
     // 4. sell base token on Behodler and assert correct LR
     const behodler = await getBehodler(fetchAddress)
     const liquidityReceiverFactory = await getNamedFactory("LiquidityReceiver")
-    console.log('fetchPyroAddress("LiquidityReceiver")', fetchPyroAddress("LiquidityReceiver"))
     const liquidityReceiver = await getTypedContract<Types.LiquidityReceiver>(fetchPyroAddress("LiquidityReceiver"), liquidityReceiverFactory)
     const linkBalanceOnLRBefore = await baseTokens.link.balanceOf(liquidityReceiver.address)
     const linkOnBehodlerBefore = await baseTokens.link.balanceOf(behodler.address)
