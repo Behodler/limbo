@@ -1,15 +1,247 @@
 [
-  "constructor(address,address)",
-  "error AddressPredictionInvariant(address,address)",
-  "error ApproveToNonZero(address,address,uint256)",
-  "error InsufficinetFunds(uint256,uint256)",
-  "error LachesisValidationFailed(address,bool,bool)",
-  "error NotAContract(address)",
-  "error OperationFailure()",
-  "error P3AmountInvariant(uint256,uint256,uint256)",
-  "event SuccessfulMigration(address indexed,address indexed,uint256,uint256)",
-  "function REAL() view returns (bool)",
-  "function config() view returns (address, address)",
-  "function migrate(address,address,uint256,uint256)",
-  "function migrateMany(address[],address[],uint256[],uint256[])"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "lr_new",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "lachesis",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "actual",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      }
+    ],
+    "name": "AddressPredictionInvariant",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ApproveToNonZero",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "InsufficinetFunds",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "valid",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      }
+    ],
+    "name": "LachesisValidationFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "EOA",
+        "type": "address"
+      }
+    ],
+    "name": "NotAContract",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OperationFailure",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balanceAfter",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "balanceBefore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "expectedAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "P3AmountInvariant",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pyroToken2",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pyroToken3",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "pyroToken2Amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "pyroToken3Amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "SuccessfulMigration",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "REAL",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "config",
+    "outputs": [
+      {
+        "internalType": "contract LRNew",
+        "name": "LR_new",
+        "type": "address"
+      },
+      {
+        "internalType": "contract LachesisLike",
+        "name": "lachesis",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "ptoken2",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "ptoken3",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "p2tokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "p3tokenExpectedAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "migrate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "ptoken2",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "ptoken3",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "p2tokenAmount",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "p3tokenExpectedAmount",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "migrateMany",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

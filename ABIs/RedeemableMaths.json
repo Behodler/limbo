@@ -1,3 +1,15 @@
 [
-  "function ONE() view returns (uint256)"
+  {
+    "inputs": [],
+    "name": "ONE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

@@ -1,8 +1,107 @@
 [
-  "constructor(address,address,address)",
-  "function invoke()",
-  "function parameterize(address,bool)",
-  "function params() view returns (address, bool, address, address)",
-  "function seed(address,address)",
-  "function setScarcityToMint(uint256)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_angband",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "proxyRegistry",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "invoke",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      }
+    ],
+    "name": "parameterize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "params",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "soul",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenProxyRegistry",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "seed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_scarcity",
+        "type": "uint256"
+      }
+    ],
+    "name": "setScarcityToMint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

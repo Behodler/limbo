@@ -1,3 +1,26 @@
 [
-  "function toString(address,uint256) pure returns (string)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "value",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
+      }
+    ],
+    "name": "toString",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  }
 ]

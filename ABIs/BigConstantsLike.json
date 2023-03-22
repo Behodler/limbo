@@ -1,4 +1,34 @@
 [
-  "function PYROTOKEN_BYTECODE() view returns (bytes)",
-  "function deployRebaseWrapper(address) returns (address)"
+  {
+    "inputs": [],
+    "name": "PYROTOKEN_BYTECODE",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroTokenAddress",
+        "type": "address"
+      }
+    ],
+    "name": "deployRebaseWrapper",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

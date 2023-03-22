@@ -1,19 +1,327 @@
 [
-  "constructor(address,address)",
-  "error AccessDenied(address,address)",
-  "error BackrunDetected(address,address)",
-  "error GovernanceActionFailed(bool,address)",
-  "error OnlyLimbo(address,address)",
-  "error OracleLPsNotSet(address,address,address)",
-  "error PriceOvershootTooHigh(uint8)",
-  "function DAO() view returns (address)",
-  "function VARS() view returns (uint256, address, address, uint8, address, address, address, tuple(address,address,address,address))",
-  "function blackHole() view returns (address)",
-  "function configure(address,address,address,uint8,address)",
-  "function configured() view returns (bool)",
-  "function endConfiguration(address)",
-  "function setDAI(address)",
-  "function setDAO(address)",
-  "function stabilizeFlan(uint256) returns (uint256)",
-  "function temporaryConfigurationLord() view returns (address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "limboDAO",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configurationLord",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "msg_sender",
+        "type": "address"
+      }
+    ],
+    "name": "AccessDenied",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "actualDAO",
+        "type": "address"
+      }
+    ],
+    "name": "BackrunDetected",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "configured",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "GovernanceActionFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "msgSender",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyLimbo",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "fln_scx",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "dai_scx",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "scx__fln_scx",
+        "type": "address"
+      }
+    ],
+    "name": "OracleLPsNotSet",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "overshoot",
+        "type": "uint8"
+      }
+    ],
+    "name": "PriceOvershootTooHigh",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DAO",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "VARS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "minQuoteWaitDuration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "contract IUniswapV2Factory",
+        "name": "factory",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "priceBoostOvershoot",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "blackHole",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "DAI",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "contract IUniswapV2Pair",
+            "name": "fln_scx",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IUniswapV2Pair",
+            "name": "dai_scx",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IUniswapV2Pair",
+            "name": "scx__fln_scx",
+            "type": "address"
+          },
+          {
+            "internalType": "contract LimboOracleLike",
+            "name": "oracle",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct UniswapHelper.OracleSet",
+        "name": "oracleSet",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "blackHole",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "priceBoostOvershoot",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "oracle",
+        "type": "address"
+      }
+    ],
+    "name": "configure",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "configured",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      }
+    ],
+    "name": "endConfiguration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dai",
+        "type": "address"
+      }
+    ],
+    "name": "setDAI",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dao",
+        "type": "address"
+      }
+    ],
+    "name": "setDAO",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "mintedSCX",
+        "type": "uint256"
+      }
+    ],
+    "name": "stabilizeFlan",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "lpMinted",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "temporaryConfigurationLord",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

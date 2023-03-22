@@ -1,63 +1,1100 @@
 [
-  "error AssetMustBeEYE(address,address)",
-  "error AssetNotApproved(address)",
-  "error AssetStakeInvariantViolation(uint256,uint256,uint256)",
-  "error AssetStakeInvariantViolation1(uint256,uint256,uint256)",
-  "error FlashGovLockTimeMustExceedVoting(uint256,uint256)",
-  "error FlashGovNotInitialized()",
-  "error FlashGovernerNotSet()",
-  "error InsufficinetFunds(uint256,uint256)",
-  "error InvalidVoteCast(int256,int256)",
-  "error LimboAndFlanNotOwnedByDAO(address,address)",
-  "error LodgeFailActiveProposal(address,address)",
-  "error NotAContract(address)",
-  "error NotEnoughFateToLodge(uint256,uint256)",
-  "error NotLive()",
-  "error OnlyFateSpender(address)",
-  "error OnlyOwner(address,address)",
-  "error OnlyProposalFactory(address,address)",
-  "error OperationFailure()",
-  "error ProposalMismatch(address,address)",
-  "error ProposalNotApproved(address)",
-  "error ProposalNotInVoting(address)",
-  "error TransferToZeroAddress()",
-  "error UniswapV2FactoryMismatch(address,address)",
-  "error VotingPeriodOver(uint256,uint256,uint256)",
-  "event OwnershipTransferred(address indexed,address indexed)",
-  "event assetApproval(address,bool)",
-  "event assetBurnt(address indexed,address indexed,uint256)",
-  "event daoKilled(address)",
-  "event proposalExecuted(address indexed,bool)",
-  "event proposalLodged(address indexed,address indexed)",
-  "event voteCast(address indexed,address indexed,int256)",
-  "function EYEEquivalentOfLP(address,bool,uint256) view returns (uint256)",
-  "function approveFlanMintingPower(address,bool)",
-  "function assetApproved(address) view returns (bool)",
-  "function burnAsset(address,uint256,bool)",
-  "function currentProposalState() view returns (int256, uint8, address, uint256, address)",
-  "function domainConfig() view returns (address, address, address, bool, address, address, address)",
-  "function executeCurrentProposal()",
-  "function fateGrowthStrategy(address) view returns (uint8)",
-  "function fateSpenders(address) view returns (bool)",
-  "function fateState(address) view returns (uint256, uint256, uint256)",
-  "function getFlashGoverner() view returns (address)",
-  "function incrementFateFor(address)",
-  "function killDAO(address)",
-  "function makeLive()",
-  "function makeProposal(address,address)",
-  "function owner() view returns (address)",
-  "function proposalConfig() view returns (uint256, uint256, address)",
-  "function seed(address,address,address,address,address,address,address[],address[])",
-  "function setApprovedAsset(address,bool,bool,uint256)",
-  "function setEYEBasedAssetStake(uint256,uint256,uint256,address,bool)",
-  "function setFateSpender(address,bool)",
-  "function setFlashGoverner(address)",
-  "function setProposalConfig(uint256,uint256,address)",
-  "function stakedUserAssetWeight(address,address) view returns (uint256, uint256)",
-  "function successfulProposal(address) view returns (bool)",
-  "function transferFate(address,address,uint256)",
-  "function transferOwnership(address)",
-  "function transferOwnershipOfThing(address,address)",
-  "function transferToNewDAO(address,address)",
-  "function vote(address,int256)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "eye",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "invalidAsset",
+        "type": "address"
+      }
+    ],
+    "name": "AssetMustBeEYE",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
+    "name": "AssetNotApproved",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invariantNumber",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "var1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "var2",
+        "type": "uint256"
+      }
+    ],
+    "name": "AssetStakeInvariantViolation",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "var1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "var2",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "var3",
+        "type": "uint256"
+      }
+    ],
+    "name": "AssetStakeInvariantViolation1",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "lock",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "voting",
+        "type": "uint256"
+      }
+    ],
+    "name": "FlashGovLockTimeMustExceedVoting",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FlashGovNotInitialized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FlashGovernerNotSet",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "InsufficinetFunds",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "fateCast",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "currentProposalFate",
+        "type": "int256"
+      }
+    ],
+    "name": "InvalidVoteCast",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      }
+    ],
+    "name": "LimboAndFlanNotOwnedByDAO",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "current",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "lodged",
+        "type": "address"
+      }
+    ],
+    "name": "LodgeFailActiveProposal",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "EOA",
+        "type": "address"
+      }
+    ],
+    "name": "NotAContract",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "userBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "required",
+        "type": "uint256"
+      }
+    ],
+    "name": "NotEnoughFateToLodge",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotLive",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "msgSender",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyFateSpender",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "msg_sender",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "factory",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyProposalFactory",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OperationFailure",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "currrentProposal",
+        "type": "address"
+      }
+    ],
+    "name": "ProposalMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "ProposalNotApproved",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "ProposalNotInVoting",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TransferToZeroAddress",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pairFactory",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "trueFactory",
+        "type": "address"
+      }
+    ],
+    "name": "UniswapV2FactoryMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "blockTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "proposalStartTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "votingDuration",
+        "type": "uint256"
+      }
+    ],
+    "name": "VotingPeriodOver",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "appoved",
+        "type": "bool"
+      }
+    ],
+    "name": "assetApproval",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "burner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "fateCreated",
+        "type": "uint256"
+      }
+    ],
+    "name": "assetBurnt",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "daoKilled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "status",
+        "type": "bool"
+      }
+    ],
+    "name": "proposalExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      }
+    ],
+    "name": "proposalLodged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "fateCast",
+        "type": "int256"
+      }
+    ],
+    "name": "voteCast",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pair",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "uni",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "units",
+        "type": "uint256"
+      }
+    ],
+    "name": "EYEEquivalentOfLP",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "minter",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "approveFlanMintingPower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "assetApproved",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "uniswap",
+        "type": "bool"
+      }
+    ],
+    "name": "burnAsset",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentProposalState",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "fate",
+        "type": "int256"
+      },
+      {
+        "internalType": "enum ProposalDecision",
+        "name": "decision",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "start",
+        "type": "uint256"
+      },
+      {
+        "internalType": "contract Proposal",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "domainConfig",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "eye",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "live",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "flashGoverner",
+        "type": "address"
+      },
+      {
+        "internalType": "contract LimboOracleLike",
+        "name": "sushiOracle",
+        "type": "address"
+      },
+      {
+        "internalType": "contract LimboOracleLike",
+        "name": "uniOracle",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "executeCurrentProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "fateGrowthStrategy",
+    "outputs": [
+      {
+        "internalType": "enum FateGrowthStrategy",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "fateSpenders",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "fateState",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fatePerDay",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fateBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastDamnAdjustment",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getFlashGoverner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "incrementFateFor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "killDAO",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "makeLive",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      }
+    ],
+    "name": "makeProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proposalConfig",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "votingDuration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requiredFateStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "proposalFactory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "eye",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "proposalFactory",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "sushiOracle",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "uniOracle",
+        "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "sushiMetaLPs",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "uniMetaLPs",
+        "type": "address[]"
+      }
+    ],
+    "name": "seed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "isUniswap",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "period",
+        "type": "uint256"
+      }
+    ],
+    "name": "setApprovedAsset",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "finalAssetBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "finalEYEBalance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rootEYE",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "uniswap",
+        "type": "bool"
+      }
+    ],
+    "name": "setEYEBasedAssetStake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "setFateSpender",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "flashGovernor",
+        "type": "address"
+      }
+    ],
+    "name": "setFlashGoverner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "votingDuration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requiredFateStake",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "proposalFactory",
+        "type": "address"
+      }
+    ],
+    "name": "setProposalConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "stakedUserAssetWeight",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fateWeight",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "successfulProposal",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "holder",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "transferFate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "thing",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "destination",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnershipOfThing",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "governed",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "newDAO",
+        "type": "address"
+      }
+    ],
+    "name": "transferToNewDAO",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "fate",
+        "type": "int256"
+      }
+    ],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

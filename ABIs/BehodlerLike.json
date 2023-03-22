@@ -1,12 +1,238 @@
 [
-  "function addLiquidity(address,uint256) payable returns (uint256)",
-  "function burn(uint256) returns (bool)",
-  "function config() view returns (uint256, uint256, address)",
-  "function setSafetParameters(uint8,uint8)",
-  "function setValidToken(address,bool,bool)",
-  "function swap(address,address,uint256,uint256) payable returns (bool)",
-  "function totalSupply() returns (uint256)",
-  "function transfer(address,uint256) returns (bool)",
-  "function withdrawLiquidity(address,uint256) payable returns (uint256)",
-  "function withdrawLiquidityFindSCX(address,uint256,uint256,uint256) view returns (uint256)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "inputToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "addLiquidity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "deltaSCX",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "burn",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "config",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "swapPrecisionFactor",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "maxLiquidityExit",
+        "type": "uint8"
+      }
+    ],
+    "name": "setSafetParameters",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "valid",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      }
+    ],
+    "name": "setValidToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "inputToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "outputToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "inputAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "outputAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "swap",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "success",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dest",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "transfer",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "outputToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokensToRelease",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdrawLiquidity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "deltaSCX",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "outputToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tokensToRelease",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "scx",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "passes",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdrawLiquidityFindSCX",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

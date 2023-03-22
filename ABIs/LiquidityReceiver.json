@@ -1,28 +1,431 @@
 [
-  "constructor(address,address)",
-  "error AddressOccupied(address)",
-  "error AddressPredictionInvariant(address,address)",
-  "error Create2Failed()",
-  "error LachesisValidationFailed(address,bool,bool)",
-  "error OnlyContracts(address)",
-  "error OnlyOwner(address,address)",
-  "error SnufferCapExpected(address,address)",
-  "error TransferToZeroAddress()",
-  "event OwnershipTransferred(address indexed,address indexed)",
-  "event PyroTokenDeployed(address,address,string,string)",
-  "function REAL() view returns (bool)",
-  "function bigConstants() view returns (address)",
-  "function config() view returns (address, address, address, address)",
-  "function drain(address) returns (uint256)",
-  "function getPyroToken(address) view returns (address)",
-  "function owner() view returns (address)",
-  "function registerPyroToken(address,string,string,uint8)",
-  "function setDefaultLoanOfficer(address)",
-  "function setFeeExemptionStatusOnPyroForContract(address,address,uint8)",
-  "function setLachesis(address)",
-  "function setPyroTokenLoanOfficer(address,address)",
-  "function setSnufferCap(address)",
-  "function togglePyroTokenPullFeeRevenue(address,bool)",
-  "function transferOwnership(address)",
-  "function transferPyroTokenToNewReceiver(address,address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_lachesis",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "bigConstantsAddress",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedAddress",
+        "type": "address"
+      }
+    ],
+    "name": "AddressOccupied",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "actual",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      }
+    ],
+    "name": "AddressPredictionInvariant",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Create2Failed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "valid",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      }
+    ],
+    "name": "LachesisValidationFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyContracts",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "actual",
+        "type": "address"
+      }
+    ],
+    "name": "SnufferCapExpected",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TransferToZeroAddress",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      }
+    ],
+    "name": "PyroTokenDeployed",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "REAL",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bigConstants",
+    "outputs": [
+      {
+        "internalType": "contract BigConstantsLike",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "config",
+    "outputs": [
+      {
+        "internalType": "contract LachesisLike",
+        "name": "lachesis",
+        "type": "address"
+      },
+      {
+        "internalType": "contract SnufferCap",
+        "name": "snufferCap",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "defaultLoanOfficer",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "proxyHandler",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      }
+    ],
+    "name": "drain",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      }
+    ],
+    "name": "getPyroToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      }
+    ],
+    "name": "registerPyroToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "officer",
+        "type": "address"
+      }
+    ],
+    "name": "setDefaultLoanOfficer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "internalType": "enum FeeExemption",
+        "name": "exemption",
+        "type": "uint8"
+      }
+    ],
+    "name": "setFeeExemptionStatusOnPyroForContract",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_lachesis",
+        "type": "address"
+      }
+    ],
+    "name": "setLachesis",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "loanOfficer",
+        "type": "address"
+      }
+    ],
+    "name": "setPyroTokenLoanOfficer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "snufferCap",
+        "type": "address"
+      }
+    ],
+    "name": "setSnufferCap",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "pull",
+        "type": "bool"
+      }
+    ],
+    "name": "togglePyroTokenPullFeeRevenue",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "transferPyroTokenToNewReceiver",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

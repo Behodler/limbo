@@ -1,6 +1,66 @@
 [
-  "constructor(address,address,address,address,address)",
-  "function gasConsumed(bool) view returns (uint256)",
-  "function swapMeasureCliffFaceSwap()",
-  "function swapMeasureSimpleSwap()"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proxyRegistry",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "eye",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "dai",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "simple",
+        "type": "bool"
+      }
+    ],
+    "name": "gasConsumed",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "swapMeasureCliffFaceSwap",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "swapMeasureSimpleSwap",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

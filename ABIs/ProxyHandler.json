@@ -1,8 +1,120 @@
 [
-  "function REAL() view returns (bool)",
-  "function approvePyroTokenForProxy(address) returns (bool)",
-  "function baseRedeemRate(address) view returns (uint256)",
-  "function mintPyroFromBase(address,uint256) returns (uint256)",
-  "function redeemFromPyro(address,uint256) returns (uint256)",
-  "function redeemRate(address) view returns (uint256)"
+  {
+    "inputs": [],
+    "name": "REAL",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyro",
+        "type": "address"
+      }
+    ],
+    "name": "approvePyroTokenForProxy",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      }
+    ],
+    "name": "baseRedeemRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "mintPyroFromBase",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pyroAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "redeemFromPyro",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      }
+    ],
+    "name": "redeemRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

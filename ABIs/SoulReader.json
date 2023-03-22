@@ -1,8 +1,181 @@
 [
-  "function CrossingParameters(address,address) view returns (uint256, int256, uint256)",
-  "function ExpectedCrossingBonus(address,address,address) view returns (uint256)",
-  "function ExpectedCrossingBonusRate(address,address,address) view returns (uint256)",
-  "function GetPendingReward(address,address,address) view returns (uint256)",
-  "function getCurrentSoulState(address,address) view returns (uint256)",
-  "function soulStats(address,address) view returns (uint256, uint256, uint256)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "CrossingParameters",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "holder",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "ExpectedCrossingBonus",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "flanBonus",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "holder",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "ExpectedCrossingBonusRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "bonusRate",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "GetPendingReward",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "getCurrentSoulState",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "state",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_limbo",
+        "type": "address"
+      }
+    ],
+    "name": "soulStats",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

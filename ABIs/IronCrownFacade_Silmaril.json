@@ -1,3 +1,25 @@
 [
-  "function setSilmaril(uint8,uint16,address)"
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "index",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint16",
+        "name": "percentage",
+        "type": "uint16"
+      },
+      {
+        "internalType": "address",
+        "name": "exit",
+        "type": "address"
+      }
+    ],
+    "name": "setSilmaril",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

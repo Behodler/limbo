@@ -1,23 +1,303 @@
 [
-  "constructor(address,address,address)",
-  "error AccessDenied(address,address)",
-  "error BackrunDetected(address,address)",
-  "error GovernanceActionFailed(bool,address)",
-  "error OnlyOwner(address,address)",
-  "error ProposalNotLocked(address)",
-  "error TransferToZeroAddress()",
-  "event LodgingStatus(address indexed,string)",
-  "event OwnershipTransferred(address indexed,address indexed)",
-  "function DAO() view returns (address)",
-  "function changeSoulUpdateProposal(address)",
-  "function configured() view returns (bool)",
-  "function endConfiguration(address)",
-  "function lodgeProposal(address)",
-  "function owner() view returns (address)",
-  "function setDAO(address)",
-  "function soulUpdateProposal() view returns (address)",
-  "function temporaryConfigurationLord() view returns (address)",
-  "function toggleWhitelistProposal(address)",
-  "function transferOwnership(address)",
-  "function whitelistedProposalContracts(address) view returns (bool)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_dao",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "whitelistingProposal",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_soulUpdateProposal",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configurationLord",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "msg_sender",
+        "type": "address"
+      }
+    ],
+    "name": "AccessDenied",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "actualDAO",
+        "type": "address"
+      }
+    ],
+    "name": "BackrunDetected",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "configured",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "GovernanceActionFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "ProposalNotLocked",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TransferToZeroAddress",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "status",
+        "type": "string"
+      }
+    ],
+    "name": "LodgingStatus",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "DAO",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newProposal",
+        "type": "address"
+      }
+    ],
+    "name": "changeSoulUpdateProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "configured",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      }
+    ],
+    "name": "endConfiguration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "lodgeProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dao",
+        "type": "address"
+      }
+    ],
+    "name": "setDAO",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "soulUpdateProposal",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "temporaryConfigurationLord",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "toggleWhitelistProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "whitelistedProposalContracts",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

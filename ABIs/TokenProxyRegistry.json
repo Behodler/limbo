@@ -1,22 +1,316 @@
 [
-  "constructor(address,address)",
-  "error AccessDenied(address,address)",
-  "error ApproveToNonZero(address,address,uint256)",
-  "error BackrunDetected(address,address)",
-  "error GovernanceActionFailed(bool,address)",
-  "error InsufficinetFunds(uint256,uint256)",
-  "error NotAContract(address)",
-  "error NotMorgothPower(address,address)",
-  "error OperationFailure()",
-  "function DAO() view returns (address)",
-  "function TransferFromLimboTokenToBehodlerToken(address) returns (bool)",
-  "function configured() view returns (bool)",
-  "function endConfiguration(address)",
-  "function migrateProxyTokenToNewProxyWrapper(address,address)",
-  "function setDAO(address)",
-  "function setPower(address)",
-  "function setProxy(address,address,address) returns (bool)",
-  "function setTokenApprover(address)",
-  "function temporaryConfigurationLord() view returns (address)",
-  "function tokenProxy(address) view returns (address, address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dao",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_behodler",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configurationLord",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "msg_sender",
+        "type": "address"
+      }
+    ],
+    "name": "AccessDenied",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ApproveToNonZero",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "actualDAO",
+        "type": "address"
+      }
+    ],
+    "name": "BackrunDetected",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "configured",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "GovernanceActionFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "InsufficinetFunds",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "EOA",
+        "type": "address"
+      }
+    ],
+    "name": "NotAContract",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "power",
+        "type": "address"
+      }
+    ],
+    "name": "NotMorgothPower",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OperationFailure",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DAO",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "TransferFromLimboTokenToBehodlerToken",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "configured",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      }
+    ],
+    "name": "endConfiguration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "existingProxy",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "newProxyToken",
+        "type": "address"
+      }
+    ],
+    "name": "migrateProxyTokenToNewProxyWrapper",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dao",
+        "type": "address"
+      }
+    ],
+    "name": "setDAO",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_power",
+        "type": "address"
+      }
+    ],
+    "name": "setPower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "limboProxy",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "behodlerProxy",
+        "type": "address"
+      }
+    ],
+    "name": "setProxy",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "ownershipClaimed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "approver",
+        "type": "address"
+      }
+    ],
+    "name": "setTokenApprover",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "temporaryConfigurationLord",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "tokenProxy",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "limboProxy",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "behodlerProxy",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

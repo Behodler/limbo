@@ -1,4 +1,131 @@
 [
-  "error ConflictingStateAndType(uint256,uint256)",
-  "function set(tuple(uint256,uint256,uint256,SoulType,SoulState,uint256,uint256),uint256,uint256,uint256,uint256) pure returns (tuple(uint256,uint256,uint256,SoulType,SoulState,uint256,uint256))"
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "soulState",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "soulType",
+        "type": "uint256"
+      }
+    ],
+    "name": "ConflictingStateAndType",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "lastRewardTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "accumulatedFlanPerShare",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "crossingThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum SoulType",
+            "name": "soulType",
+            "type": "SoulType"
+          },
+          {
+            "internalType": "enum SoulState",
+            "name": "state",
+            "type": "SoulState"
+          },
+          {
+            "internalType": "uint256",
+            "name": "flanPerSecond",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "aggregateStakedBalance",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Soul",
+        "name": "soul",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "crossingThreshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "soulType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "state",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fps",
+        "type": "uint256"
+      }
+    ],
+    "name": "set",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "lastRewardTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "accumulatedFlanPerShare",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "crossingThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum SoulType",
+            "name": "soulType",
+            "type": "SoulType"
+          },
+          {
+            "internalType": "enum SoulState",
+            "name": "state",
+            "type": "SoulState"
+          },
+          {
+            "internalType": "uint256",
+            "name": "flanPerSecond",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "aggregateStakedBalance",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Soul",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  }
 ]

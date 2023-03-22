@@ -1,9 +1,109 @@
 [
-  "error OnlyOwner(address,address)",
-  "error TransferToZeroAddress()",
-  "event OwnershipTransferred(address indexed,address indexed)",
-  "function LetThereBeFlan(uint256,uint256)",
-  "function dependencies() view returns (address, address, address)",
-  "function owner() view returns (address)",
-  "function transferOwnership(address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TransferToZeroAddress",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "daiAVB",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "daiPerSCX",
+        "type": "uint256"
+      }
+    ],
+    "name": "LetThereBeFlan",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dependencies",
+    "outputs": [
+      {
+        "internalType": "contract BehodlerLike",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IUniswapV2Factory",
+        "name": "uniswapFactory",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IUniswapV2Factory",
+        "name": "sushiswapFactory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

@@ -1,6 +1,45 @@
 [
-  "error InsufficinetFunds(uint256,uint256)",
-  "error InvocationRewardFailed(address)",
-  "error NotAContract(address)",
-  "error OperationFailure()"
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "InsufficinetFunds",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "InvocationRewardFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "EOA",
+        "type": "address"
+      }
+    ],
+    "name": "NotAContract",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OperationFailure",
+    "type": "error"
+  }
 ]

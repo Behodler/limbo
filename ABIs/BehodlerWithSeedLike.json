@@ -1,3 +1,45 @@
 [
-  "function seed(address,address,address,address,address,address,address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "weth",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "lachesis",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flashLoanArbiter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_pyroTokenLiquidityReceiver",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "weidaiReserve",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "dai",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "weiDai",
+        "type": "address"
+      }
+    ],
+    "name": "seed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

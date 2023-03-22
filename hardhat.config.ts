@@ -40,7 +40,8 @@ export default {
     clear: true,
     flat: true,
     spacing: 2,
-    pretty: true
+    pretty: false,
+    format:"json"
   },
   networks: {
 

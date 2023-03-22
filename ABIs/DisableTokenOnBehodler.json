@@ -1,10 +1,135 @@
 [
-  "constructor(address,address)",
-  "event PowerInvoked(address,bytes32,bytes32)",
-  "function angband() view returns (address)",
-  "function destruct()",
-  "function invoke(bytes32,address)",
-  "function power() view returns (bytes32, bytes32, bool, bool)",
-  "function registry() view returns (address)",
-  "function token() view returns (address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_angband",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "minion",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "domain",
+        "type": "bytes32"
+      }
+    ],
+    "name": "PowerInvoked",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "angband",
+    "outputs": [
+      {
+        "internalType": "contract AngbandLike_071",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "destruct",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "minion",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "invoke",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "power",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "name",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "domain",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "transferrable",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "unique",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "registry",
+    "outputs": [
+      {
+        "internalType": "contract PowersRegistry",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "token",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]
