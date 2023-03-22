@@ -63,7 +63,7 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
       await setMiningInterval(DEPLOYMENT_CONFIG.miningIntervalMs, fastify.log)
 
       fastify.log.info('deploying Behodler contracts')
-      const deployedAddresses = await safeDeploy(
+      const set = await safeDeploy(
         DEPLOYMENT_CONFIG.recipeName,
         chainId,
         DEPLOYMENT_CONFIG.confirmationsNumber,
@@ -79,7 +79,7 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
         await setMiningInterval(RUNTIME_CONFIG.miningIntervalMs, fastify.log)
       }
 
-      return { ...initialBehodlerDevEnv, active: true, node, deployedAddresses }
+      return { ...initialBehodlerDevEnv, active: true, node, set }
     }
 
     async function startDevEnv() {

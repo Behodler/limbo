@@ -1,22 +1,29 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import {
   OutputAddress, AddressFileStructure, logFactory, getPauser,
-  nameNetwork, Sections, sectionName, fetchDeploymentRecipe, networks, recipeNames, broadcastFactory
+  nameNetwork, Sections, sectionName,
+  fetchDeploymentRecipe, networks, recipeNames,
+  broadcastFactory, ITokenConfig
 } from "./common";
-import { IDeploymentParams, sectionChooser } from "./deploymentFunctions";
+import { IDeploymentParams, sectionChooser, extractTokenConfig } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import path from 'path'
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
+export interface ContractSet {
+  protocol: OutputAddress,
+  tokens: ITokenConfig[]
+}
+
 export async function safeDeploy(
   recipeOfDeployment: recipeNames,
   chainId: number | undefined,
   confirmations: number,
   logger: (message: string) => void,
   persistPath?: string
-): Promise<OutputAddress> {
+): Promise<ContractSet> {
   const file = "/tmp/deploy.lock";
   if (!existsSync(file)) {
     writeFileSync(file, "unlocked");
@@ -25,15 +32,15 @@ export async function safeDeploy(
   logger("lock status is " + lockStatus);
   if (lockStatus === "locked") {
     logger("deployment locked");
-    return {};
+    return {} as ContractSet;
   }
   writeFileSync(file, "locked");
   try {
     logger("about to deploy");
-    const addresses = await deployToNetwork(recipeOfDeployment, chainId, confirmations, logger);
+    const set = await deployToNetwork(recipeOfDeployment, chainId, confirmations, logger);
     if (persistPath)
-      writeFileSync(persistPath, JSON.stringify(addresses, null, 2))
-    return addresses
+      writeFileSync(persistPath, JSON.stringify(set.protocol, null, 2))
+    return set
   } catch (error) {
     throw error;
   } finally {
@@ -46,7 +53,7 @@ export async function deployToNetwork(
   chainId: number | undefined,
   confirmations: number,
   logger: (message: string) => void
-): Promise<OutputAddress> {
+): Promise<ContractSet> {
   /*
     Steps:
     1. load addresses for group by testnet id.
@@ -69,7 +76,7 @@ export async function deployToNetwork(
   let loader = new Loader(networkName, logger, deployer, pauser, confirmations)
 
   const iterations = recipe.length;
-  logger('Sections: '+iterations)
+  logger('Sections: ' + iterations)
   for (let i = 0; i < iterations; i++) {
     const currentSection: Sections = recipe[i]
     logger(" ")
@@ -85,7 +92,11 @@ export async function deployToNetwork(
 
   logger("Deployments complete. Flattening...")
   const flat = loader.flatten()
-  return flat;
+  const tokenConfig = await loader.getTokenConfig(recipe)
+  return {
+    protocol: flat,
+    tokens: tokenConfig
+  };
 }
 
 class Loader {
@@ -129,6 +140,26 @@ class Loader {
       }
     }
     return flat;
+  }
+
+  async getTokenConfig(recipe: Sections[]): Promise<ITokenConfig[]> {
+
+    const existingKeys = Object.keys(this.existing)
+    const pyroCableSections: Sections[] = [Sections.LiquidityReceiverOld, Sections.LiquidityReceiverNew, Sections.BehodlerTokens]
+
+    const isPyroCapable = pyroCableSections.every(s => recipe.includes(s))
+    console.log('isPyroCapable: ' + isPyroCapable)
+    //Only produce a meaninful output if we actually have pyroTokens in our deployment recipe
+    if (!isPyroCapable)
+      return [] as ITokenConfig[]
+
+    let params: IDeploymentParams = {
+      deployer: this.deployer,
+      existing: this.existing,
+      logger: this.logger,
+      broadcast: broadcastFactory(this.confirmations)
+    }
+    return await extractTokenConfig(params)
   }
 
   async loadOrDeploy(section: Sections): Promise<Loader> {

@@ -251,6 +251,14 @@ export enum Sections {
   DisableDeployerSnufferCap
 }
 
+export interface ITokenConfig {
+  displayName: string,
+  pyroDisplayName: string,
+  address: string,
+  pyroV2Address: string
+  pyroV3Address:string
+}
+
 export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
 
 let testnetRecipe = [

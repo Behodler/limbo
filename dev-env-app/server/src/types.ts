@@ -1,13 +1,26 @@
 import { SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers'
 import { FastifyInstance } from 'fastify'
 
-import { recipeNames } from '../../../scripts/networks/common'
+//Clean code: microservices should always duplicate type definitions to avoid tight coupling, even if this increases the risk of type errors.
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
 
+export interface ITokenConfig {
+  displayName: string,
+  pyroDisplayName: string,
+  address: string,
+  pyroV2Address: string
+  pyroV3Address:string
+}
+
+export interface ContractSet {
+  protocol:  { [name: string]: string },
+  tokens: ITokenConfig[]
+}
 export type BehodlerDevEnv = {
   active: boolean
   snapshots: SnapshotRestorer[]
   node?: Promise<void>
-  deployedAddresses?: { [name: string]: string }
+  set?: ContractSet
 }
 
 export type StartDevEnv = () => Promise<void>
