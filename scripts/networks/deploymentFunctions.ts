@@ -1,10 +1,12 @@
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers";
-import { OutputAddress, deploymentFactory, OutputAddressAdder,
-   Sections, AddressFileStructure, contractNames, sectionName,
-  stringToBytes32, criticalPairNames, tokenNames, 
-    behodlerTokenNames, ITokenConfig } from "./common";
+import {
+  OutputAddress, deploymentFactory, OutputAddressAdder,
+  Sections, AddressFileStructure, contractNames, sectionName,
+  stringToBytes32, criticalPairNames, tokenNames,
+  behodlerTokenNames, ITokenConfig
+} from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
 
@@ -119,7 +121,7 @@ interface ethersLib {
   [key: string]: string
 }
 
-export const getContractFromSection = (existing: AddressFileStructure) =>
+export const getContractFromSection = (existing: AddressFileStructure, debugLabel?: string) =>
   async function <T extends Contract>(section: Sections,
     contractName: contractNames,
     factoryName?: string,
@@ -133,7 +135,7 @@ export const getContractFromSection = (existing: AddressFileStructure) =>
 
     const address = existing[sectionName(section)][contractName]
     if (!address || address.startsWith("0x00000000000000000000000000"))
-      throw contractName + " has not been deployed yet"
+      throw debugLabel || "" + contractName + " has not been deployed yet"
     return factory.attach(address) as T
   }
 
@@ -738,7 +740,6 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
     const behodler = await getBehodler(params.existing)
 
     const scxBalanceOfDeployerBefore = await behodler.balanceOf(params.deployer.address)
-    console.log('NULL token ' + tokenToRegister.address)
     await params.broadcast("angband execute addReference Pair power", angband.executePower(addTokenAndValuePowerInvoker.address))
     const increaseInSCX = (await behodler.balanceOf(params.deployer.address)).sub(scxBalanceOfDeployerBefore)
 
@@ -972,7 +973,6 @@ const deployFlan: IDeploymentFunction = async function (params: IDeploymentParam
 
 
 const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
-  console.log('IN REGISTER FLAN')
   let deploy = deploymentFactory(Sections.Flan, params.existing)
   const getContract = await getContractFromSection(params.existing)
 
@@ -1675,9 +1675,9 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   const SCX_ETH = await fetchUniPai("SCX_ETH UniV2")
   const SCX_EYE = await fetchUniPai("SCX_EYE UniV2")
 
-  const balanceOfEyeDai = await  EYE_DAI.balanceOf(params.deployer.address)
+  const balanceOfEyeDai = await EYE_DAI.balanceOf(params.deployer.address)
   const balanceOfScxWeth = await SCX_ETH.balanceOf(params.deployer.address)
-  const balanceOfScXEye = await  SCX_EYE.balanceOf(params.deployer.address)
+  const balanceOfScXEye = await SCX_EYE.balanceOf(params.deployer.address)
 
   // await params.broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
 
@@ -1837,23 +1837,26 @@ export const prechecks: IDeploymentFunction = async function (params: IDeploymen
 }
 
 export const extractTokenConfig = async function (params: IDeploymentParams): Promise<ITokenConfig[]> {
-  const getContract = await getContractFromSection(params.existing)
+  const getContract = await getContractFromSection(params.existing, "extract")
   const LR_old = await getContract<Types.LiquidityReceiverV1>(Sections.LiquidityReceiverOld, "LiquidityReceiverV1");
   const LR_new = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver");
   let tokenConfigs = [] as ITokenConfig[]
 
   const pyroTokenFactory = await ethers.getContractFactory("PyroToken")
   const behodlerTokenSection = params.existing[sectionName(Sections.BehodlerTokens)]
-  const behodlerTokenNames = Object.keys(behodlerTokenSection)
-  for (let i = 0; i < behodlerTokenNames.length; i++) {
-    const tokenName = behodlerTokenNames[i] as contractNames
-    const token = await getContract<Types.ERC20>(Sections.BehodlerTokens, tokenName, "ERC20")
+  let weth: Contract = await getContract(Sections.Weth, "Weth", "WETH10")
+
+  const behodlerTokenNames = [...Object.keys(behodlerTokenSection),"Weth"]
+  for (let index = 0; index < behodlerTokenNames.length; index++) {
+    const tokenName = behodlerTokenNames[index] as contractNames
+    const token = tokenName == "Weth" ? weth :
+      await getContract<Types.ERC20>(Sections.BehodlerTokens, tokenName, "ERC20")
 
     let displayName: string = tokenName
     let pyroDisplayName = 'pyro(' + tokenName + ')'
     if (tokenName.includes('_')) {
-      const slashed = [displayName,pyroDisplayName]
-                      .map(tokenName=>  tokenName.split('_')[0] + '/' + tokenName.split('_')[1])
+      const slashed = [displayName, pyroDisplayName]
+        .map(tokenName => tokenName.split('_')[0] + '/' + tokenName.split('_')[1])
       displayName = slashed[0]
       pyroDisplayName = slashed[1]
     } else {
@@ -1867,7 +1870,7 @@ export const extractTokenConfig = async function (params: IDeploymentParams): Pr
     const tokenConfig = {
       name: tokenName,
       displayName: displayName,
-      pyroDisplayName:v3Deployed? pyroDisplayName:'',
+      pyroDisplayName: v3Deployed ? pyroDisplayName : '',
       address: token.address,
       pyroV2Address: pyroV2Address,
       pyroV3Address: v3Deployed ? pyroV3Address : ethers.constants.AddressZero
