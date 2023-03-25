@@ -467,9 +467,9 @@ const tradeOraclePairs: IDeploymentFunction = async function (params: IDeploymen
     await getContract<Types.ERC677>(section, contract, "ERC677")
 
 
-  const fln_scx = await fetchOraclePair("FLN_SCX")
-  const dai_scx = await fetchOraclePair("DAI_SCX")
-  const scx__fln_scx = await fetchOraclePair("SCX__FLN_SCX")
+  const fln_scx = await fetchOraclePair("FLN_SCX UniV2")
+  const dai_scx = await fetchOraclePair("DAI_SCX UniV2")
+  const scx__fln_scx = await fetchOraclePair("SCX__FLN_SCX UniV2")
 
   const flan = await fetchToken("Flan", Sections.Flan)
   const dai = await fetchToken("DAI", Sections.BehodlerTokens)
@@ -556,9 +556,9 @@ const registerOraclePairs: IDeploymentFunction = async function (params: IDeploy
   const getPair = async (name: criticalPairNames): Promise<Types.UniswapV2Pair> =>
     getContract<Types.UniswapV2Pair>(Sections.FlanGenesis, name, "UniswapV2Pair")
 
-  const fln_scx = await getPair("FLN_SCX")
-  const dai_scx = await getPair("DAI_SCX")
-  const scx__fln_scx = await getPair("SCX__FLN_SCX")
+  const fln_scx = await getPair("FLN_SCX UniV2")
+  const dai_scx = await getPair("DAI_SCX UniV2")
+  const scx__fln_scx = await getPair("SCX__FLN_SCX UniV2")
 
   await params.broadcast(`register pair ${fln_scx.address}`, limboOracle.RegisterPair(fln_scx.address, samplePeriod))
   await params.broadcast(`register pair ${dai_scx.address}`, limboOracle.RegisterPair(dai_scx.address, samplePeriod))
@@ -778,7 +778,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const uniGetOrCreate = await getOrCreateUniPairFactory(uniswapFactory, params.logger, params.broadcast)
   const referencePair = await uniGetOrCreate(flan, behodler as Types.ERC20)
   params.logger('reference pair ' + referencePair.address)
-  let addresses = OutputAddressAdder<Types.UniswapV2Pair>({}, "FLN_SCX", referencePair)
+  let addresses = OutputAddressAdder<Types.UniswapV2Pair>({}, "FLN_SCX UniV2", referencePair)
 
   const estimatedSCXPrice = ethers.constants.WeiPerEther.mul(500)
 
@@ -822,7 +822,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   params.logger('scarcityPriceOfFln_SCX ' + scarcityPriceOfFln_SCX.toString())
   const quantityOfSCXToTransferToOraclePair = scarcityPriceOfFln_SCX.mul(balanceOfRP).div(ethers.constants.WeiPerEther)
   const scx__fln_scx = await uniGetOrCreate(behodler, referencePair)
-  addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "SCX__FLN_SCX", scx__fln_scx)
+  addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "SCX__FLN_SCX UniV2", scx__fln_scx)
   params.logger('scx__fln_scx address: ' + scx__fln_scx.address)
 
   const balanceOfOraclePairBefore = await scx__fln_scx.balanceOf(params.deployer.address)
@@ -858,7 +858,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   // 12. TokenProxyRegistry.createCliffFace (dai_scx)
   const dai_scx = await uniGetOrCreate(dai, behodler)
   params.logger('DAI_SCX address: ' + dai_scx.address)
-  addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "DAI_SCX", dai_scx)
+  addresses = OutputAddressAdder<Types.UniswapV2Pair>(addresses, "DAI_SCX UniV2", dai_scx)
   const daiValueOfScx_Dai = daiBalance.mul(2)
   const daiPriceOfSCX_Dai = daiValueOfScx_Dai.div((await dai_scx.totalSupply()))
   const referenceMultiple = ethers.constants.WeiPerEther.mul(ethers.constants.WeiPerEther).div(daiPriceOfSCX_Dai)
@@ -1379,21 +1379,21 @@ const deployNewLiquidityReceiver: IDeploymentFunction = async function (params: 
   const mkr = await fetchTokenAddress("MKR")
   const oxt = await fetchTokenAddress("OXT")
   const pnk = await fetchTokenAddress("PNK")
-  const lnk = await fetchTokenAddress("LNK")
+  const lnk = await fetchTokenAddress("LINK")
   const loom = await fetchTokenAddress("LOOM")
 
-  const eyedai = await fetchTokenAddress("EYE_DAI")
-  const scxeth = await fetchTokenAddress("SCX_ETH")
-  const scxeye = await fetchTokenAddress("SCX_EYE")
+  const eyedai = await fetchTokenAddress("EYE_DAI UniV2")
+  const scxeth = await fetchTokenAddress("SCX_ETH UniV2")
+  const scxeye = await fetchTokenAddress("SCX_EYE UniV2")
 
   await liquidityReceiver.registerPyroToken(mkr, "PyroMKR", "PMKR", 18)
   await liquidityReceiver.registerPyroToken(oxt, "PyroOXT", "POXT", 18)
   await liquidityReceiver.registerPyroToken(pnk, "PyroPNK", "PPNK", 18)
   await liquidityReceiver.registerPyroToken(lnk, "PyroLINK", "PLNK", 18)
   await liquidityReceiver.registerPyroToken(loom, "PyroLOOM", "PLOOM", 18)
-  await liquidityReceiver.registerPyroToken(eyedai, "PyroEYE_DAI", "Peye_dai", 18)
-  await liquidityReceiver.registerPyroToken(scxeth, "PyroSCX_ETH", "Pscx_eth", 18)
-  await liquidityReceiver.registerPyroToken(scxeye, "PyroSCX_EYE", "Pscx_eye", 18)
+  await liquidityReceiver.registerPyroToken(eyedai, "PyroEYE_DAI UniV2", "PEYE_DAI UniV2", 18)
+  await liquidityReceiver.registerPyroToken(scxeth, "PyroSCX_ETH UniV2", "PSCX_ETH UniV2", 18)
+  await liquidityReceiver.registerPyroToken(scxeye, "PyroSCX_EYE UniV2", "PSCX_EYE UniV2", 18)
   await liquidityReceiver.registerPyroToken(weth.address, "PyroWETH", "PWETH", 18) //pyroWeth10
   return addresses
 }
@@ -1528,12 +1528,12 @@ const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: 
   const mkr = await fetchTokenAddress("MKR")
   const oxt = await fetchTokenAddress("OXT")
   const pnk = await fetchTokenAddress("PNK")
-  const lnk = await fetchTokenAddress("LNK")
+  const lnk = await fetchTokenAddress("LINK")
   const loom = await fetchTokenAddress("LOOM")
 
-  const eyedai = await fetchTokenAddress("EYE_DAI")
-  const scxeth = await fetchTokenAddress("SCX_ETH")
-  const scxeye = await fetchTokenAddress("SCX_EYE")
+  const eyedai = await fetchTokenAddress("EYE_DAI UniV2")
+  const scxeth = await fetchTokenAddress("SCX_ETH UniV2")
+  const scxeye = await fetchTokenAddress("SCX_EYE UniV2")
 
   await params.broadcast("LR1 registerMKR", LR1.registerPyroToken(mkr))
   await params.broadcast("LR1 registerOXT", LR1.registerPyroToken(oxt))
@@ -1566,13 +1566,13 @@ const deployLachesis: IDeploymentFunction = async function (params: IDeploymentP
   const mkr = await fetchToken("MKR")
   const oxt = await fetchToken("OXT")
   const pnk = await fetchToken("PNK")
-  const lnk = await fetchToken("LNK")
+  const lnk = await fetchToken("LINK")
   const loom = await fetchToken("LOOM")
   const dai = await fetchToken("DAI")
   const weiDai = await fetchToken("WEIDAI")
-  const eyedai = await fetchToken("EYE_DAI")
-  const scxeth = await fetchToken("SCX_ETH")
-  const scxeye = await fetchToken("SCX_EYE")
+  const eyedai = await fetchToken("EYE_DAI UniV2")
+  const scxeth = await fetchToken("SCX_ETH UniV2")
+  const scxeye = await fetchToken("SCX_EYE UniV2")
   const weth = await getContract(Sections.Weth, "Weth", "WETH10")
 
   await params.broadcast("Lachesis approve eye", lachesis.measure(eye.address, true, true))
@@ -1606,7 +1606,7 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
   const maker = await deploy<Types.MockToken>("MKR", Token, "MAKER", "MKR", [], []);
   const oxt = await deploy<Types.MockToken>("OXT", Token, "OXT", "OXT", [], []);
   const pnk = await deploy<Types.MockToken>("PNK", Token, "PNK", "PNK", [], []);
-  const link = await deploy<Types.MockToken>("LNK", Token, "LINK", "LINK", [], []);
+  const link = await deploy<Types.MockToken>("LINK", Token, "LINK", "LINK", [], []);
   const loom = await deploy<Types.MockToken>("LOOM", Token, "LOOM", "LOOM", [], []);
   const dai = await deploy<Types.MockToken>("DAI", Token, "DAI", "DAI", [], []);
   const weidai = await deploy<Types.MockToken>("WEIDAI", Token, "WEIDAI", "WEIDAI", [], []);
@@ -1623,28 +1623,28 @@ const deployBehodlerTokens: IDeploymentFunction = async function (params: IDeplo
 
   const UniswapV2Pair = await ethers.getContractFactory("UniswapV2Pair")
 
-  const eyeDai = await uniswapDeployer<Types.UniswapV2Pair>("EYE_DAI", UniswapV2Pair)
+  const eyeDai = await uniswapDeployer<Types.UniswapV2Pair>("EYE_DAI UniV2", UniswapV2Pair)
   const uniswapRouter = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
   const uniWeth = await uniswapRouter.WETH()
 
 
   uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, pairDeployer(scarcity.address, uniWeth))
-  const scxEth = await uniswapDeployer<Types.UniswapV2Pair>("SCX_ETH", UniswapV2Pair)
+  const scxEth = await uniswapDeployer<Types.UniswapV2Pair>("SCX_ETH UniV2", UniswapV2Pair)
 
   uniswapDeployer = deploymentFactory(Sections.BehodlerTokens, params.existing, pairDeployer(scarcity.address, eye.address))
-  const scxEYE = await uniswapDeployer<Types.UniswapV2Pair>("SCX_EYE", UniswapV2Pair)
+  const scxEYE = await uniswapDeployer<Types.UniswapV2Pair>("SCX_EYE UniV2", UniswapV2Pair)
 
   let tokens: OutputAddress = OutputAddressAdder<Types.MockToken>({}, "EYE", eye);
   tokens = OutputAddressAdder<Types.MockToken>(tokens, "MKR", maker);
   tokens = OutputAddressAdder<Types.MockToken>(tokens, "OXT", oxt);
   tokens = OutputAddressAdder<Types.MockToken>(tokens, "PNK", pnk);
-  tokens = OutputAddressAdder<Types.MockToken>(tokens, "LNK", link);
+  tokens = OutputAddressAdder<Types.MockToken>(tokens, "LINK", link);
   tokens = OutputAddressAdder<Types.MockToken>(tokens, "LOOM", loom);
   tokens = OutputAddressAdder<Types.MockToken>(tokens, "DAI", dai);
   tokens = OutputAddressAdder<Types.MockToken>(tokens, "WEIDAI", weidai);
-  tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "EYE_DAI", eyeDai)
-  tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "SCX_ETH", scxEth)
-  tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "SCX_EYE", scxEYE)
+  tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "EYE_DAI UniV2", eyeDai)
+  tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "SCX_ETH UniV2", scxEth)
+  tokens = OutputAddressAdder<Types.UniswapV2Pair>(tokens, "SCX_EYE UniV2", scxEYE)
   return tokens;
 }
 
@@ -1656,7 +1656,7 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
 
   const dai = await fetchToken("DAI", Sections.BehodlerTokens)
   const eye = await fetchToken("EYE", Sections.BehodlerTokens)
-  const lnk = await fetchToken("LNK", Sections.BehodlerTokens)
+  const lnk = await fetchToken("LINK", Sections.BehodlerTokens)
   const loom = await fetchToken("LOOM", Sections.BehodlerTokens)
   const mkr = await fetchToken("MKR", Sections.BehodlerTokens)
   const oxt = await fetchToken("OXT", Sections.BehodlerTokens)
@@ -1671,13 +1671,13 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   }
 
   const fetchUniPai = async (pair: behodlerTokenNames) => getContract<Types.UniswapV2Pair>(Sections.BehodlerTokens, pair, "UniswapV2Pair")
-  const eye_dai = await fetchUniPai("EYE_DAI")
-  const scx_eth = await fetchUniPai("SCX_ETH")
-  const scx_eye = await fetchUniPai("SCX_EYE")
+  const EYE_DAI = await fetchUniPai("EYE_DAI UniV2")
+  const SCX_ETH = await fetchUniPai("SCX_ETH UniV2")
+  const SCX_EYE = await fetchUniPai("SCX_EYE UniV2")
 
-  const balanceOfEyeDai = await eye_dai.balanceOf(params.deployer.address)
-  const balanceOfScxWeth = await scx_eth.balanceOf(params.deployer.address)
-  const balanceOfScXEye = await scx_eye.balanceOf(params.deployer.address)
+  const balanceOfEyeDai = await  EYE_DAI.balanceOf(params.deployer.address)
+  const balanceOfScxWeth = await SCX_ETH.balanceOf(params.deployer.address)
+  const balanceOfScXEye = await  SCX_EYE.balanceOf(params.deployer.address)
 
   // await params.broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
 
@@ -1702,9 +1702,9 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   }
 
   const pairLiquidity = [
-    [scx_eth, balanceOfScxWeth],
-    [scx_eye, balanceOfScXEye],
-    [eye_dai, balanceOfEyeDai]
+    [SCX_ETH, balanceOfScxWeth],
+    [SCX_EYE, balanceOfScXEye],
+    [EYE_DAI, balanceOfEyeDai]
   ]
 
   for (let i = 0; i < pairLiquidity.length; i++) {
