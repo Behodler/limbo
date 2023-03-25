@@ -1464,9 +1464,9 @@ const deployConfigureScarcityPower: IDeploymentFunction = async function (params
 const deployMultiCall: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.MultiCall, params.existing)
 
-  const Multicall = await ethers.getContractFactory("Multicall");
-  const multicall = await deploy<Types.Multicall>("Multicall", Multicall);
-  return OutputAddressAdder<Types.Multicall>({} as OutputAddress, "Multicall", multicall)
+  const Multicall = await ethers.getContractFactory("Multicall3");
+  const multicall = await deploy<Types.Multicall3>("Multicall3", Multicall);
+  return OutputAddressAdder<Types.Multicall3>({} as OutputAddress, "Multicall3", multicall)
 }
 
 const deployPyroWeth10ProxyOld: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {

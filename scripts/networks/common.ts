@@ -412,7 +412,7 @@ export type contractNames =
   | "SushiswapV2Router"
   | "SushiswapV2Factory"
   | "Behodler"
-  | "Multicall"
+  | "Multicall3"
   | "Lachesis"
   | "AddressBalanceCheck"
   | "LiquidityReceiverV1"
