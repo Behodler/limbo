@@ -1,3 +1,15 @@
 [
-  "function executePower(address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "invoker",
+        "type": "address"
+      }
+    ],
+    "name": "executePower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

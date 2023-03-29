@@ -1,4 +1,33 @@
 [
-  "function parameterizePower(address,bool)",
-  "function setPower(address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "soul",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      }
+    ],
+    "name": "parameterizePower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "p",
+        "type": "address"
+      }
+    ],
+    "name": "setPower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

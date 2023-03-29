@@ -50,11 +50,7 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
     config.proxyRegistry = TokenProxyRegistryLike(tokenProxyRegistry);
   }
 
-  function setProxy(
-    address limboProxy,
-    address behodlerProxy,
-    uint256 paramIndex
-  ) public unlocked {
+  function setProxy(address limboProxy, address behodlerProxy, uint256 paramIndex) public unlocked {
     params[paramIndex].limboProxy = limboProxy;
     params[paramIndex].behodlerProxy = behodlerProxy;
   }
@@ -93,10 +89,11 @@ contract UpdateMultipleSoulConfigProposal is Proposal {
   }
 
   //for safe lodging
-  function lockDown() public lockUntilComplete {}
+  function lockDown() public lockUntilComplete(params.length > 0) {}
 
   function execute() internal override returns (bool) {
     Parameters[] memory localParams = params;
+    delete params;
 
     for (uint256 i = 0; i < localParams.length; i++) {
       //second check to catch any blacklisted cliffFace tokens.

@@ -21,7 +21,7 @@ contract AdjustFlanFeeOnTransferProposal is Proposal {
     function parameterize(
        address flan,
         uint8 fee
-    ) public lockUntilComplete {
+    ) public lockUntilComplete (flan!=address(0)) {
         params.flan = flan;
         params.fee = fee;
     }

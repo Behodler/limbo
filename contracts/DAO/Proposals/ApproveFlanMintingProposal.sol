@@ -19,7 +19,7 @@ contract ApproveFlanMintingProposal is Proposal {
 
   constructor(address dao, string memory _description) Proposal(dao, description) {}
 
-  function parameterize(address minter, bool enabled) public lockUntilComplete {
+  function parameterize(address minter, bool enabled) public lockUntilComplete(minter !=address(0)) {
     params.minter = minter;
     params.enabled = enabled;
   }

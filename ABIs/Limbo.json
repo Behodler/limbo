@@ -1,53 +1,1081 @@
 [
-  "constructor(address,address)",
-  "error AccessDenied(address,address)",
-  "error BackrunDetected(address,address)",
-  "error BonusClaimed(address,uint256)",
-  "error CannotFallBackIntoUnset(address)",
-  "error ConfiguringOldSoulsForbidden(address,uint256,uint256)",
-  "error CrossingBonusInvariant(int256,int256)",
-  "error ExcessiveWithdrawalRequest(address,uint256,uint256)",
-  "error FlanBonusMustBePositive(address,uint256,uint256,int256)",
-  "error GovernanceActionFailed(bool,address)",
-  "error InsufficinetFunds(uint256,uint256)",
-  "error InvalidSoul(address)",
-  "error InvalidSoulState(address,uint256,uint256)",
-  "error InvalidSoulType(address,uint256,uint256)",
-  "error MigrationCoolDownActive(address,uint256,uint256)",
-  "error NotAContract(address)",
-  "error OperationFailure()",
-  "error ProtocolDisabled()",
-  "error StakingInProgress(address,uint256)",
-  "event BonusPaid(address indexed,uint256,address indexed,uint256)",
-  "event ClaimedReward(address indexed,address indexed,uint256,uint256)",
-  "event SoulUpdated(address indexed,uint256)",
-  "event Staked(address indexed,address indexed,uint256)",
-  "event TokenListed(address indexed,uint256,uint256)",
-  "event Unstaked(address indexed,address indexed,uint256)",
-  "function DAO() view returns (address)",
-  "function adjustSoul(address,uint256,int256,uint256)",
-  "function approveUnstake(address,address,uint256)",
-  "function claimBonus(address,uint256)",
-  "function claimReward(address,uint256)",
-  "function configureCrossingConfig(address,address,address,address,uint256,uint256)",
-  "function configureCrossingParameters(address,uint256,int256,bool,uint256)",
-  "function configureSoul(address,uint256,uint256,uint256,uint256,uint256)",
-  "function configured() view returns (bool)",
-  "function crossingConfig() view returns (address, uint256, uint256, uint256, address, address, address)",
-  "function disableProtocol()",
-  "function enableProtocol()",
-  "function endConfiguration(address)",
-  "function latestIndex(address) view returns (uint256)",
-  "function migrate(address,uint256)",
-  "function setDAO(address)",
-  "function souls(address,uint256) view returns (uint256, uint256, uint256, uint8, uint8, uint256, uint256)",
-  "function stake(address,uint256)",
-  "function stakeFor(address,uint256,address)",
-  "function temporaryConfigurationLord() view returns (address)",
-  "function tokenCrossingParameters(address,uint256) view returns (uint256, uint256, int256, uint256, bool)",
-  "function unstake(address,uint256)",
-  "function unstakeApproval(address,address,address) view returns (uint256)",
-  "function unstakeFor(address,uint256,address,uint256)",
-  "function updateSoul(address)",
-  "function userInfo(address,address,uint256) view returns (uint256, uint256, bool)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "limboDAO",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "configurationLord",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "msg_sender",
+        "type": "address"
+      }
+    ],
+    "name": "AccessDenied",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "actualDAO",
+        "type": "address"
+      }
+    ],
+    "name": "BackrunDetected",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "BonusClaimed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "CannotFallBackIntoUnset",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "latestIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "proposedIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "ConfiguringOldSoulsForbidden",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "accFlanPerTeraToken",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "bonusDelta",
+        "type": "int256"
+      }
+    ],
+    "name": "CrossingBonusInvariant",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "staked",
+        "type": "uint256"
+      }
+    ],
+    "name": "ExcessiveWithdrawalRequest",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "staked",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "finalFlanPerTeraToken",
+        "type": "int256"
+      }
+    ],
+    "name": "FlanBonusMustBePositive",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "configured",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "GovernanceActionFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "InsufficinetFunds",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidSoul",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "state",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidSoulState",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "actualType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "expectedType",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidSoulType",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "migrationDelay",
+        "type": "uint256"
+      }
+    ],
+    "name": "MigrationCoolDownActive",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "EOA",
+        "type": "address"
+      }
+    ],
+    "name": "NotAContract",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OperationFailure",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProtocolDisabled",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "currentIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "StakingInProgress",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "bonus",
+        "type": "uint256"
+      }
+    ],
+    "name": "BonusPaid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "staker",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "soul",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "ClaimedReward",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "soul",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "fps",
+        "type": "uint256"
+      }
+    ],
+    "name": "SoulUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "staker",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Staked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "scxfln_LP_minted",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenListed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "unstaker",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Unstaked",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "DAO",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialCrossingBonus",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "crossingBonusDelta",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fps",
+        "type": "uint256"
+      }
+    ],
+    "name": "adjustSoul",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "unstaker",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "approveUnstake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "claimBonus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "claimReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "angband",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "ammHelper",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "morgothPower",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "migrationInvocationReward",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "crossingMigrationDelay",
+        "type": "uint256"
+      }
+    ],
+    "name": "configureCrossingConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialCrossingBonus",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "crossingBonusDelta",
+        "type": "int256"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "crossingThreshold",
+        "type": "uint256"
+      }
+    ],
+    "name": "configureCrossingParameters",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "crossingThreshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "soulType",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "state",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fps",
+        "type": "uint256"
+      }
+    ],
+    "name": "configureSoul",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "configured",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "crossingConfig",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "SCX_fee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "migrationInvocationReward",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "crossingMigrationDelay",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "morgothPower",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "angband",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "ammHelper",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "disableProtocol",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "enableProtocol",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expectedDAO",
+        "type": "address"
+      }
+    ],
+    "name": "endConfiguration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "latestIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "migrate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dao",
+        "type": "address"
+      }
+    ],
+    "name": "setDAO",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "souls",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "lastRewardTimestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "accumulatedFlanPerShare",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "crossingThreshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum SoulType",
+        "name": "soulType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "enum SoulState",
+        "name": "state",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "flanPerSecond",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "aggregateStakedBalance",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "stake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "stakeFor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "temporaryConfigurationLord",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenCrossingParameters",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "stakingBeginsTimestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "stakingEndsTimestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "crossingBonusDelta",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "initialCrossingBonus",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "burnable",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "unstake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "unstakeApproval",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "holder",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "unstakeFor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "updateSoul",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "stakedAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rewardDebt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "bonusPaid",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]

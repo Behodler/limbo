@@ -28,7 +28,7 @@ contract BurnFlashStakeDeposit is Proposal {
         uint256 amount,
         address flashGoverner,
         address targetContract
-    ) public lockUntilComplete {
+    ) public lockUntilComplete(user != address(0)) {
         params.user = user;
         params.asset = asset;
         params.amount = amount;

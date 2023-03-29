@@ -385,9 +385,9 @@ export const fetchDeploymentRecipe = (name: recipeNames) => {
 
 export const sectionName = (section: Sections): string => Sections[section]
 
-export type behodlerTokenNames = "EYE" | "MKR" | "OXT" | "PNK" | "LNK" | "LOOM" | "DAI" | "WEIDAI" | "EYE_DAI" | "SCX_ETH" | "SCX_EYE"
+export type behodlerTokenNames = "EYE" | "MKR" | "OXT" | "PNK" | "LINK" | "LOOM" | "DAI" | "WEIDAI" | "EYE_DAI UniV2" | "SCX_ETH UniV2" | "SCX_EYE UniV2"
 
-export type criticalPairNames = "FLN_SCX" | "DAI_SCX" | "SCX__FLN_SCX"
+export type criticalPairNames = "FLN_SCX UniV2" | "DAI_SCX UniV2" | "SCX__FLN_SCX UniV2"
 
 export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
 
@@ -412,7 +412,7 @@ export type contractNames =
   | "SushiswapV2Router"
   | "SushiswapV2Factory"
   | "Behodler"
-  | "Multicall"
+  | "Multicall3"
   | "Lachesis"
   | "AddressBalanceCheck"
   | "LiquidityReceiverV1"

@@ -34,12 +34,12 @@ abstract contract Proposal {
   }
 
   //decorate parameterization functions with this to prevent MEV calibration attacks
-  modifier lockUntilComplete() {
+  modifier lockUntilComplete(bool condition) {
     if(locked){
       revert ProposalLocked(address(this));
     }
     _;
-    locked = true;
+    locked = condition;
   }
 
   function setLocked(bool _locked) public onlyProposalFactoryOrDAO {

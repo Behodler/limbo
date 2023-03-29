@@ -70,7 +70,7 @@ describe("public testnet deployment", function () {
   it("t1. illustrate a healthy deployment by having working LP tokens", async function () {
     const { fetchAddress } = await loadFixture(deployEcosystem)
 
-    const eyeDaiAddress = fetchAddress("EYE_DAI")
+    const eyeDaiAddress = fetchAddress("EYE_DAI UniV2")
     const uniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
     const eyeDai = uniswapPairFactory.attach(eyeDaiAddress) as Types.ERC20;
     const totalSupply = await eyeDai.totalSupply();

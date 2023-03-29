@@ -1,6 +1,65 @@
 [
-  "function POWERREGISTRY() view returns (bytes32)",
-  "function executePower(address)",
-  "function getAddress(bytes32) view returns (address)",
-  "function setBehodler(address,address)"
+  {
+    "inputs": [],
+    "name": "POWERREGISTRY",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "powerInvoker",
+        "type": "address"
+      }
+    ],
+    "name": "executePower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_key",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getAddress",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "lachesis",
+        "type": "address"
+      }
+    ],
+    "name": "setBehodler",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

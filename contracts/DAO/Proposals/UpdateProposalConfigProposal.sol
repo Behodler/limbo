@@ -3,38 +3,32 @@ pragma solidity 0.8.16;
 import "../ProposalFactory.sol";
 
 /**
-* @author Justin Goro
-* @notice Each proposal is subject to a fate cost and a duration of voting. These values are themselves subject to governance
-*/
+ * @author Justin Goro
+ * @notice Each proposal is subject to a fate cost and a duration of voting. These values are themselves subject to governance
+ */
 contract UpdateProposalConfigProposal is Proposal {
-    struct Parameters {
-        uint256 votingDuration;
-        uint256 requiredFateStake;
-        address proposalFactory;
-    }
+  struct Parameters {
+    uint256 votingDuration;
+    uint256 requiredFateStake;
+    address proposalFactory;
+  }
 
-    Parameters public params;
+  Parameters public params;
 
-    constructor(address dao, string memory _description)
-        Proposal(dao, _description)
-    {}
+  constructor(address dao, string memory _description) Proposal(dao, _description) {}
 
-    function parameterize(
-        uint256 votingDuration,
-        uint256 requiredFateStake,
-        address proposalFactory
-    ) public lockUntilComplete {
-        params.proposalFactory = proposalFactory;
-        params.requiredFateStake = requiredFateStake;
-        params.votingDuration = votingDuration;
-    }
+  function parameterize(
+    uint256 votingDuration,
+    uint256 requiredFateStake,
+    address proposalFactory
+  ) public lockUntilComplete(requiredFateStake > 0) {
+    params.proposalFactory = proposalFactory;
+    params.requiredFateStake = requiredFateStake;
+    params.votingDuration = votingDuration;
+  }
 
-    function execute() internal override returns (bool) {
-        DAO.setProposalConfig(
-            params.votingDuration,
-            params.requiredFateStake,
-            params.proposalFactory
-        );
-        return true;
-    }
+  function execute() internal override returns (bool) {
+    DAO.setProposalConfig(params.votingDuration, params.requiredFateStake, params.proposalFactory);
+    return true;
+  }
 }

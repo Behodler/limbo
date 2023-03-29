@@ -1,8 +1,117 @@
 [
-  "function bigConstants() view returns (address)",
-  "function drain(address) returns (uint256)",
-  "function getPyroToken(address) view returns (address)",
-  "function registerPyroToken(address,string,string)",
-  "function setFeeExemptionStatusOnPyroForContract(address,address,uint8)",
-  "function setPyroTokenLoanOfficer(address,address)"
+  {
+    "inputs": [],
+    "name": "bigConstants",
+    "outputs": [
+      {
+        "internalType": "contract BigConstantsLike",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      }
+    ],
+    "name": "drain",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      }
+    ],
+    "name": "getPyroToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      }
+    ],
+    "name": "registerPyroToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "internalType": "enum FeeExemption",
+        "name": "exemption",
+        "type": "uint8"
+      }
+    ],
+    "name": "setFeeExemptionStatusOnPyroForContract",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pyroToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "loanOfficer",
+        "type": "address"
+      }
+    ],
+    "name": "setPyroTokenLoanOfficer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

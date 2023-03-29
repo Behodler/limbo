@@ -1,4 +1,28 @@
 [
-  "function soulUpdateProposal() view returns (address)",
-  "function toggleWhitelistProposal(address)"
+  {
+    "inputs": [],
+    "name": "soulUpdateProposal",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proposal",
+        "type": "address"
+      }
+    ],
+    "name": "toggleWhitelistProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

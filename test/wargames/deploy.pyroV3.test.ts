@@ -94,7 +94,7 @@ describe("pyroV3 addition to mainnet", function () {
     const { owner, secondPerson, fetchAddress, pauser } = await loadFixture(deployStatusQuoWithLogging)
     // await provider.send("evm_setAutomine", [true]);
     const MockTokenFactory = await ethers.getContractFactory("MockToken")
-    const link = await MockTokenFactory.attach(fetchAddress("LNK")) as Types.MockToken
+    const link = await MockTokenFactory.attach(fetchAddress("LINK")) as Types.MockToken
     const eye = await MockTokenFactory.attach(fetchAddress("EYE")) as Types.MockToken
 
     const behodler = await getBehodler(fetchAddress)
@@ -147,7 +147,7 @@ describe("pyroV3 addition to mainnet", function () {
     const liquidityReceiverV1Factory = await getNamedFactory("LiquidityReceiverV1")
     const liquidityReceiverV1 = await getTypedContract<Types.LiquidityReceiverV1>(fetchAddress("LiquidityReceiverV1"), liquidityReceiverV1Factory)
     const addresses = {
-      pyroLink: await liquidityReceiverV1.baseTokenMapping(fetchAddress("LNK")),
+      pyroLink: await liquidityReceiverV1.baseTokenMapping(fetchAddress("LINK")),
       pyroLoom: await liquidityReceiverV1.baseTokenMapping(fetchAddress("LOOM")),
       pyroMKR: await liquidityReceiverV1.baseTokenMapping(fetchAddress("MKR")),
       pyroPNK: await liquidityReceiverV1.baseTokenMapping(fetchAddress("PNK"))

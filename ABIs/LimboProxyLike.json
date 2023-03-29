@@ -1,3 +1,9 @@
 [
-  "function approveLimbo()"
+  {
+    "inputs": [],
+    "name": "approveLimbo",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]

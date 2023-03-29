@@ -1,19 +1,288 @@
 [
-  "constructor(address,address)",
-  "event OwnershipTransferred(address indexed,address indexed)",
-  "event PowerInvoked(address,bytes32,bytes32)",
-  "function angband() view returns (address)",
-  "function changePower(address)",
-  "function choice() view returns (uint8)",
-  "function getChoice() view returns (uint256)",
-  "function invoke(bytes32,address)",
-  "function owner() view returns (address)",
-  "function power() view returns (bytes32, bytes32, bool, bool)",
-  "function registry() view returns (address)",
-  "function renounceOwnership()",
-  "function setApprove(address[],bool[])",
-  "function setBlockBaseToken(address[],bool[])",
-  "function setUnmapParams(address[])",
-  "function setUpdateConfig(address,address,address,address,address)",
-  "function transferOwnership(address)"
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_angband",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "powers",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "minion",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "domain",
+        "type": "bytes32"
+      }
+    ],
+    "name": "PowerInvoked",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "angband",
+    "outputs": [
+      {
+        "internalType": "contract AngbandLike_071",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_powers",
+        "type": "address"
+      }
+    ],
+    "name": "changePower",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "choice",
+    "outputs": [
+      {
+        "internalType": "enum ConfigureTokenApproverPower.ExecutionChoice",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getChoice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "minion",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "invoke",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "power",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "name",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "domain",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bool",
+        "name": "transferrable",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "unique",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "registry",
+    "outputs": [
+      {
+        "internalType": "contract PowersRegistry",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "bool[]",
+        "name": "approved",
+        "type": "bool[]"
+      }
+    ],
+    "name": "setApprove",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "bool[]",
+        "name": "blockToken",
+        "type": "bool[]"
+      }
+    ],
+    "name": "setBlockBaseToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokensToUnmap",
+        "type": "address[]"
+      }
+    ],
+    "name": "setUnmapParams",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proxyRegistry",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "referenceToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "behodler",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "flan",
+        "type": "address"
+      }
+    ],
+    "name": "setUpdateConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ]
