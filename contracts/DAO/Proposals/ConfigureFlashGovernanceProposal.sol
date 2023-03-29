@@ -21,7 +21,7 @@ contract ConfigureFlashGovernanceProposal is Proposal {
     uint256 amount,
     uint256 unlockTime,
     bool assetBurnable
-  ) public lockUntilComplete {
+  ) public lockUntilComplete(true) {
     params.asset = asset;
     params.amount = amount;
     params.unlockTime = unlockTime;

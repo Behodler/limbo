@@ -13,7 +13,7 @@ contract SetFateSpendersProposal is Proposal {
 
   constructor(address dao, string memory _description) Proposal(dao, _description) {}
 
-  function parameterize(address[] calldata spenders, bool[] calldata canSpend) public lockUntilComplete {
+  function parameterize(address[] calldata spenders, bool[] calldata canSpend) public lockUntilComplete(spenders.length == canSpend.length) {
     if (spenders.length > 50) revert GriefSafetyFactorExceeded(50, spenders.length);
     params.spenders = spenders;
     params.canSpend = canSpend;

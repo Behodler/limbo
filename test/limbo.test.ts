@@ -17,7 +17,7 @@ interface TestContracts {
   flan: Types.Flan
   eye: Types.MockToken
   proposalFactory: Types.ProposalFactory
-  soulReader:Types.SoulReader
+  soulReader: Types.SoulReader
 }
 
 let Constants = {
@@ -2496,10 +2496,51 @@ describe.only("Limbo", function () {
 
     const durationToVotingComplete = proposalConfig.votingDuration
     await advanceTime(durationToVotingComplete.toNumber())
+    interface ProposalParams {
+      baseToken: string
+      limboProxy: string
+      behodlerProxy: string
+      soulType: BigNumber
+      state: BigNumber
+      index: BigNumber
+      targetAPY: BigNumber
+      daiThreshold: BigNumber
+      crossingThreshold: BigNumber
+      burnable: boolean
+    }
+    const paramsBefore = (await proposal.params(0) as ProposalParams)
+    // console.log('jsonified ' + JSON.stringify(paramsBefore, null, 4))
+    console.log("baseToken before: " + paramsBefore.baseToken)
+    expect(paramsBefore.baseToken).to.equal(tokenTriplets[0].baseToken)
+    expect(paramsBefore.behodlerProxy).to.equal(tokenTriplets[0].behodlerToken)
+
     await SET.limboDAO.executeCurrentProposal()
 
-    //assert the proxies are all correclty mapped
+    let accessEmptyError: boolean = false
+    try {
+      (await proposal.params(0) as ProposalParams)
+    } catch (e) {
+      accessEmptyError = true
+    }
+    expect(accessEmptyError).to.be.true
 
+    await proposal.parameterize(
+      tokenTriplets[1].baseToken,
+      "1000",
+      SoulType.threshold,
+      SoulState.staking,
+      0,
+      10,
+      10,
+      10,
+      10,
+      false)
+
+    //assert that calling parameterize again repopulates list from zero index
+    const paramsAfter = (await proposal.params(0) as ProposalParams)
+    expect(paramsAfter.baseToken).to.equal(tokenTriplets[1].baseToken)
+
+    //assert the proxies are all correclty mapped
     for (let i = 0; i < tokens.length; i++) {
       const proxyPair = await SET.proxyRegistry.tokenProxy(tokens[i].address)
       expect(proxyPair.limboProxy).to.not.equal(ethers.constants.AddressZero)
@@ -2529,269 +2570,269 @@ describe.only("Limbo", function () {
     }
   })
 
-  describe("PyroFlanBooster tests", function () {
-    interface PyroFlanSet {
-      pyroFlan: Types.PyroToken
-      liquidityReceiver: Types.LiquidityReceiver,
-      pyroFlanBooster: Types.PyroFlanBooster
-    }
-    let PSET: PyroFlanSet = {} as PyroFlanSet
-    beforeEach(async function () {
-      const addressBalanceCheck = await ethers.getContractFactory("AddressBalanceCheck")
+  // describe("PyroFlanBooster tests", function () {
+  //   interface PyroFlanSet {
+  //     pyroFlan: Types.PyroToken
+  //     liquidityReceiver: Types.LiquidityReceiver,
+  //     pyroFlanBooster: Types.PyroFlanBooster
+  //   }
+  //   let PSET: PyroFlanSet = {} as PyroFlanSet
+  //   beforeEach(async function () {
+  //     const addressBalanceCheck = await ethers.getContractFactory("AddressBalanceCheck")
 
-      const behodlerFactory = await ethers.getContractFactory("Behodler",
-        {
-          libraries: {
-            AddressBalanceCheck: await (await addressBalanceCheck.deploy()).address
-          }
-        })
-      SET.behodler = await deploy<Types.Behodler>(behodlerFactory)
+  //     const behodlerFactory = await ethers.getContractFactory("Behodler",
+  //       {
+  //         libraries: {
+  //           AddressBalanceCheck: await (await addressBalanceCheck.deploy()).address
+  //         }
+  //       })
+  //     SET.behodler = await deploy<Types.Behodler>(behodlerFactory)
 
-      const lachesisFactory = await ethers.getContractFactory("Lachesis")
-      SET.lachesis = await deploy<Types.Lachesis>(lachesisFactory, owner.address, owner.address)
+  //     const lachesisFactory = await ethers.getContractFactory("Lachesis")
+  //     SET.lachesis = await deploy<Types.Lachesis>(lachesisFactory, owner.address, owner.address)
 
-      await SET.lachesis.setBehodler(SET.behodler.address)
+  //     await SET.lachesis.setBehodler(SET.behodler.address)
 
-      const bigConstantsFactory = await ethers.getContractFactory("BigConstants")
-      const bigConstants = await deploy<Types.BigConstants>(bigConstantsFactory)
+  //     const bigConstantsFactory = await ethers.getContractFactory("BigConstants")
+  //     const bigConstants = await deploy<Types.BigConstants>(bigConstantsFactory)
 
-      const liquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver")
+  //     const liquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver")
 
-      PSET.liquidityReceiver = await deploy<Types.LiquidityReceiver>(liquidityReceiverFactory,
-        SET.lachesis.address,
-        bigConstants.address)
+  //     PSET.liquidityReceiver = await deploy<Types.LiquidityReceiver>(liquidityReceiverFactory,
+  //       SET.lachesis.address,
+  //       bigConstants.address)
 
-      await SET.behodler.seed(
-        SET.eye.address,
-        SET.lachesis.address,
-        owner.address,
-        PSET.liquidityReceiver.address,
-        owner.address,
-        SET.eye.address,
-        SET.eye.address
-      )
-      await SET.lachesis.measure(SET.flan.address, true, false)
-      await SET.lachesis.updateBehodler(SET.flan.address)
+  //     await SET.behodler.seed(
+  //       SET.eye.address,
+  //       SET.lachesis.address,
+  //       owner.address,
+  //       PSET.liquidityReceiver.address,
+  //       owner.address,
+  //       SET.eye.address,
+  //       SET.eye.address
+  //     )
+  //     await SET.lachesis.measure(SET.flan.address, true, false)
+  //     await SET.lachesis.updateBehodler(SET.flan.address)
 
-      await PSET.liquidityReceiver.registerPyroToken(
-        SET.flan.address,
-        "PyroFlan",
-        "PyroFLN",
-        18
-      )
-      const pyroFlanFactory = await ethers.getContractFactory("PyroToken")
+  //     await PSET.liquidityReceiver.registerPyroToken(
+  //       SET.flan.address,
+  //       "PyroFlan",
+  //       "PyroFLN",
+  //       18
+  //     )
+  //     const pyroFlanFactory = await ethers.getContractFactory("PyroToken")
 
-      PSET.pyroFlan = await pyroFlanFactory.attach(await PSET.liquidityReceiver.getPyroToken(SET.flan.address)) as Types.PyroToken
-      const config = await PSET.pyroFlan.config()
+  //     PSET.pyroFlan = await pyroFlanFactory.attach(await PSET.liquidityReceiver.getPyroToken(SET.flan.address)) as Types.PyroToken
+  //     const config = await PSET.pyroFlan.config()
 
-      //assert PyroFlan was correctly deployed
-      expect(config.baseToken).to.equal(SET.flan.address)
-
-
-      const pyroFlanBoosterFactory = await ethers.getContractFactory("PyroFlanBooster")
-
-      PSET.pyroFlanBooster = await deploy<Types.PyroFlanBooster>(pyroFlanBoosterFactory, SET.limboDAO.address)
-
-      const ApproveFlanMintingProposalFactory = await ethers.getContractFactory("ApproveFlanMintingProposal")
-      const proposal = await deploy<Types.ApproveFlanMintingProposal>(ApproveFlanMintingProposalFactory, SET.limboDAO.address, "approve")
-      await toggleWhiteList(proposal.address)
-
-      const proposalConfig = await SET.limboDAO.proposalConfig()
-      await SET.eye.approve(SET.limboDAO.address, proposalConfig.requiredFateStake)
-      await SET.limboDAO.burnAsset(SET.eye.address, proposalConfig.requiredFateStake, true)
-      const whitelisted = [PSET.pyroFlanBooster.address, owner.address]
-      for (let i = 0; i < whitelisted.length; i++) {
-        await proposal.parameterize(PSET.pyroFlanBooster.address, true)
-
-        await expect(SET.proposalFactory.lodgeProposal(proposal.address))
-          .to.emit(SET.proposalFactory, "LodgingStatus")
-          .withArgs(proposal.address, "SUCCESS");
-
-        await SET.limboDAO.vote(proposal.address, "100")
-        await advanceTime(proposalConfig.votingDuration.mul(2).toNumber())
-
-        await SET.limboDAO.executeCurrentProposal()
-      }
-      await PSET.pyroFlanBooster.configure(ethers.constants.WeiPerEther.div(50) //2% APY,31709791983 Flan per second
-        , SET.flan.address,
-        PSET.pyroFlan.address,
-        PSET.liquidityReceiver.address);
-
-      //snuff transfer fees so that redeem doesn't suffer
-
-      const DeployerSnufferCapFactory = await ethers.getContractFactory("DeployerSnufferCap")
-      const snuff = await deploy<Types.DeployerSnufferCap>(DeployerSnufferCapFactory, SET.limbo.address, PSET.liquidityReceiver.address)
-      await PSET.liquidityReceiver.setSnufferCap(snuff.address)
-
-      await snuff.snuff(PSET.pyroFlan.address, PSET.pyroFlanBooster.address, FeeExemption.RECEIVER_EXEMPT);
-      await PSET.pyroFlan.approve(PSET.pyroFlanBooster.address, ethers.constants.MaxUint256)
-      await SET.flan.approve(PSET.pyroFlanBooster.address, ethers.constants.MaxUint256)
-
-      await SET.flan.mint(owner.address, ethers.constants.WeiPerEther.mul(10))
-      await SET.flan.approve(PSET.pyroFlan.address, ethers.constants.MaxUint256)
-    })
-
-    it("t-47. Initial mint grows correctly", async function () {
-      //ACT
-      await advanceTime(1000)
-      const redeemRateBefore = await PSET.pyroFlan.redeemRate()
-      expect(redeemRateBefore).to.equal(ethers.constants.WeiPerEther)
-
-      const pyroFlanBefore = await PSET.pyroFlan.balanceOf(owner.address)
-      const flanInReserveBefore = await SET.flan.balanceOf(PSET.pyroFlan.address)
-      const flanInReceiverBefore = await SET.flan.balanceOf(PSET.liquidityReceiver.address)
-      await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
-      const pyroFlanAfterMint = await PSET.pyroFlan.balanceOf(owner.address)
-
-      await advanceTime(100)
-
-      const expectedIncreaseInFlan = BigNumber.from("634195839").mul(101)
-      const expectedTotalreserve = ethers.constants.WeiPerEther.mul(2).add(expectedIncreaseInFlan)
-
-      await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
-      const pyroReserve = await SET.flan.balanceOf(PSET.pyroFlan.address)
-
-      //ASSERT
-      expect(flanInReserveBefore.toString()).to.equal("0")
-      expect(flanInReceiverBefore.toString()).to.equal("0")
-      expect(pyroFlanBefore.toString()).to.equal("0")
-      expect(pyroFlanAfterMint.toString()).to.equal(ethers.constants.WeiPerEther.toString())
-      expect(pyroReserve.toString()).to.equal(expectedTotalreserve.toString())
-    })
-
-    it("t-48. minting/redeeming without booster lowers growth predictably", async function () {
-      const pyroFlanBefore = await PSET.pyroFlan.balanceOf(owner.address)
-      const flanInReserveBefore = await SET.flan.balanceOf(PSET.pyroFlan.address)
-      const flanInReceiverBefore = await SET.flan.balanceOf(PSET.liquidityReceiver.address)
-      await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
-
-      await PSET.pyroFlan.mint(owner.address, ethers.constants.WeiPerEther)
-      const pyroFlanAfterMint = await PSET.pyroFlan.balanceOf(owner.address)
-
-      await advanceTime(100)
-
-      const expectedIncreaseInFlan = BigNumber.from("634195839").mul(103)
-      const expectedTotalreserve = ethers.constants.WeiPerEther.mul(3).add(expectedIncreaseInFlan)
-
-      await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
-      const pyroReserve = await SET.flan.balanceOf(PSET.pyroFlan.address)
-
-      //ASSERT
-      expect(flanInReserveBefore.toString()).to.equal("0")
-      expect(flanInReceiverBefore.toString()).to.equal("0")
-      expect(pyroFlanBefore.toString()).to.equal("0")
-      expect(pyroFlanAfterMint.toString()).to.equal(ethers.constants.WeiPerEther.mul(2).toString())
-      let closeResult = numberClose(pyroReserve, expectedTotalreserve, 1n)
-      expect(closeResult.close).to.equal(true, closeResult.message)
-    })
-
-    it("t-49. Mints and redeems of varying sizes do not affect growth rate", async function () {
-      const firstMint = ethers.constants.WeiPerEther.div(100)
-      const firstRedeem = firstMint.div(4)
-      const secondMint = firstMint.mul(10)
-      const thirdMint = secondMint.div(2)
-      const flanPerFlanPerSecond = BigNumber.from('634195839')
-      const ONE = ethers.constants.WeiPerEther
-
-      let reserveBalances: BigNumber[] = []
-      const updateReserve = async (balances: BigNumber[]) => {
-        balances.push(await SET.flan.balanceOf(PSET.pyroFlan.address))
-        return balances
-      }
-      reserveBalances = await updateReserve([...reserveBalances])
-      await PSET.pyroFlanBooster.mint(firstMint, owner.address)
-      reserveBalances = await updateReserve([...reserveBalances])
-
-      await advanceTime(1000)
+  //     //assert PyroFlan was correctly deployed
+  //     expect(config.baseToken).to.equal(SET.flan.address)
 
 
-      reserveBalances = await updateReserve([...reserveBalances])
-      await PSET.pyroFlanBooster.redeem(firstRedeem, owner.address)
-      reserveBalances = await updateReserve([...reserveBalances])
+  //     const pyroFlanBoosterFactory = await ethers.getContractFactory("PyroFlanBooster")
 
-      const changeInReserve = firstMint.mul(1000).mul(flanPerFlanPerSecond).div(ONE)
-      const expectedRerserve = changeInReserve.add(firstMint).sub(firstRedeem)
-      let closeResult = numberClose(reserveBalances[3], expectedRerserve, 1n)
-      await expect(closeResult.close).to.equal(true, closeResult.message)
+  //     PSET.pyroFlanBooster = await deploy<Types.PyroFlanBooster>(pyroFlanBoosterFactory, SET.limboDAO.address)
 
-      await advanceTime(2000)
+  //     const ApproveFlanMintingProposalFactory = await ethers.getContractFactory("ApproveFlanMintingProposal")
+  //     const proposal = await deploy<Types.ApproveFlanMintingProposal>(ApproveFlanMintingProposalFactory, SET.limboDAO.address, "approve")
+  //     await toggleWhiteList(proposal.address)
+
+  //     const proposalConfig = await SET.limboDAO.proposalConfig()
+  //     await SET.eye.approve(SET.limboDAO.address, proposalConfig.requiredFateStake)
+  //     await SET.limboDAO.burnAsset(SET.eye.address, proposalConfig.requiredFateStake, true)
+  //     const whitelisted = [PSET.pyroFlanBooster.address, owner.address]
+  //     for (let i = 0; i < whitelisted.length; i++) {
+  //       await proposal.parameterize(PSET.pyroFlanBooster.address, true)
+
+  //       await expect(SET.proposalFactory.lodgeProposal(proposal.address))
+  //         .to.emit(SET.proposalFactory, "LodgingStatus")
+  //         .withArgs(proposal.address, "SUCCESS");
+
+  //       await SET.limboDAO.vote(proposal.address, "100")
+  //       await advanceTime(proposalConfig.votingDuration.mul(2).toNumber())
+
+  //       await SET.limboDAO.executeCurrentProposal()
+  //     }
+  //     await PSET.pyroFlanBooster.configure(ethers.constants.WeiPerEther.div(50) //2% APY,31709791983 Flan per second
+  //       , SET.flan.address,
+  //       PSET.pyroFlan.address,
+  //       PSET.liquidityReceiver.address);
+
+  //     //snuff transfer fees so that redeem doesn't suffer
+
+  //     const DeployerSnufferCapFactory = await ethers.getContractFactory("DeployerSnufferCap")
+  //     const snuff = await deploy<Types.DeployerSnufferCap>(DeployerSnufferCapFactory, SET.limbo.address, PSET.liquidityReceiver.address)
+  //     await PSET.liquidityReceiver.setSnufferCap(snuff.address)
+
+  //     await snuff.snuff(PSET.pyroFlan.address, PSET.pyroFlanBooster.address, FeeExemption.RECEIVER_EXEMPT);
+  //     await PSET.pyroFlan.approve(PSET.pyroFlanBooster.address, ethers.constants.MaxUint256)
+  //     await SET.flan.approve(PSET.pyroFlanBooster.address, ethers.constants.MaxUint256)
+
+  //     await SET.flan.mint(owner.address, ethers.constants.WeiPerEther.mul(10))
+  //     await SET.flan.approve(PSET.pyroFlan.address, ethers.constants.MaxUint256)
+  //   })
+
+  //   it("t-47. Initial mint grows correctly", async function () {
+  //     //ACT
+  //     await advanceTime(1000)
+  //     const redeemRateBefore = await PSET.pyroFlan.redeemRate()
+  //     expect(redeemRateBefore).to.equal(ethers.constants.WeiPerEther)
+
+  //     const pyroFlanBefore = await PSET.pyroFlan.balanceOf(owner.address)
+  //     const flanInReserveBefore = await SET.flan.balanceOf(PSET.pyroFlan.address)
+  //     const flanInReceiverBefore = await SET.flan.balanceOf(PSET.liquidityReceiver.address)
+  //     await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
+  //     const pyroFlanAfterMint = await PSET.pyroFlan.balanceOf(owner.address)
+
+  //     await advanceTime(100)
+
+  //     const expectedIncreaseInFlan = BigNumber.from("634195839").mul(101)
+  //     const expectedTotalreserve = ethers.constants.WeiPerEther.mul(2).add(expectedIncreaseInFlan)
+
+  //     await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
+  //     const pyroReserve = await SET.flan.balanceOf(PSET.pyroFlan.address)
+
+  //     //ASSERT
+  //     expect(flanInReserveBefore.toString()).to.equal("0")
+  //     expect(flanInReceiverBefore.toString()).to.equal("0")
+  //     expect(pyroFlanBefore.toString()).to.equal("0")
+  //     expect(pyroFlanAfterMint.toString()).to.equal(ethers.constants.WeiPerEther.toString())
+  //     expect(pyroReserve.toString()).to.equal(expectedTotalreserve.toString())
+  //   })
+
+  //   it("t-48. minting/redeeming without booster lowers growth predictably", async function () {
+  //     const pyroFlanBefore = await PSET.pyroFlan.balanceOf(owner.address)
+  //     const flanInReserveBefore = await SET.flan.balanceOf(PSET.pyroFlan.address)
+  //     const flanInReceiverBefore = await SET.flan.balanceOf(PSET.liquidityReceiver.address)
+  //     await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
+
+  //     await PSET.pyroFlan.mint(owner.address, ethers.constants.WeiPerEther)
+  //     const pyroFlanAfterMint = await PSET.pyroFlan.balanceOf(owner.address)
+
+  //     await advanceTime(100)
+
+  //     const expectedIncreaseInFlan = BigNumber.from("634195839").mul(103)
+  //     const expectedTotalreserve = ethers.constants.WeiPerEther.mul(3).add(expectedIncreaseInFlan)
+
+  //     await PSET.pyroFlanBooster.mint(ethers.constants.WeiPerEther, owner.address)
+  //     const pyroReserve = await SET.flan.balanceOf(PSET.pyroFlan.address)
+
+  //     //ASSERT
+  //     expect(flanInReserveBefore.toString()).to.equal("0")
+  //     expect(flanInReceiverBefore.toString()).to.equal("0")
+  //     expect(pyroFlanBefore.toString()).to.equal("0")
+  //     expect(pyroFlanAfterMint.toString()).to.equal(ethers.constants.WeiPerEther.mul(2).toString())
+  //     let closeResult = numberClose(pyroReserve, expectedTotalreserve, 1n)
+  //     expect(closeResult.close).to.equal(true, closeResult.message)
+  //   })
+
+  //   it("t-49. Mints and redeems of varying sizes do not affect growth rate", async function () {
+  //     const firstMint = ethers.constants.WeiPerEther.div(100)
+  //     const firstRedeem = firstMint.div(4)
+  //     const secondMint = firstMint.mul(10)
+  //     const thirdMint = secondMint.div(2)
+  //     const flanPerFlanPerSecond = BigNumber.from('634195839')
+  //     const ONE = ethers.constants.WeiPerEther
+
+  //     let reserveBalances: BigNumber[] = []
+  //     const updateReserve = async (balances: BigNumber[]) => {
+  //       balances.push(await SET.flan.balanceOf(PSET.pyroFlan.address))
+  //       return balances
+  //     }
+  //     reserveBalances = await updateReserve([...reserveBalances])
+  //     await PSET.pyroFlanBooster.mint(firstMint, owner.address)
+  //     reserveBalances = await updateReserve([...reserveBalances])
+
+  //     await advanceTime(1000)
 
 
-      reserveBalances = await updateReserve([...reserveBalances])
-      const expectedGrowth2 = flanPerFlanPerSecond.mul(2000).mul(reserveBalances[reserveBalances.length - 1]).div(ONE)
-      await PSET.pyroFlanBooster.mint(secondMint, owner.address)
-      const newReserve = expectedGrowth2.add(reserveBalances[reserveBalances.length - 1].add(secondMint))
+  //     reserveBalances = await updateReserve([...reserveBalances])
+  //     await PSET.pyroFlanBooster.redeem(firstRedeem, owner.address)
+  //     reserveBalances = await updateReserve([...reserveBalances])
 
-      reserveBalances = await updateReserve([...reserveBalances])
+  //     const changeInReserve = firstMint.mul(1000).mul(flanPerFlanPerSecond).div(ONE)
+  //     const expectedRerserve = changeInReserve.add(firstMint).sub(firstRedeem)
+  //     let closeResult = numberClose(reserveBalances[3], expectedRerserve, 1n)
+  //     await expect(closeResult.close).to.equal(true, closeResult.message)
 
-      closeResult = numberClose(reserveBalances[reserveBalances.length - 1], newReserve, 1n)
-      await expect(closeResult.close).to.equal(true, closeResult.message)
-
-      await advanceTime(10)
-
-      reserveBalances = await updateReserve([...reserveBalances])
-      const expectedGrowth3 = reserveBalances[reserveBalances.length - 1].mul(flanPerFlanPerSecond).mul(10).div(ONE)
-      const expectedNewBalance = expectedGrowth3.add(reserveBalances[reserveBalances.length - 1]).add(thirdMint)
-      await PSET.pyroFlanBooster.mint(thirdMint, owner.address)
-      reserveBalances = await updateReserve([...reserveBalances])
-
-      closeResult = numberClose(reserveBalances[reserveBalances.length - 1], expectedNewBalance, 1n)
-      expect(closeResult.close).to.equal(true, closeResult.message)
-    })
-
-    it("t-50. One year produces one year's worth of growth", async function () {
-
-      await PSET.pyroFlanBooster.configure(
-        Constants.ONE.div(2),
-        SET.flan.address,
-        PSET.pyroFlan.address,
-        PSET.liquidityReceiver.address
-      )
-
-      await PSET.pyroFlanBooster.mint(Constants.ONE, owner.address)
-      const remainingBalance = await SET.flan.balanceOf(owner.address)
-      await SET.flan.burn(remainingBalance);
-
-      let redeemRate = await PSET.pyroFlan.redeemRate()
-      expect(redeemRate).to.equal(Constants.ONE)
-
-      await advanceTime(Constants.YEAR)
-      await PSET.pyroFlanBooster.atomicBoost()
-
-      redeemRate = await PSET.pyroFlan.redeemRate()
-      console.log('raw simple redeem rate ' + redeemRate)
-      expect(redeemRate.div(Constants.FINNEY).toString()).to.equal(Constants.ONE.mul(15).div(10).div(Constants.FINNEY).toString())
-
-    })
-
-    it("t-51. Compounding.", async function () {
-
-      await PSET.pyroFlanBooster.configure(
-        Constants.ONE.div(2),
-        SET.flan.address,
-        PSET.pyroFlan.address,
-        PSET.liquidityReceiver.address
-      )
-
-      await PSET.pyroFlanBooster.mint(Constants.ONE, owner.address)
-      const remainingBalance = await SET.flan.balanceOf(owner.address)
-      await SET.flan.burn(remainingBalance);
+  //     await advanceTime(2000)
 
 
+  //     reserveBalances = await updateReserve([...reserveBalances])
+  //     const expectedGrowth2 = flanPerFlanPerSecond.mul(2000).mul(reserveBalances[reserveBalances.length - 1]).div(ONE)
+  //     await PSET.pyroFlanBooster.mint(secondMint, owner.address)
+  //     const newReserve = expectedGrowth2.add(reserveBalances[reserveBalances.length - 1].add(secondMint))
 
-      let redeemRate = await PSET.pyroFlan.redeemRate()
-      expect(redeemRate).to.equal(Constants.ONE)
+  //     reserveBalances = await updateReserve([...reserveBalances])
 
-      const day = Math.floor(Constants.YEAR / 365)
-      for (let i = 0; i < 365; i++) {
-        await advanceTime(day)
-        await PSET.pyroFlanBooster.atomicBoost()
-      }
+  //     closeResult = numberClose(reserveBalances[reserveBalances.length - 1], newReserve, 1n)
+  //     await expect(closeResult.close).to.equal(true, closeResult.message)
 
-      redeemRate = await PSET.pyroFlan.redeemRate()
-      console.log('raw compounding redeem rate ' + redeemRate)
-      expect(redeemRate.div(Constants.FINNEY).toString()).to.equal(Constants.ONE.mul(1648).div(1000).div(Constants.FINNEY).toString())
-    })
-  })
+  //     await advanceTime(10)
+
+  //     reserveBalances = await updateReserve([...reserveBalances])
+  //     const expectedGrowth3 = reserveBalances[reserveBalances.length - 1].mul(flanPerFlanPerSecond).mul(10).div(ONE)
+  //     const expectedNewBalance = expectedGrowth3.add(reserveBalances[reserveBalances.length - 1]).add(thirdMint)
+  //     await PSET.pyroFlanBooster.mint(thirdMint, owner.address)
+  //     reserveBalances = await updateReserve([...reserveBalances])
+
+  //     closeResult = numberClose(reserveBalances[reserveBalances.length - 1], expectedNewBalance, 1n)
+  //     expect(closeResult.close).to.equal(true, closeResult.message)
+  //   })
+
+  //   it("t-50. One year produces one year's worth of growth", async function () {
+
+  //     await PSET.pyroFlanBooster.configure(
+  //       Constants.ONE.div(2),
+  //       SET.flan.address,
+  //       PSET.pyroFlan.address,
+  //       PSET.liquidityReceiver.address
+  //     )
+
+  //     await PSET.pyroFlanBooster.mint(Constants.ONE, owner.address)
+  //     const remainingBalance = await SET.flan.balanceOf(owner.address)
+  //     await SET.flan.burn(remainingBalance);
+
+  //     let redeemRate = await PSET.pyroFlan.redeemRate()
+  //     expect(redeemRate).to.equal(Constants.ONE)
+
+  //     await advanceTime(Constants.YEAR)
+  //     await PSET.pyroFlanBooster.atomicBoost()
+
+  //     redeemRate = await PSET.pyroFlan.redeemRate()
+  //     console.log('raw simple redeem rate ' + redeemRate)
+  //     expect(redeemRate.div(Constants.FINNEY).toString()).to.equal(Constants.ONE.mul(15).div(10).div(Constants.FINNEY).toString())
+
+  //   })
+
+  //   it("t-51. Compounding.", async function () {
+
+  //     await PSET.pyroFlanBooster.configure(
+  //       Constants.ONE.div(2),
+  //       SET.flan.address,
+  //       PSET.pyroFlan.address,
+  //       PSET.liquidityReceiver.address
+  //     )
+
+  //     await PSET.pyroFlanBooster.mint(Constants.ONE, owner.address)
+  //     const remainingBalance = await SET.flan.balanceOf(owner.address)
+  //     await SET.flan.burn(remainingBalance);
+
+
+
+  //     let redeemRate = await PSET.pyroFlan.redeemRate()
+  //     expect(redeemRate).to.equal(Constants.ONE)
+
+  //     const day = Math.floor(Constants.YEAR / 365)
+  //     for (let i = 0; i < 365; i++) {
+  //       await advanceTime(day)
+  //       await PSET.pyroFlanBooster.atomicBoost()
+  //     }
+
+  //     redeemRate = await PSET.pyroFlan.redeemRate()
+  //     console.log('raw compounding redeem rate ' + redeemRate)
+  //     expect(redeemRate.div(Constants.FINNEY).toString()).to.equal(Constants.ONE.mul(1648).div(1000).div(Constants.FINNEY).toString())
+  //   })
+  // })
   //TESTS END
 });

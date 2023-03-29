@@ -13,7 +13,7 @@ contract BogusProposal is Proposal {
 
   uint256 number;
 
-  function parameterize(uint256 num) public lockUntilComplete {
+  function parameterize(uint256 num) public lockUntilComplete(num>=0) {
     number = num;
   }
 

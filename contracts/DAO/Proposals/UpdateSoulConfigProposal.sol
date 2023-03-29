@@ -41,7 +41,7 @@ contract UpdateSoulConfigProposal is Proposal {
     uint256 state,
     uint256 index,
     uint256 fps
-  ) public lockUntilComplete {
+  ) public lockUntilComplete(token != address(0)) {
     require(block.chainid != 1, "not maintained for main net.");
     if (!morgothApprover.approved(token) && soulType < 2) {
       revert TokenNotApproved(token);

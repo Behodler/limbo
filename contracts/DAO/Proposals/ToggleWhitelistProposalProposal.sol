@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 import "../ProposalFactory.sol";
 import "../../facades/ProposalFactoryLike.sol";
+
 // import "hardhat/console.sol";
 
 /**
@@ -18,7 +19,10 @@ contract ToggleWhitelistProposalProposal is Proposal {
 
   constructor(address dao, string memory _description) Proposal(dao, description) {}
 
-  function parameterize(address proposalFactory, address toggleContract) public lockUntilComplete {
+  function parameterize(
+    address proposalFactory,
+    address toggleContract
+  ) public lockUntilComplete(toggleContract != address(0)) {
     params.proposalFactory = proposalFactory;
     params.toggleContract = toggleContract;
   }
