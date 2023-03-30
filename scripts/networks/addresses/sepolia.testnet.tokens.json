@@ -1,0 +1,98 @@
+[
+    {
+        "name": "EYE",
+        "displayName": "EYE",
+        "pyroDisplayName": "",
+        "address": "0x23d72ba9883aaBAD60963dF4209a542171D9875e",
+        "pyroV2Address": "0x0000000000000000000000000000000000000000",
+        "pyroV3Address": "0x0000000000000000000000000000000000000000"
+    },
+    {
+        "name": "MKR",
+        "displayName": "MKR",
+        "pyroDisplayName": "pyroMKR",
+        "address": "0x2a8a3709938E4960cA327E8b96E29F665B44a50f",
+        "pyroV2Address": "0x60d0A7445Da57D8E75fB9aC6599B96026Fb896F5",
+        "pyroV3Address": "0x016223717F224FD79A62a252b03aFBFc4cDd25DC"
+    },
+    {
+        "name": "OXT",
+        "displayName": "OXT",
+        "pyroDisplayName": "pyroOXT",
+        "address": "0x8686F7bf98F110Dd7D1E3D8F52EA836f0ba7F970",
+        "pyroV2Address": "0xAd1C96D60199013Fb3b7d782377e660E1A49EBE7",
+        "pyroV3Address": "0x10e03DB013AA1131995b42026BFf8e00FDE5C2A5"
+    },
+    {
+        "name": "PNK",
+        "displayName": "PNK",
+        "pyroDisplayName": "pyroPNK",
+        "address": "0x486e3b151064fc7b4C9098383E3bB2677758C842",
+        "pyroV2Address": "0x42c6108EDc5a0F4c83B6A429359F7A3F7D08a8B5",
+        "pyroV3Address": "0xDb5e1B80182fDc17E6b74C1e018A622629981222"
+    },
+    {
+        "name": "LINK",
+        "displayName": "LINK",
+        "pyroDisplayName": "pyroLINK",
+        "address": "0xd28a042e6c4148Cf80c0720ae2FeBdb93DE21E4d",
+        "pyroV2Address": "0xB712fCADB0264F09B14C35c46FB40Bb192908102",
+        "pyroV3Address": "0xE23100fA898a1DEd52B63297c5e939301Fd81665"
+    },
+    {
+        "name": "LOOM",
+        "displayName": "LOOM",
+        "pyroDisplayName": "pyroLOOM",
+        "address": "0x377789843C186ab7776B764cD75F8b650256938d",
+        "pyroV2Address": "0xBbA7Ca89E5d0F7565Eb4C18CdA1e9B9b1051cdaD",
+        "pyroV3Address": "0x84c557cA35E0056026091BD749B749430CF8CfFE"
+    },
+    {
+        "name": "DAI",
+        "displayName": "DAI",
+        "pyroDisplayName": "",
+        "address": "0x666665884A33be7bB78Cb0f8D0a7B505549A52f8",
+        "pyroV2Address": "0x0000000000000000000000000000000000000000",
+        "pyroV3Address": "0x0000000000000000000000000000000000000000"
+    },
+    {
+        "name": "WEIDAI",
+        "displayName": "WEIDAI",
+        "pyroDisplayName": "",
+        "address": "0xdD1b0105359E45D3d649fF8773610070086afc7F",
+        "pyroV2Address": "0x0000000000000000000000000000000000000000",
+        "pyroV3Address": "0x0000000000000000000000000000000000000000"
+    },
+    {
+        "name": "EYE_DAI UniV2",
+        "displayName": "EYE/DAI UniV2",
+        "pyroDisplayName": "pyro(EYE/DAI UniV2)",
+        "address": "0x93a78ab33980D21F96C3b1DE453Cc3B905674D45",
+        "pyroV2Address": "0xC71844Ea1F649C291fB086660F32F4d91d60E1da",
+        "pyroV3Address": "0x20c6c1AB4367d6f4CAf3599df2b5B9872287a28a"
+    },
+    {
+        "name": "SCX_ETH UniV2",
+        "displayName": "SCX/ETH UniV2",
+        "pyroDisplayName": "pyro(SCX/ETH UniV2)",
+        "address": "0x03151bFCF3477fc7C4fDEcBB58A25b0810C362Cd",
+        "pyroV2Address": "0x5d488F9b7c674AF1720E29fCDa41305B53764F94",
+        "pyroV3Address": "0x99768c5a7E2190d1ca89E74cD2a5b7faa6eE361B"
+    },
+    {
+        "name": "SCX_EYE UniV2",
+        "displayName": "SCX/EYE UniV2",
+        "pyroDisplayName": "pyro(SCX/EYE UniV2)",
+        "address": "0xC7FdD3355d2D2A7984980Ee3E3A2f4197EB99486",
+        "pyroV2Address": "0x5F3b2b371BdFF9e652F0Ca79EE310eee4DA982B1",
+        "pyroV3Address": "0x12B191cB15C94e592C5f0015893DA8B0B28b1dEc"
+    },
+    {
+        "name": "Weth",
+        "displayName": "Weth",
+        "pyroDisplayName": "pyroWeth",
+        "address": "0xFD9eD7809907fA2775CbD32a0Bb53eb68BBbA002",
+        "pyroV2Address": "0x21CBb21FAb6DD23F0541B72fDFdA29dccA3E41Cb",
+        "pyroV3Address": "0xC27385E59101581596eB4Ea58FC46E3E327E3De9"
+    }
+]

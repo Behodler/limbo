@@ -1,159 +1,159 @@
 {
   "PreChecks": {},
   "Weth": {
-    "Weth": "0x4fa7ADF68F010DCB92A4fa0252e9144132DC2ed4"
+    "Weth": "0xFD9eD7809907fA2775CbD32a0Bb53eb68BBbA002"
   },
   "Behodler": {
-    "AddressBalanceCheck": "0x98EC89f7C3481d3886e00B5f292a6Af7399f2cc6",
-    "Behodler": "0x15a68ea21D074643b3c364E8E5d77BEA75321209"
+    "AddressBalanceCheck": "0x383A518F507674bF7B910Cd38004304E01051926",
+    "Behodler": "0x38C28b1D3787f576558480352afe6A380204595b"
   },
   "UniswapV2Clones": {
-    "UniswapV2Factory": "0x11fd2A75d774aDD6F148B182819A69A3b832a074",
-    "UniswapV2Router": "0x07BFD7df9a087a80F5C28F8a39C06Be28D139Fca",
-    "SushiswapV2Factory": "0xc253320a38f77B0a89a094b1aE9085F7f1d61661",
-    "SushiswapV2Router": "0x17a24D8a2F4e6971C1B876D8ef5d24BBBe347B85"
+    "UniswapV2Factory": "0x8aE1E8254b22e62C54AE05B476b8206f456ba050",
+    "UniswapV2Router": "0x567bd352a7a2Fe0779BE646837B2bAE096C6ffcD",
+    "SushiswapV2Factory": "0x859B2254C82e1BF07a25d3aE0B2b30a713718b91",
+    "SushiswapV2Router": "0x53a2879EA3ED90764D3DEfaa2e623a3799f48309"
   },
   "BehodlerTokens": {
-    "EYE": "0x1922693b574f5706bb514F6597DCe484B624657E",
-    "MKR": "0xfd59FB04A22A4e4Df22fDbB300cFfA8Dc0f15dd4",
-    "OXT": "0x41A6e6b45Cb47c6d0ee73d10b2188Eaa8DcfAEe1",
-    "PNK": "0x371d920d3B0aF42E0DA2D9f6aA689DAAf6a7a5f7",
-    "LNK": "0x4315CF482a1F6BAD72bc9059C568Ad64979D94a4",
-    "LOOM": "0x9FD4Bf900eFf7Eb3cd4e0F8ff0A12750a1B75968",
-    "DAI": "0x7DAc7FDa23361a234530f67CE067136B8a1AE1e5",
-    "WEIDAI": "0xB7C9D2B6DE9Ed99C52a2eFa6DF368F7a2bd0441e",
-    "EYE_DAI": "0x4B5043C492e4E6e98Af6585ACf686fa80E9eE4b7",
-    "SCX_ETH": "0x0980b7f282B978171BC34d7948601927b600b731",
-    "SCX_EYE": "0x6275b016A0e3C48Bec3be772F8b41247028F6986"
+    "EYE": "0x23d72ba9883aaBAD60963dF4209a542171D9875e",
+    "MKR": "0x2a8a3709938E4960cA327E8b96E29F665B44a50f",
+    "OXT": "0x8686F7bf98F110Dd7D1E3D8F52EA836f0ba7F970",
+    "PNK": "0x486e3b151064fc7b4C9098383E3bB2677758C842",
+    "LINK": "0xd28a042e6c4148Cf80c0720ae2FeBdb93DE21E4d",
+    "LOOM": "0x377789843C186ab7776B764cD75F8b650256938d",
+    "DAI": "0x666665884A33be7bB78Cb0f8D0a7B505549A52f8",
+    "WEIDAI": "0xdD1b0105359E45D3d649fF8773610070086afc7F",
+    "EYE_DAI UniV2": "0x93a78ab33980D21F96C3b1DE453Cc3B905674D45",
+    "SCX_ETH UniV2": "0x03151bFCF3477fc7C4fDEcBB58A25b0810C362Cd",
+    "SCX_EYE UniV2": "0xC7FdD3355d2D2A7984980Ee3E3A2f4197EB99486"
   },
   "Lachesis": {
-    "Lachesis": "0x91Fc36C36739d7b90439B641f1AeA12FA11B478E"
+    "Lachesis": "0x379142D484ED0ba6e73f0eA6EC7225BC1D3BD7C1"
   },
   "LiquidityReceiverOld": {
-    "LiquidityReceiverV1": "0x2E7244805C596cE15B72Cf61bb62A5658a0e9a44"
+    "LiquidityReceiverV1": "0xAEDBF65eb8A2cAB975291e709deF68ca8B5741F5"
   },
   "PyroWeth10Proxy": {
-    "PyroWeth10Proxy": "0xe8B7944b318480Cc7Eb899E1371aFB8f24121957"
+    "PyroWeth10Proxy": "0x13F79FA38281ddd878046932Aa904F2D30Ba3B5c"
   },
   "MultiCall": {
-    "Multicall": "0x78f5E78f21D2716d99ee662E0E653E00132801F3"
+    "Multicall3": "0x420E9DA9D950108Da0dD4F99D2e393f51768525F"
   },
   "Powers": {
-    "PowersRegistry": "0x0BAe345B26d929D300b4BE72EA6A385eD1BD092D"
+    "PowersRegistry": "0x446A8A58e410a4CE62602b26969dE6a94274f799"
   },
   "Angband": {
-    "Angband": "0xCe6b1483e0b671e2cc52CF8003b29B8508C6bFcB"
+    "Angband": "0x867Da9293f94B51B1017fFC7477c662A3C06C727"
   },
   "BigConstants": {
-    "BigConstants": "0x4e9B08A19ad0C27EB8c7d2cc2D67eb5C7fF0212D"
+    "BigConstants": "0x24A287821c4d57D583cD041d625E9925454A66dF"
   },
   "LiquidityReceiverNew": {
-    "LiquidityReceiver": "0xB0694d7354335943aba417d327936D9Fb447666B"
+    "LiquidityReceiver": "0x343d2F033a064340c1b9B4bE0E13F1e5D97BFcC2"
   },
   "BehodlerSeedNew": {
-    "SeedBehodlerPower": "0x568a6418220885DE02759cA665598C013A8bCFAE"
+    "SeedBehodlerPower": "0xb6A7Bc02Fe534F01012679A508694Fa9809067E9"
   },
   "RefreshTokensOnBehodler": {},
   "ConfigureScarcityPower": {
-    "ConfigureScarcityPower": "0x2735D6641f4576D66DD245636Be868c9c9C8d846"
+    "ConfigureScarcityPower": "0x8E05564CD6dab1cA4DB3003081E533B6E79370B9"
   },
   "ConfigureIronCrown": {},
   "MorgothMapPyroWeth10Proxy": {},
   "PyroWethProxy": {
-    "PyroWethProxy": "0x6E347F56b2b87Fb197aFFBB9306751934B35fb74"
+    "PyroWethProxy": "0x2827b09243A88FA7590311eB5f6Adc7fBa665fb0"
   },
   "ProxyHandler": {
-    "ProxyHandler": "0x2e01D1eF15E3c7aE397eFFA201E8510170aB0185"
+    "ProxyHandler": "0xFF85944118268F435824Ff2c1566ee9D290Ee935"
   },
   "V2Migrator": {
-    "V2Migrator": "0xF982Eb3365608CEDeE3073Dfc335D336Fe49d295"
+    "V2Migrator": "0xbe078b68995f6Aa430b7fAe22DF8feeD4f954756"
   },
   "LimboDAO": {
-    "LimboDAO": "0x51AdB635863eBB6D086481fB1b1aFb16e7E65B5F"
+    "LimboDAO": "0xB9F39b208e417412770035005d8B453241337024"
   },
   "WhiteListProposal": {
-    "ToggleWhitelistProposalProposal": "0xc1164F902e9041A9148E109396348972d9b64007"
+    "ToggleWhitelistProposalProposal": "0x9f7171664b425726A7fe515Baedcb65DeFb9c61A"
   },
   "MorgothTokenApprover": {
-    "AddressToString": "0x5B830856567e9FAbD58058e8CA749C1BA4DA2fed",
-    "ProxyDeployer": "0x5949C9650408fE24Da2e4CD13B372Ea817BcB5dD",
-    "MorgothTokenApprover": "0x1307B60f5422Cc1251aaD1a7c88D7AF82BE58387"
+    "AddressToString": "0x2BF2db8A934678A4B3E3E7250936c0Ccf8a5bd02",
+    "ProxyDeployer": "0x23032E426AC42Dfd37E8B32F80879eA99cB4C637",
+    "MorgothTokenApprover": "0x7Ba599b478b921e58EF286DAa211fe7BB2cbD2d6"
   },
   "TokenProxyRegistry": {
-    "TokenProxyRegistry": "0xA7Fa4910b4Cb97A04F06745877FE6C0765C22C8C"
+    "TokenProxyRegistry": "0x0F03D949Ec9551F21d482CDA3b12d640E463a5EE"
   },
   "SoulReader": {
-    "SoulReader": "0xb267646Bbc95506de4efECF3e8e541b9B4d0948C"
+    "SoulReader": "0x984801D4B234112FF2C0011aDE57094Ee625d9C0"
   },
   "FlashGovernanceArbiter": {
-    "FlashGovernanceArbiter": "0xd5E059E572Ee7b41608eCfB9ceA04b2e095FFDe5"
+    "FlashGovernanceArbiter": "0x086c02980Ac81679452F595565a68b9bB5D1ff21"
   },
   "Flan": {
-    "Flan": "0xCD78D14cb09166472322B0AFE0fA32E36a9042AB"
+    "Flan": "0xC21C2577300d4e6D433eD1C966d0Bbf1Aa12Dddc"
   },
   "AddInitialLiquidityToBehodler": {},
   "FlanSetMintConfig": {},
   "Limbo": {
-    "Limbo": "0x38183E8F085458CF47119Eba3fc350E0F5cae95d",
-    "CrossingLib": "0x9BA368E2f54a9929E6d0E11768d6eE6f19baC300",
-    "MigrationLib": "0xa569dCEfF7769729a24a2439892392a5CE57e57d",
-    "SoulLib": "0x221c60C8dA3f5142179C3A4BffBf28fcc0A06b47"
+    "Limbo": "0x70852C4d8EB90B0d8E8a762453b81Aa7C2330679",
+    "CrossingLib": "0x54C83E72595b6AA8d979E101d9633ecBB02e03e1",
+    "MigrationLib": "0xC7014850390e01167F76418E2119701942f0fdBb",
+    "SoulLib": "0xF753955BeD5101c749e04B33b8258F82539C1Bb5"
   },
   "DeployerSnufferCap": {
-    "DeployerSnufferCap": "0xEE7676369f6644Cd6754cB2bDaC7bC252baA7c58"
+    "DeployerSnufferCap": "0x439fd88B0Cb9138feD764D942d984af2595a8Ed7"
   },
   "MorgothMapLiquidityReceiver": {},
   "MorgothTokenApproverUpdateConfig": {},
   "RegisterFlanAndPyroOnBehodlerViaCliffFace": {},
   "FlanGenesis": {
-    "FLN_SCX": "0x91299e61d143d7Eca8a59832C37A7E726f950048",
-    "SCX__FLN_SCX": "0x2cf74BC857e999B0629FF013ddA8644E49970de2",
-    "DAI_SCX": "0x9501b47213e49085Ba58Eb5DC5A847Fa92A19D81"
+    "FLN_SCX UniV2": "0xA08b7473e0164baEC3C9f9fbe0692119e629c1fc",
+    "SCX__FLN_SCX UniV2": "0x31E3eFD7F1B28a47E261Eca3999398dDb53426fB",
+    "DAI_SCX UniV2": "0x6F1072486760219EE4aF393109361e0086EA6705"
   },
   "UniswapHelper": {
-    "UniswapHelper": "0x009efFe8a89ef1faf25824780C93F05fE52A0f3d"
+    "UniswapHelper": "0xe2E64E60e0B1BE58B15cEa0bFaBf90e5d7EaE5cf"
   },
   "LimboOracle": {
-    "LimboOracle": "0x4cE2d84739332d4a46Ebb06ab986f572b53a3447"
+    "LimboOracle": "0xA93445E454DeD39b5E396B618Fc0B93226E0c94a"
   },
   "TradeOraclePairs": {},
   "RegisterOraclePairs": {},
   "Morgoth_LimboAddTokenToBehodler": {
-    "LimboAddTokenToBehodler": "0xad930b9eB93F8a14897cDEE664A88a461faA6C88"
+    "LimboAddTokenToBehodler": "0x22e1DD77Ed5D489a186F35B8e1627803bDe9665c"
   },
   "MultiSoulConfigUpdateProposal": {
-    "UpdateMultipleSoulConfigProposal": "0x6ED1710bF8760945eD0dE51066a0572E0b90C56D"
+    "UpdateMultipleSoulConfigProposal": "0x84ab3Ac839BBe262dA7C5cF90673C39602993329"
   },
   "ProposalFactory": {
-    "ProposalFactory": "0x5C50c67aeF0061db87E40cFCc7f8fD8389059F91"
+    "ProposalFactory": "0xcd6Fa937aD1f38E1e70bdE7C6534EDb92E53ad60"
   },
   "SnuffPyroWethProxy": {},
   "UniswapHelperConfigure": {},
   "LimboTokens": {
-    "Aave": "0xA2387250aa78891D9461135332dc91adCD8C76d5",
-    "Curve": "0x3aE308AB4dBDA42B763CC8443fb20DdB1bb7eC8e",
-    "Convex": "0xcb00EE7DD1122deDcC3C9193c1914152a6F7aA3c",
-    "MIM": "0xb4C245B444AC8e5115b699c808E9f9F4Fa832cb9",
-    "Uni": "0x38698595C6A8c532d0b6Ccb0151e563E6253699C",
-    "Sushi": "0xBB0a52F7D7Bd460f9A6D5b4a5929956A780c8aB8",
-    "WBTC": "0x7a708bd5b1e83d99Bd2a4Af6780bfEa8Ed1AFB60"
+    "Aave": "0x91B8684f38F73BEcAFDA230F5Cf5b9fEAc0A2d46",
+    "Curve": "0x11f0Cc6C230eAAD3aE06d95ADDe3bb90597286e5",
+    "Convex": "0x39b2eC4d6749E3a2864788F1cDeF03eeBB04A4a7",
+    "MIM": "0x3ec6b91e177A5920B8A1AfD4059830e7a4044733",
+    "Uni": "0x8e812C5d0084177770134501B3cC342a36e445F2",
+    "Sushi": "0x0887EE28eFF1fF05AdC767D2b5FEB2Ea97Be106E",
+    "WBTC": "0xAa6BC46AB74186cEA6874f243Ea7d140F51916D4"
   },
   "LimboDAOSeed": {},
   "LimboConfigureCrossingConfig": {},
   "MorgothMapApprover": {},
   "ConfigureTokenApproverPower": {
-    "ConfigureTokenApproverPower": "0x150106A29664f4D3eB52e015DE2166594628Cb1f"
+    "ConfigureTokenApproverPower": "0xdF6e83f9ccC7A6562e58B17EcdA7CA24343Cd88d"
   },
   "TPR_setApprover_setPower": {},
   "LimboDAOProposals": {
-    "AdjustFlanFeeOnTransferProposal": "0xd43F5195e2Bc6139af01Bd2D2e16261Fa3ab7a0f",
-    "ApproveFlanMintingProposal": "0x15BC51B845412Cf07D2CFa902CbF36F9B28807bc",
-    "BurnFlashStakeDeposit": "0x17314ea202D60De8eC1496ee20f4d73fbEc2af6A",
-    "ConfigureFlashGovernanceProposal": "0xbc297D079d82152B61c8bf485c02af0C7f1F87c3",
-    "SetAssetApprovalProposal": "0xbc0e291029A5AEDF31f6f410e493F2c8eCC93F68",
-    "SetFateSpendersProposal": "0x93446c02a281dbEbD39A348867537Ff4d0607aca",
-    "ToggleFlashGovernanceProposal": "0xeF89e9F8fE3005e81492Ef123b65156b9F641092",
-    "UpdateProposalConfigProposal": "0xeBb02c4EF3de6CffA85210499E46a0DEB142f0F9"
+    "AdjustFlanFeeOnTransferProposal": "0xFa9Da48f926794D912a3EDe5e4613A5989bA814e",
+    "ApproveFlanMintingProposal": "0x59b8842B4455E06467648Dc593026507F527eA80",
+    "BurnFlashStakeDeposit": "0x6FA6407C8D52f4075Ddf4102EEEdF836133E95a0",
+    "ConfigureFlashGovernanceProposal": "0xAD4067a2A9F65C6276D13727ECa7758F2037A1B5",
+    "SetAssetApprovalProposal": "0x23E391E74bccDF26F6b20341fa3B6a6a99b7fA80",
+    "SetFateSpendersProposal": "0x9BBe2Fb0E64113826C1d4105C6eF2489ddD4dfCf",
+    "ToggleFlashGovernanceProposal": "0x7160FF4dBd3e195E6d3B349873b78d6bB0935ed5",
+    "UpdateProposalConfigProposal": "0x4328278cd3eCcC8EEF4A1405CA7EC68a63B0FB02"
   },
   "FlashgovSetAllToGovernable": {},
   "EndConfigForAll": {},

@@ -26,7 +26,8 @@
     "configurePerpetual:ropsten": "npx hardhat run --network ropsten scripts/testnet-configure-perpetual.ts",
     "configure:ropsten": "yarn configureThreshold:ropsten && yarn configurePerpetual:ropsten",
     "deploy:local2": "sudo touch scripts/testnet/addresses/hardhat.json && sudo rm scripts/testnet/addresses/hardhat.json && npx hardhat run scripts/testnet/orchestrate.ts",
-    "deploy:sepolia": "npx hardhat run --network sepolia scripts/deploy-all-sepolia.ts >SEPOLIA_LOGS.txt"
+    "deploy:sepolia": "npx hardhat run --network sepolia scripts/deploy-all-sepolia.ts >SEPOLIA_LOGS.txt",
+    "ssh-agent":"eval \"$(ssh-agent -s)\" && ssh-add ../../GITHUB"
   },
   "repository": {
     "type": "git",
