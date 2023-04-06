@@ -5,6 +5,7 @@ import "../openzeppelin/ERC20Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../periphery/Errors.sol";
 import "../libraries/RedeemableMaths.sol";
+import "hardhat/console.sol";
 
 ///@title Cliff Face
 ///@author Justin Goro
@@ -21,7 +22,7 @@ import "../libraries/RedeemableMaths.sol";
 contract CliffFace is BehodlerTokenProxy {
   using SafeERC20 for IERC20;
   using RedeemableMaths for uint256;
-  uint256 constant ONE_SQUARED = ONE**2;
+  uint256 constant ONE_SQUARED = ONE ** 2;
   address public immutable referenceToken;
   ///@dev if <1e18, then token is expected to have a higher price than referenceToken
   uint256 public immutable referenceMultiple;
@@ -31,6 +32,8 @@ contract CliffFace is BehodlerTokenProxy {
     uint256 thisBalance;
   }
 
+  //this, proxyHandler and AddTokenToBehodlerPower
+  address[] public approvedTransferers;
   Variables VARS;
 
   constructor(
@@ -47,6 +50,37 @@ contract CliffFace is BehodlerTokenProxy {
     referenceMultiple = multiple;
     VARS.priorRefBalance = IERC20(referenceToken).balanceOf(behodler);
     VARS.blockNumber = block.number;
+  }
+
+  //proxyHandler, pyroToken, addTokenToBehodlerPower
+  function setApprovedTransferers(address[] memory _approvedTransferers) public {
+    if (approvedTransferers.length == 0) // once off.
+    {
+      approvedTransferers.push(address(this));
+      for (uint i = 0; i < _approvedTransferers.length; i++) {
+        approvedTransferers.push(_approvedTransferers[i]);
+      }
+    }
+  }
+
+  //@dev this function runs the quickest for sale into behodler
+  function addressMatch(address testAddr) public view returns (bool) {
+    address[] memory localApprovedTransferers = approvedTransferers;
+    for (uint i = 0; i < localApprovedTransferers.length; i++) {
+      if (localApprovedTransferers[i] == testAddr) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    //only special contracts like proxyhandler can be approved
+    if (!addressMatch(spender) && !addressMatch(msg.sender)) {
+      revert DennisNedryError();
+    }
+    _approve(msg.sender, spender, amount);
+    return true;
   }
 
   function seedBehodler(uint256 initialSupply, address scxDestination) public override {

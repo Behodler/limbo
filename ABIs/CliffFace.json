@@ -136,6 +136,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "DennisNedryError",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -300,6 +305,25 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "testAddr",
+        "type": "address"
+      }
+    ],
+    "name": "addressMatch",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "owner",
         "type": "address"
       },
@@ -355,6 +379,25 @@
     "name": "approveBehodlerFor",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "approvedTransferers",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -565,6 +608,19 @@
       }
     ],
     "name": "seedBehodler",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_approvedTransferers",
+        "type": "address[]"
+      }
+    ],
+    "name": "setApprovedTransferers",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

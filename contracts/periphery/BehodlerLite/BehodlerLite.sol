@@ -6,6 +6,7 @@ pragma solidity 0.8.16;
 import "./CommonIERC20.sol";
 import "../../periphery/Errors.sol";
 import * as RB from "../RealEcosystem/Behodler/Behodler.sol";
+import "hardhat/console.sol";
 
 abstract contract BurnableBehodlerLite {
   function burn(uint256 amount) public virtual;

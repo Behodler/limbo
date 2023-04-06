@@ -4,21 +4,13 @@ import "../Powers.sol";
 import "./IdempotentPowerInvoker.sol";
 
 abstract contract TokenApproverLike {
-  function config()
-    public
-    view
-    virtual
-    returns (
-      address,
-      address,
-      address
-    );
+  function config() public view virtual returns (address, address, address);
 
   function cliffFaceMapping(address) public view virtual returns (address);
 
   function morgothApproved(address) public view virtual returns (address);
 
-  function morgothApprove(address token, bool approve) public virtual;
+  function approveOrBlock(address token, bool approve, bool blocked) public virtual;
 
   function updateConfig(
     address proxyRegistry,
@@ -30,14 +22,13 @@ abstract contract TokenApproverLike {
 
   ///@notice in the event of botched generation
   function unmapCliffFace(address baseToken) public virtual;
-
-  function blockBaseToken(address token, bool blocked) public virtual;
 }
 
 contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
-  struct ApproveParams {
-    address[] tokensToApprove;
+  struct ApproveOrBlockParams {
+    address[] tokens;
     bool[] approved;
+    bool[] blocked;
   }
 
   struct UpdateConfigParams {
@@ -52,22 +43,15 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
     address[] tokensToUnmap;
   }
 
-  struct BlockParams {
-    address[] tokensToBlock;
-    bool[] blockToken;
-  }
-
-  ApproveParams approveParams;
+  ApproveOrBlockParams approveOrBlockParams;
   UpdateConfigParams updateConfigParams;
   UnmapParams unmapParams;
-  BlockParams blockParams;
 
   enum ExecutionChoice {
     Nothing,
-    Approve,
     UpdateConfig,
     Unmap,
-    BlockBaseToken
+    ApproveOrBlock
   }
   ExecutionChoice public choice;
 
@@ -90,22 +74,14 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
     initialized = true;
   }
 
-  function setApprove(address[] memory tokens, bool[] memory approved)
-    public
-    requiresPower("CONFIGURE_TOKEN_APPROVER")
-    setChoice(ExecutionChoice.Approve)
-  {
-    approveParams.tokensToApprove = tokens;
-    approveParams.approved = approved;
-  }
-
-  function setBlockBaseToken(address[] memory tokens, bool[] memory blockToken)
-    public
-    requiresPower("CONFIGURE_TOKEN_APPROVER")
-    setChoice(ExecutionChoice.BlockBaseToken)
-  {
-    blockParams.tokensToBlock = tokens;
-    blockParams.blockToken = blockToken;
+  function setApproveOrBlock(
+    address[] memory tokens,
+    bool[] memory approved,
+    bool[] memory blocked
+  ) public requiresPower("CONFIGURE_TOKEN_APPROVER") setChoice(ExecutionChoice.ApproveOrBlock) {
+    approveOrBlockParams.tokens = tokens;
+    approveOrBlockParams.approved = approved;
+    approveOrBlockParams.blocked = blocked;
   }
 
   function setUpdateConfig(
@@ -122,21 +98,19 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
     updateConfigParams.flan = flan;
   }
 
-  function setUnmapParams(address[] memory tokensToUnmap)
-    public
-    requiresPower("CONFIGURE_TOKEN_APPROVER")
-    setChoice(ExecutionChoice.Unmap)
-  {
+  function setUnmapParams(
+    address[] memory tokensToUnmap
+  ) public requiresPower("CONFIGURE_TOKEN_APPROVER") setChoice(ExecutionChoice.Unmap) {
     unmapParams.tokensToUnmap = tokensToUnmap;
   }
 
   function orchestrate() internal override resetChoice returns (bool) {
     TokenApproverLike tokenApprover = TokenApproverLike(angband.getAddress(power.domain));
 
-    if (choice == ExecutionChoice.Approve) {
-      ApproveParams memory ap = approveParams;
-      for (uint256 i = 0; i < ap.tokensToApprove.length; i++) {
-        tokenApprover.morgothApprove(ap.tokensToApprove[i], ap.approved[i]);
+    if (choice == ExecutionChoice.ApproveOrBlock) {
+      ApproveOrBlockParams memory ap = approveOrBlockParams;
+      for (uint256 i = 0; i < ap.tokens.length; i++) {
+        tokenApprover.approveOrBlock(ap.tokens[i], ap.approved[i], ap.blocked[i]);
       }
     } else if (choice == ExecutionChoice.UpdateConfig) {
       tokenApprover.updateConfig(
@@ -150,11 +124,6 @@ contract ConfigureTokenApproverPower is IdempotentPowerInvoker, Empowered {
       UnmapParams memory UP = unmapParams;
       for (uint256 i = 0; i < UP.tokensToUnmap.length; i++) {
         tokenApprover.unmapCliffFace(UP.tokensToUnmap[i]);
-      }
-    } else if (choice == ExecutionChoice.BlockBaseToken) {
-      BlockParams memory blocked = blockParams;
-      for (uint256 i = 0; i < blocked.tokensToBlock.length; i++) {
-        tokenApprover.blockBaseToken(blocked.tokensToBlock[i], blocked.blockToken[i]);
       }
     } else {
       return false;

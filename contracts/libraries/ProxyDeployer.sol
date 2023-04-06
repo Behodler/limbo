@@ -14,9 +14,16 @@ library ProxyDeployer {
     address behodler,
     uint256 initalRedeemRate
   ) internal returns (address proxyAddress) {
-    proxyAddress = address(
-      new CliffFace(baseToken, name, symbol, registry, referenceToken, multiple, behodler, initalRedeemRate)
-    );
+    proxyAddress = address(new CliffFace(
+      baseToken,
+     string(abi.encodePacked(name, "_CF")),
+      string(abi.encodePacked(symbol, "_CF")),
+      registry,
+      referenceToken,
+      multiple,
+      behodler,
+      initalRedeemRate
+    ));
   }
 
   function DeployLimboProxy(
@@ -28,6 +35,6 @@ library ProxyDeployer {
     address flan,
     uint256 initialRedeemRate
   ) public returns (address proxyAddress) {
-    proxyAddress = address(new LimboProxy(baseToken, name, symbol, registry, limbo, flan, initialRedeemRate));
+    proxyAddress = address(new LimboProxy(baseToken, string(abi.encodePacked(name,"Lim")), string(abi.encodePacked(symbol,"Lim")), registry, limbo, flan, initialRedeemRate));
   }
 }

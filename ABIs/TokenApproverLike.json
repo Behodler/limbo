@@ -8,11 +8,16 @@
       },
       {
         "internalType": "bool",
+        "name": "approve",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
         "name": "blocked",
         "type": "bool"
       }
     ],
-    "name": "blockBaseToken",
+    "name": "approveOrBlock",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -57,24 +62,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "approve",
-        "type": "bool"
-      }
-    ],
-    "name": "morgothApprove",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

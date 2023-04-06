@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "../periphery/Errors.sol";
+import "../periphery/Errors.sol" as Errors;
 // import "hardhat/console.sol";
 abstract contract Ownable {
   address private _owner;
@@ -27,7 +27,7 @@ abstract contract Ownable {
    */
   modifier onlyOwner() {
     if (owner() != msg.sender) {
-      revert OnlyOwner(msg.sender, owner());
+      revert Errors.OnlyOwner(msg.sender, owner());
     }
     _;
   }
@@ -38,7 +38,7 @@ abstract contract Ownable {
    */
   function transferOwnership(address newOwner) public virtual onlyOwner {
     if (newOwner == address(0)) {
-      revert TransferToZeroAddress();
+      revert Errors.TransferToZeroAddress();
     }
     _transferOwnership(newOwner);
   }

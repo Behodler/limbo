@@ -356,7 +356,7 @@ describe("token proxy test", function () {
     await expect(ownerFOTPRoxyBalance).to.equal(expectedProxyBalanceAfterRedeem);
 
     const redeemRate = await SET.FOTProxy.redeemRate();
-    console.log("redeem rate " + redeemRate);
+
     await expect(redeemRate).to.equal(SET.ONE);
 
     const redeemFee = SET.FINNEY.mul(25).div(1000);

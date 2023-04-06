@@ -7,7 +7,7 @@ import "./WETH10.sol";
 import "../../../facades/LachesisLike.sol";
 import "../../../facades/Burnable.sol";
 import "../../../facades/FlashLoanArbiterLike.sol";
-
+import "hardhat/console.sol";
 /*
     Scarcity is the bonding curve token that underpins Behodler functionality
     Scarcity burns on transfer and also exacts a fee outside of Behodler.

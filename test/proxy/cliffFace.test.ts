@@ -7,6 +7,22 @@ import * as Types from "../../typechain";
 import { BigNumber } from "ethers";
 const web3 = require("web3");
 
+
+enum FeeExemption {
+  NO_EXEMPTIONS,
+
+  SENDER_EXEMPT,
+  SENDER_EXEMPT_AND_RECEIVER_EXEMPT,
+  REDEEM_EXEMPT_AND_SENDER_EXEMPT,
+
+  REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT,
+
+  RECEIVER_EXEMPT,
+  REDEEM_EXEMPT_AND_RECEIVER_EXEMPT,
+  REDEEM_EXEMPT_ONLY
+}
+
+
 interface TestSet {
   BaseToken: Types.MockToken;
   CliffFace: Types.CliffFace;
@@ -31,6 +47,8 @@ interface TestSet {
   UniswapFactory: Types.UniswapV2Factory;
   MainPair: Types.UniswapV2Pair;
   UniRouter: Types.UniswapV2Router02;
+  LiquidityReceiver: Types.LiquidityReceiver
+  ProxyHandler: Types.ProxyHandler
 }
 
 const getBigNumber = (value: string): BigNumber => BigNumber.from(value);
@@ -81,6 +99,12 @@ describe("cliffFace proxy test", function () {
     await SET.Lachesis.measure(SET.SimilarToken.address, true, false);
     await SET.Lachesis.updateBehodler(SET.SimilarToken.address);
 
+    const BigConstantsFactory = await ethers.getContractFactory("BigConstants");
+    const bigConstants = await deploy<Types.BigConstants>(BigConstantsFactory);
+
+    const LiquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver");
+    SET.LiquidityReceiver = await deploy<Types.LiquidityReceiver>(LiquidityReceiverFactory, SET.Lachesis.address, bigConstants.address);
+
     const proxyDAOFactory = (await ethers.getContractFactory("ProxyDAO")) as Types.ProxyDAO__factory;
     SET.DAO = await deploy<Types.ProxyDAO>(proxyDAOFactory);
     const TokenProxyRegistryFactory = (await ethers.getContractFactory(
@@ -96,6 +120,9 @@ describe("cliffFace proxy test", function () {
 
     const CliffFaceFactory = await ethers.getContractFactory("CliffFace");
 
+    const proxyHandlerFactory = await ethers.getContractFactory("ProxyHandler")
+    SET.ProxyHandler = await deploy<Types.ProxyHandler>(proxyHandlerFactory)
+
     SET.CliffFace = await deploy<Types.CliffFace>(
       CliffFaceFactory,
       SET.BaseToken.address,
@@ -107,9 +134,11 @@ describe("cliffFace proxy test", function () {
       SET.Behodler.address,
       SET.ONE
     );
-    await SET.BaseToken.approve(SET.CliffFace.address, SET.MILLION);
+    const pyroCliffFace = await SET.LiquidityReceiver.getPyroToken(SET.CliffFace.address)
+    await SET.CliffFace.setApprovedTransferers([SET.ProxyHandler.address,pyroCliffFace])
+   await SET.BaseToken.approve(SET.CliffFace.address, SET.MILLION);
     await SET.ReferenceToken.approve(SET.CliffFace.address, SET.MILLION);
-    await SET.CliffFace.approve(SET.Behodler.address, SET.MILLION);
+    // await SET.CliffFace.approve(SET.Behodler.address, SET.MILLION);
     await SET.SimilarToken.approve(SET.Behodler.address, SET.MILLION);
     await SET.Behodler.approve(SET.CliffFace.address, SET.MILLION);
 
@@ -125,6 +154,7 @@ describe("cliffFace proxy test", function () {
     await SET.SimilarToken.mint(SET.TEN_K);
 
     const scxBalanceBefore = await SET.Behodler.balanceOf(SET.owner.address);
+
     await SET.CliffFace.seedBehodler(cliffFaceStartingBalance, SET.owner.address);
     const scxBalanceAfter = await SET.Behodler.balanceOf(SET.owner.address);
     await SET.Behodler.setSafetParameters("30", "30");
@@ -230,7 +260,7 @@ describe("cliffFace proxy test", function () {
 
     //Orchestrate cliffFace swap
     const cliffFaceSlippageEffect = SET.FINNEY.mul(1992).div(100);
-    
+
     await SET.CliffFace.swapAsInput(
       SET.owner.address,
       SET.ReferenceToken.address,
@@ -270,6 +300,52 @@ describe("cliffFace proxy test", function () {
     });
   }
 
+  it("t6. Circumventing CliffFace protection with public mint fails", async function () {
+    //Mint SCX with CliffFace fails
+    await expect(SET.CliffFace.approve(SET.Behodler.address, SET.TEN))
+    .to.be.revertedWith("DennisNedryError")
+    const swapAmount = SET.ONE.sub(SET.DECAFINNEY.mul(9));
+    const mintAmount = "2661435933328510";
+
+    await expect(SET.Behodler.addLiquidity(SET.CliffFace.address, swapAmount))
+      .to.be.revertedWith("TransferUnderflow")
+
+    //Swap on Behodler with CliffFace Fails
+    const inputAmount = SET.ONE;
+    const initialReserveIn = await SET.CliffFace.balanceOf(SET.Behodler.address);
+    const initialReserveOut = await SET.SimilarToken.balanceOf(SET.Behodler.address);
+
+    const inputWithFee = inputAmount.mul(1000);
+    const numerator = inputWithFee.mul(initialReserveOut);
+    const denominator = initialReserveIn.mul(1000).add(inputWithFee);
+    const amountOut = numerator.div(denominator);
+
+    await expect(SET.Behodler.swap(SET.CliffFace.address, SET.SimilarToken.address, inputAmount, amountOut))
+      .to.be.revertedWith("TransferUnderflow")
+
+    //minting/redeeming pyroCliffFace through proxyHandler succeeds
+
+
+    const pyroCliffFaceAddress = await SET.LiquidityReceiver.getPyroToken(SET.CliffFace.address);
+
+    const PyroTokenFactory = await ethers.getContractFactory("PyroToken")
+    const pyroCliffFace = await PyroTokenFactory.attach(pyroCliffFaceAddress)
+    await SET.LiquidityReceiver.registerPyroToken(SET.CliffFace.address, "horse", "hrs", 18)
+    await SET.LiquidityReceiver.setSnufferCap(SET.owner.address)
+    await SET.LiquidityReceiver.setFeeExemptionStatusOnPyroForContract(pyroCliffFaceAddress, SET.ProxyHandler.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT)
+
+    await SET.ProxyHandler.approvePyroTokenForProxy(pyroCliffFaceAddress)
+
+    await SET.CliffFace.approve(SET.ProxyHandler.address, ethers.constants.MaxUint256)
+
+    await SET.ProxyHandler.mintPyroFromBase(pyroCliffFaceAddress, ethers.constants.WeiPerEther)
+
+    await pyroCliffFace.approve(SET.ProxyHandler.address, ethers.constants.MaxUint256)
+    const pyroBalance = await pyroCliffFace.balanceOf(SET.owner.address)
+
+    await SET.ProxyHandler.redeemFromPyro(pyroCliffFaceAddress, pyroBalance)
+  })
+
   //The following tests are for gas benchmarking. For the Uniswap tests, we bypass the router and thereby get best case gas consumption.
   enum AMMType {
     UniswapPair = "UniswapPair",
@@ -277,7 +353,7 @@ describe("cliffFace proxy test", function () {
     CliffFace = "CliffFace",
   }
 
-  const AMMTypes = [ AMMType.Behodler, AMMType.CliffFace];
+  const AMMTypes = [AMMType.Behodler, AMMType.CliffFace];
   AMMTypes.forEach((amm: AMMType) => {
     let description = `${amm.toString()} BENCHMARK: `;
     switch (amm) {
@@ -351,8 +427,7 @@ describe("cliffFace proxy test", function () {
           let before = message.substring(0, commaIndex).trim();
           let after = message.substring(commaIndex + 1).trim();
           let newMessage = before + "\n" + after;
-          console.log(newMessage + (parseInt(before) < parseInt(after) ? " LHS smaller" : " LHS bigger"));
-          console.log("difference: " + Math.abs(parseInt(after) - parseInt(before)));
+      
           expect(result.success).to.equal(true, result.error);
         });
 

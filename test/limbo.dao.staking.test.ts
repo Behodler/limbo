@@ -238,7 +238,7 @@ describe("DAO staking", function () {
     @dev we use number close for fateBalance because of minor non deterministic timestamp variance
     */
     let iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
-    console.log('stake run on first stake ' + iterations + ' times')
+    
     let result: IExecutionResult = {} as IExecutionResult
     for (let i = 0; i < iterations; i++) {
       result = await executionResult(dao.setEYEBasedAssetStake(10000, 10000, 100, eye.address, false));
@@ -267,7 +267,7 @@ describe("DAO staking", function () {
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     iterations = Math.floor(Math.random() * 4 + 2) // random amount of runs between 2 and 6 times
-    console.log('stake run on second stake ' + iterations + ' times')
+  
     for (let i = 0; i < iterations; i++) {
       result = await executionResult(
         dao.setEYEBasedAssetStake(62500n * ONE, 62500n * ONE, 250000000000n, eye.address, false)
@@ -346,7 +346,7 @@ describe("DAO staking", function () {
    */
     let iterations = Math.floor(Math.random() * 4 + 3) // random amount of runs between 2 and 6 times
     let numberCloseResult
-    console.log('stake run on first stake ' + iterations + ' times')
+    
     let result: IExecutionResult = {} as IExecutionResult
     for (let i = 0; i < iterations; i++) {
       await dao.incrementFateFor(owner.address)

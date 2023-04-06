@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
-import "./LimboProxy.sol";
 import "../openzeppelin/Ownable.sol";
 import "../facades/MorgothTokenApproverLike.sol";
 import "../facades/TokenProxyRegistryLike.sol";
-import "../periphery/Errors.sol";
-import "../TokenProxies/TokenProxyBase.sol";
-import "../libraries/AddressToString.sol";
-import * as Deployer from "../libraries/ProxyDeployer.sol";
+import "../libraries/ProxyDeployer.sol" as Deployer;
 import "../libraries/ERC20MetadataHelper.sol";
 import "../facades/LimboProxyLike.sol";
 
@@ -29,20 +25,19 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
     address limbo;
     address flan;
   }
+
   EcosystemConfig public config;
 
-  //base->cliffFace
-  mapping(address => address) public cliffFaceMapping;
-  mapping(address => bool) public morgothApproved;
-  mapping(address => bool) public blockedBaseTokens;
-
-  function morgothApprove(address token, bool approve) public onlyOwner {
-    morgothApproved[token] = approve;
+  struct BaseTokenConfig {
+    address cliffFace;
+    bool approved;
+    bool blocked;
   }
+  mapping(address => BaseTokenConfig) public baseTokenMapping;
 
-  ///@notice If we find a  token that can circumvent the CliffFace protections.
-  function blockBaseToken(address token, bool blocked) public onlyOwner {
-    blockedBaseTokens[token] = blocked;
+  function approveOrBlock(address token, bool approve, bool blocked) public onlyOwner {
+    baseTokenMapping[token].approved = approve;
+    baseTokenMapping[token].blocked = blocked;
   }
 
   ///@dev At deployment, this is the initialization function
@@ -53,16 +48,6 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
     address limbo,
     address flan
   ) public onlyOwner {
-    _updateConfig(proxyRegistry, referenceToken, behodler, limbo, flan);
-  }
-
-  function _updateConfig(
-    address proxyRegistry,
-    address referenceToken,
-    address behodler,
-    address limbo,
-    address flan
-  ) internal {
     config.referenceToken = referenceToken;
     config.proxyRegistry = proxyRegistry;
     config.behodler = behodler;
@@ -71,13 +56,14 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
   }
 
   uint256 constant ONE = 1e18;
+  address constant NULL = address(0);
 
   ///@notice in the event of botched generation
   function unmapCliffFace(address baseToken) public onlyOwner {
-    cliffFaceMapping[baseToken] = address(0);
+    baseTokenMapping[baseToken].cliffFace = NULL;
     TokenProxyRegistryLike registry = TokenProxyRegistryLike(config.proxyRegistry);
-   (address limboProxy, ) =  registry.tokenProxy(baseToken);
-    TokenProxyRegistryLike(config.proxyRegistry).setProxy(baseToken,limboProxy,address(0));
+    (address limboProxy, ) = registry.tokenProxy(baseToken);
+    registry.setProxy(baseToken, limboProxy, NULL);
   }
 
   /**
@@ -93,23 +79,15 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
       could suffer high impermanent loss from a downturn.
       @param protectLimbo For FOT, rebase and any other tokens that could break Limbo functionality. Protects against some common rugpull tricks as well.
      */
-  function generateCliffFaceProxy(
-    address token,
-    uint256 referenceTokenMultiple,
-    bool protectLimbo
-  ) public {
-    if (cliffFaceMapping[token] != address(0)) {
-      revert TokenAlreadyRegistered(token);
-    }
-    if (blockedBaseTokens[token]) {
-       revert CliffFaceGenerationBlocked(token);
+  function generateCliffFaceProxy(address token, uint256 referenceTokenMultiple, bool protectLimbo) public {
+    if (baseTokenMapping[token].cliffFace != NULL || baseTokenMapping[token].blocked) {
+      revert Errors.InvalidBaseToken(token);
     }
 
-    (string memory name, string memory symbol) = token.tryGetMetadata(); 
-    address cliffFaceAddress = 
-      token.DeployCliffFace(
-      string(abi.encodePacked(name, "_CF")),
-      string(abi.encodePacked(symbol, "_CF")),
+    (string memory name, string memory symbol) = token.tryGetMetadata();
+    address cliffFaceAddress = token.DeployCliffFace(
+      name,
+      symbol,
       config.proxyRegistry,
       config.referenceToken,
       referenceTokenMultiple,
@@ -120,10 +98,9 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
     //To proposal voters, if a token is FOT or rebase and protectLimbo isn't true, be sure to reject the proposal.
     address limboToken = token;
     if (protectLimbo) {
- 
-        address limboProxyAddress = token.DeployLimboProxy(
-        string(abi.encodePacked(name, "_Lim")),
-        string(abi.encodePacked(symbol, "_Lim")),
+      address limboProxyAddress = token.DeployLimboProxy(
+        name,
+        symbol,
         config.proxyRegistry,
         config.limbo,
         config.flan,
@@ -132,19 +109,12 @@ contract MorgothTokenApprover is MorgothTokenApproverLike, Ownable {
       LimboProxyLike(limboProxyAddress).approveLimbo();
       limboToken = address(limboProxyAddress);
     }
-    cliffFaceMapping[token] = cliffFaceAddress;
+    baseTokenMapping[token].cliffFace = cliffFaceAddress;
 
-    //Clearer error speeds up deployment debugging
-    if (address(config.proxyRegistry) == address(0)) {
-       revert ContractNotInitialized();
-    }
-    TokenProxyRegistryLike(config.proxyRegistry).setProxy(token, limboToken,cliffFaceAddress);
+    TokenProxyRegistryLike(config.proxyRegistry).setProxy(token, limboToken, cliffFaceAddress);
   }
 
   function approved(address token) public view override returns (bool) {
-    if (morgothApproved[token]) return true;
-
-    return cliffFaceMapping[token] !=address(0);
-   
+    return baseTokenMapping[token].approved || baseTokenMapping[token].cliffFace != NULL;
   }
 }

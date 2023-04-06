@@ -26,7 +26,7 @@ interface TestSet {
   secondary: SignerWithAddress;
 }
 
-describe("token proxy test", function () {
+describe("token proxy registry test", function () {
   let SET = {} as TestSet;
 
   this.beforeEach(async function () {
@@ -56,6 +56,14 @@ describe("token proxy test", function () {
     SET.BaseToken = await deploy<Types.MockToken>(MockTokenFactory, "MockToken", "MT", [], []);
     await SET.BaseToken.mint(SET.TWO.mul(20));
 
+
+    const LachesisFactory = await ethers.getContractFactory("LachesisLite");
+    const lachesis = await deploy<Types.LachesisLite>(LachesisFactory)
+
+    const BigConstantsFactory = await ethers.getContractFactory("BigConstants");
+    const bigConstants = await deploy<Types.BigConstants>(BigConstantsFactory)
+    const liquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver");
+    const liquidityReceiver = await deploy<Types.LiquidityReceiver>(liquidityReceiverFactory, lachesis.address, bigConstants.address)
     const cliffFaceFactory = await ethers.getContractFactory("CliffFace");
     SET.CliffFace = await deploy<Types.CliffFace>(
       cliffFaceFactory,

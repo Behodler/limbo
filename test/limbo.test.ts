@@ -18,14 +18,7 @@ interface TestContracts {
   eye: Types.MockToken
   proposalFactory: Types.ProposalFactory
   soulReader: Types.SoulReader
-}
-
-let Constants = {
-  ONE: ethers.constants.WeiPerEther,
-  FINNEY: ethers.constants.WeiPerEther.div(1000),
-  YEAR: 31536000,
-  HOUR: 60 * 60,
-  DAY: 24 * 60 * 60,
+  liquidityReceiver: Types.LiquidityReceiver
 }
 
 enum SoulType {
@@ -40,21 +33,6 @@ enum SoulState {
   waitingToCross,
   crossedOver,
   perpetualTerminated
-}
-
-
-enum FeeExemption {
-  NO_EXEMPTIONS,
-
-  SENDER_EXEMPT,
-  SENDER_EXEMPT_AND_RECEIVER_EXEMPT,
-  REDEEM_EXEMPT_AND_SENDER_EXEMPT,
-
-  REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT,
-
-  RECEIVER_EXEMPT,
-  REDEEM_EXEMPT_AND_RECEIVER_EXEMPT,
-  REDEEM_EXEMPT_ONLY
 }
 
 describe.only("Limbo", function () {
@@ -217,6 +195,7 @@ describe.only("Limbo", function () {
     await this.uniTrade(sushi);
 
     await advanceTime(10000);
+
 
     const morgothTokenApproverFactory = await ethers.getContractFactory("MockMorgothTokenApprover");
 
@@ -2342,6 +2321,9 @@ describe.only("Limbo", function () {
         AddressBalanceCheck: addressBalanceCheckLibAddress,
       },
     });
+    const LachesisFactory = await ethers.getContractFactory("LachesisLite");
+    const lachesisLite = await deploy<Types.LachesisLite>(LachesisFactory)
+
     const behodlerLite = await BehodlerLiteFactory.deploy() as Types.BehodlerLite
     await behodlerLite.configureScarcity(15, 5, owner.address);
 
@@ -2354,6 +2336,11 @@ describe.only("Limbo", function () {
         ProxyDeployer: (await ProxyDeployer.deploy()).address
       }
     })
+
+    const BigConstantsFactory = await ethers.getContractFactory("BigConstants")
+    const bigConstants = await deploy<Types.BigConstants>(BigConstantsFactory)
+    const liquidityReceiverFactory = await ethers.getContractFactory("LiquidityReceiver");
+    SET.liquidityReceiver = await deploy<Types.LiquidityReceiver>(liquidityReceiverFactory, lachesisLite.address, bigConstants.address);
 
     const par = [SET.proxyRegistry.address,
     aave.address,
@@ -2368,7 +2355,7 @@ describe.only("Limbo", function () {
       aave.address,
       behodlerLite.address,
       SET.limbo.address,
-      SET.flan.address
+      SET.flan.address,
     )
 
     const UpdateMultipleSoulConfigFactory = await ethers.getContractFactory("UpdateMultipleSoulConfigProposal")
@@ -2413,7 +2400,7 @@ describe.only("Limbo", function () {
           behodlerToken: proxySet.behodlerProxy
         });
       } else {
-        await morgothTokenApprover.morgothApprove(tokens[i].address, true)
+        await morgothTokenApprover.approveOrBlock(tokens[i].address, true, false)
         let limboToken: address = tokens[i].address
         if (limboMap[i]) {
           limboToken = (await deploy<Types.LimboProxy>(

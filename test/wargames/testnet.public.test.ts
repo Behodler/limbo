@@ -10,7 +10,7 @@ You can't undeploy a contract and adding self destruct code just for testing cou
 const { expect, assert } = require("chai");
 import { parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { safeDeploy,ContractSet } from "../../scripts/networks/orchestrate";
+import { safeDeploy, ContractSet } from "../../scripts/networks/orchestrate";
 import { contractNames, getPauser, stringToBytes32 } from "../../scripts/networks/common"
 import * as networkHelpers from "@nomicfoundation/hardhat-network-helpers";
 import * as Types from "../../typechain"
@@ -110,7 +110,7 @@ describe("public testnet deployment", function () {
     logger("about to engage in governance for proposal", proposal.address)
     const ConfigureTokenApproverPowerFactory = await ethers.getContractFactory("ConfigureTokenApproverPower")
     const power = await ConfigureTokenApproverPowerFactory.attach(fetchAddress("ConfigureTokenApproverPower")) as Types.ConfigureTokenApproverPower
-    await power.setApprove([aave.address], [true])
+    await power.setApproveOrBlock([aave.address], [true], [false])
 
     const AngbandFactory = await ethers.getContractFactory("Angband")
     const angband = await AngbandFactory.attach(fetchAddress("Angband")) as Types.Angband
