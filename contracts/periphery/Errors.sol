@@ -77,8 +77,7 @@ error FlashDecisionPending(address target, address msgSender);
 error FlashToleranceViolated(uint256 v1, uint256 v2);
 error OnlyFateSpender(address msgSender);
 error FlashGovLockTimeMustExceedVoting(uint256 lock, uint256 voting);
-error TokenAlreadyRegistered(address token);
-error CliffFaceGenerationBlocked(address token);
+error InvalidBaseToken(address token);
 error ContractNotInitialized();
 
 //PROPOSALS
@@ -102,6 +101,7 @@ error OnlyProxy(address sender, address proxy);
 error SlippageManipulationPrevention(uint256 blockNumber, uint256 priorBlockNumber);
 error BehodlerSwapOutInvariantViolated(address inputToken, uint256 actualAmount, uint256 expectedAmount);
 error NotMorgothPower(address sender, address power);
+error DennisNedryError ();
 
 //TESTING
 error BehodlerMaxLiquidityExit(uint256 outputAmount, uint256 initialOutputBalance, uint256 maxLiquidityExit);

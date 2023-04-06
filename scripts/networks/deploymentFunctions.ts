@@ -711,7 +711,8 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
   //create permissions etc
   return async function (
     tokenToRegister: Types.ERC20,
-    amountToTransfer: BigNumber
+    amountToTransfer: BigNumber,
+    cliffFace: boolean
   ): Promise<BigNumber> {
     const registerPyroTokenPowerInvoker = await deploy<Types.RegisterPyroTokenV3Power>("RegisterPyroTokenV3Power", registerPyroTokenPowerFactory,
       tokenToRegister.address,
@@ -728,6 +729,13 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
       params.deployer.address, //scx generated is given to deployer.
       registerPyroTokenPowerInvoker.address
     )
+
+    if (cliffFace) {
+      const CliffFaceFactory = await ethers.getContractFactory("CliffFace")
+      const cliffFace = await CliffFaceFactory.attach(tokenToRegister.address) as Types.CliffFace
+      const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
+      await cliffFace.setApprovedTransferers([proxyHandler.address, addTokenAndValuePowerInvoker.address])
+    }
 
     params.logger(`tokenToRegister address ${tokenToRegister.address}, balance ${(await tokenToRegister.balanceOf(params.deployer.address)).toString()}`)
     await params.broadcast("transferring token to Behodler power", tokenToRegister.transfer(addTokenAndValuePowerInvoker.address, amountToTransfer))
@@ -815,7 +823,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
 
 
   const addTokenToBehodler = await addTokenToBehodlerFactory(params)
-  const increaseInSCXFromRPAdd = await addTokenToBehodler(referencePair, quantityOfReferencePairToTransferToBehodler)
+  const increaseInSCXFromRPAdd = await addTokenToBehodler(referencePair, quantityOfReferencePairToTransferToBehodler, false)
 
   // 9. Pair SCX_2 with equivalent LP_1 to create scx__fln_scx -> mints LP_2
   balanceOfRP = await referencePair.balanceOf(params.deployer.address)
@@ -843,7 +851,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   params.logger("Oracle pair minted " + increaseInOraclePair.toString())
 
   // 10. Lachesis.measure LP_2 and mint SCX.
-  const increaseInSCXFromAddingSCX__FLN_SCX = await addTokenToBehodler(scx__fln_scx, increaseInOraclePair)
+  const increaseInSCXFromAddingSCX__FLN_SCX = await addTokenToBehodler(scx__fln_scx, increaseInOraclePair, false)
 
   // 11. On Uni, create dai_scx and seed with as much Dai as possible.
   const daiBalance = await dai.balanceOf(params.deployer.address)
@@ -886,7 +894,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   params.logger("dai_scx cliff balance " + dai_scxCliffBalance.toString())
   const daiBalanceOnBehoder = await dai.balanceOf(behodler.address)
   const unitsOfDai_SCXToAdd = daiBalanceOnBehoder.div(daiPriceOfSCX_Dai)
-  const increaseInSCXFromAddingDai_SCX = await addTokenToBehodler(daiSCXCliffToken, unitsOfDai_SCXToAdd)
+  const increaseInSCXFromAddingDai_SCX = await addTokenToBehodler(daiSCXCliffToken, unitsOfDai_SCXToAdd, true)
 
   // 14. Create and seed Flan/EYE UniV2 LP
   const eye = await getContract<Types.ERC20>(Sections.BehodlerTokens, "EYE", "ERC20")
@@ -915,7 +923,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const priceOfFlanEYE = flanBalance.div(totalSupply)
   const flanEYETOAddTOBehodler = flanBalanceOnBehodler.div(priceOfFlanEYE)
   params.logger('flan_eye to add to behodler ' + flanEYETOAddTOBehodler.toString())
-  await addTokenToBehodler(flanEYE, flanEYETOAddTOBehodler)
+  await addTokenToBehodler(flanEYE, flanEYETOAddTOBehodler,false)
 
   // 16. Create PyroFlan/SCX LP
   const liquidityReceiver = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver")
@@ -947,7 +955,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const quantityToAdd = balanceOfPair.mul(behodlerToPersonalRatio).div(2000_000)
 
   params.logger('quantity of pyroFlan_SCX to behodler ' + quantityToAdd)
-  await addTokenToBehodler(pyroFlan_SCX, quantityToAdd)
+  await addTokenToBehodler(pyroFlan_SCX, quantityToAdd, false)
   // 18. Burn all remaining SCX
   const SCXLeftOverFromFlanGenesis = await behodler.balanceOf(params.deployer.address)
   const remainingFlan = await flan.balanceOf(params.deployer.address)
@@ -1018,17 +1026,23 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
     params.deployer.address, //scx generated is given to deployer.
     registerPyroPower.address
   )
+  const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
+  const CliffFaceFactory = await ethers.getContractFactory("CliffFace")
+  const cliffFace = await CliffFaceFactory.attach(behodlerToken) as Types.CliffFace
+  await cliffFace.setApprovedTransferers([proxyHandler.address, addTokenAndValuePower.address]);
 
+  params.logger('addToken address' + addTokenAndValuePower.address)
   const dai = await getContract<Types.ERC20>(Sections.BehodlerTokens, "DAI", "ERC677")
   const behodler = await getBehodler(params.existing)
   const daiBalanceOnBehoder = await dai.balanceOf(behodler.address)
   await flan.mint(params.deployer.address, daiBalanceOnBehoder)
 
-  const CliffFaceFactory = await ethers.getContractFactory("CliffFace")
-  const cliffFace = await CliffFaceFactory.attach(behodlerToken) as Types.CliffFace
+
   const cliffFaceBalanceOnPowerBefore = await cliffFace.balanceOf(addTokenAndValuePower.address)
   await params.broadcast("approving flan transfer into cliff face", flan.approve(cliffFace.address, ethers.constants.MaxUint256))
+
   await params.broadcast(`mint ${daiBalanceOnBehoder} flan cliffFace into addtokenpower`, cliffFace.mint(addTokenAndValuePower.address, params.deployer.address, daiBalanceOnBehoder))
+
   await params.broadcast("approve flan on behodler for cliffface", cliffFace.approveBehodlerFor(flan.address))
   const cliffFaceBalanceOnPowerrAfter = await cliffFace.balanceOf(addTokenAndValuePower.address)
 
@@ -1055,6 +1069,8 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   await params.broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroPower.address, true))
 
   const scxBalanceOfDeployerBefore = await behodler.balanceOf(params.deployer.address)
+
+  params.logger('addToken address' + addTokenAndValuePower.address)
   await params.broadcast("angband execute addToken power", angband.executePower(addTokenAndValuePower.address))
   const increaseInSCX = (await behodler.balanceOf(params.deployer.address)).sub(scxBalanceOfDeployerBefore)
 
@@ -1067,7 +1083,7 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   const pyroFlan = await pyroTokenFactory.attach(pyroFlanAddress) as Types.PyroToken
 
   const deployerSnufferCap = await getContract<Types.DeployerSnufferCap>(Sections.DeployerSnufferCap, "DeployerSnufferCap")
-  const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
+
   params.logger(`pyroFlan ${pyroFlan.address}, proxyHandler ${proxyHandler.address}`);
   await params.broadcast("snuffing fees for pyroFlan on ProxyHandler", deployerSnufferCap.snuff(pyroFlan.address, proxyHandler.address, FeeExemption.RECEIVER_EXEMPT))
 
@@ -1846,7 +1862,7 @@ export const extractTokenConfig = async function (params: IDeploymentParams): Pr
   const behodlerTokenSection = params.existing[sectionName(Sections.BehodlerTokens)]
   let weth: Contract = await getContract(Sections.Weth, "Weth", "WETH10")
 
-  const behodlerTokenNames = [...Object.keys(behodlerTokenSection),"Weth"]
+  const behodlerTokenNames = [...Object.keys(behodlerTokenSection), "Weth"]
   for (let index = 0; index < behodlerTokenNames.length; index++) {
     const tokenName = behodlerTokenNames[index] as contractNames
     const token = tokenName == "Weth" ? weth :

@@ -7,12 +7,7 @@
         "type": "address"
       }
     ],
-    "name": "CliffFaceGenerationBlocked",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ContractNotInitialized",
+    "name": "InvalidBaseToken",
     "type": "error"
   },
   {
@@ -29,17 +24,6 @@
       }
     ],
     "name": "OnlyOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "TokenAlreadyRegistered",
     "type": "error"
   },
   {
@@ -72,6 +56,29 @@
         "internalType": "address",
         "name": "token",
         "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "approve",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "blocked",
+        "type": "bool"
+      }
+    ],
+    "name": "approveOrBlock",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       }
     ],
     "name": "approved",
@@ -89,53 +96,26 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "token",
+        "name": "",
         "type": "address"
+      }
+    ],
+    "name": "baseTokenMapping",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "cliffFace",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "approved",
+        "type": "bool"
       },
       {
         "internalType": "bool",
         "name": "blocked",
         "type": "bool"
-      }
-    ],
-    "name": "blockBaseToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "blockedBaseTokens",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "cliffFaceMapping",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -195,43 +175,6 @@
     "name": "generateCliffFaceProxy",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "approve",
-        "type": "bool"
-      }
-    ],
-    "name": "morgothApprove",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "morgothApproved",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {

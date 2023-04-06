@@ -201,27 +201,14 @@
         "internalType": "bool[]",
         "name": "approved",
         "type": "bool[]"
-      }
-    ],
-    "name": "setApprove",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address[]",
-        "name": "tokens",
-        "type": "address[]"
       },
       {
         "internalType": "bool[]",
-        "name": "blockToken",
+        "name": "blocked",
         "type": "bool[]"
       }
     ],
-    "name": "setBlockBaseToken",
+    "name": "setApproveOrBlock",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
