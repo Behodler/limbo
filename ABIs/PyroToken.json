@@ -177,19 +177,6 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "loanOfficer",
-        "type": "address"
-      }
-    ],
-    "name": "LoadOfficerAssigned",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
         "indexed": false,
         "internalType": "address",
         "name": "borrower",
@@ -221,6 +208,19 @@
       }
     ],
     "name": "LoanObligationSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "loanOfficer",
+        "type": "address"
+      }
+    ],
+    "name": "LoanOfficerAssigned",
     "type": "event"
   },
   {

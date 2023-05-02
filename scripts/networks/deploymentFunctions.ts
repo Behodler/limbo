@@ -42,6 +42,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.AddInitialLiquidityToBehodler: return addInitialLiquidityToBehodler
     case Sections.Lachesis: return deployLachesis
     case Sections.LiquidityReceiverOld: return deployOldLiquidityReceiver
+    case Sections.MintPyroV2TestTokens: return mintPyroV2TestTokens
     case Sections.PyroWeth10Proxy: return deployPyroWeth10ProxyOld //remember to use deployOldPyro
     case Sections.MultiCall: return deployMultiCall
 
@@ -923,7 +924,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const priceOfFlanEYE = flanBalance.div(totalSupply)
   const flanEYETOAddTOBehodler = flanBalanceOnBehodler.div(priceOfFlanEYE)
   params.logger('flan_eye to add to behodler ' + flanEYETOAddTOBehodler.toString())
-  await addTokenToBehodler(flanEYE, flanEYETOAddTOBehodler,false)
+  await addTokenToBehodler(flanEYE, flanEYETOAddTOBehodler, false)
 
   // 16. Create PyroFlan/SCX LP
   const liquidityReceiver = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver")
@@ -1520,6 +1521,26 @@ const fetchTokenFactory = (existing: AddressFileStructure, section: Sections) =>
   const getContract = await getContractFromSection(existing)
   const token = await getContract(section, tokenName, "ERC20")
   return token
+}
+
+const mintPyroV2TestTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const getContract = await getContractFromSection(params.existing)
+  const LR1 = await getContract<Types.LiquidityReceiverV1>(Sections.LiquidityReceiverOld, "LiquidityReceiverV1")
+
+  const fetchToken = async (contract: contractNames) =>
+    await getContract(Sections.BehodlerTokens, contract, "ERC677")
+
+  const mkr = await fetchToken("MKR")
+
+  const pyroFactory = await ethers.getContractFactory("PyroToken_V2")
+  const pyroMKRAddress = await LR1.baseTokenMapping(mkr.address)
+  const pyroMKR = pyroFactory.attach(pyroMKRAddress) as Types.PyroTokenV2
+
+  await mkr.approve(pyroMKR.address, ethers.constants.MaxUint256)
+  const balanceOfMkr = await mkr.balanceOf(params.deployer.address)
+  await pyroMKR.mint(balanceOfMkr.div(10))
+
+  return {}
 }
 
 const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {

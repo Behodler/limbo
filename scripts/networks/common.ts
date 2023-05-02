@@ -194,6 +194,7 @@ export enum Sections {
   BehodlerTokens, //create pairs
   Lachesis,
   LiquidityReceiverOld,//SeedBehodler and register all pyrotokens
+  MintPyroV2TestTokens,
   RegisterPyroWeth10,
   PyroWeth10Proxy,
   MultiCall,
@@ -269,6 +270,7 @@ let testnetRecipe = [
   Sections.BehodlerTokens,
   Sections.Lachesis,
   Sections.LiquidityReceiverOld,
+  Sections.MintPyroV2TestTokens,
   // Sections.RegisterPyroWeth10,
   Sections.PyroWeth10Proxy,
   Sections.MultiCall,
