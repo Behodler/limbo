@@ -19,7 +19,7 @@ contract PyroWeth10Proxy is Ownable, MintRedeem {
   IWETH10 public weth10;
   uint256 constant ONE = 1e18;
   bool unlocked = true;
-  address baseToken;
+  address public baseToken;
   modifier reentrancyGuard() {
     require(unlocked, "PyroProxy: reentrancy guard active");
     unlocked = false;

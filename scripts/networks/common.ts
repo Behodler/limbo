@@ -257,7 +257,7 @@ export interface ITokenConfig {
   pyroDisplayName: string,
   address: string,
   pyroV2Address: string
-  pyroV3Address:string
+  pyroV3Address: string
 }
 
 export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
@@ -393,7 +393,7 @@ export type criticalPairNames = "FLN_SCX UniV2" | "DAI_SCX UniV2" | "SCX__FLN_SC
 
 export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
 
-export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | "Flan"
+export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | "Flan" | "Weth"
 
 
 export type proposalNames = "AdjustFlanFeeOnTransferProposal" |

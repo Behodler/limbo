@@ -14,7 +14,7 @@ import {
 import { safeDeploy } from '../../../scripts/networks/orchestrate'
 
 const DEPLOYMENT_CONFIG: BehodlerDevEnvDeploymentConfig = {
-  miningIntervalMs: 2000,
+  miningIntervalMs: 12000,
   autoMining: true,
   recipeName: 'testnet',
   confirmationsNumber: 1,
