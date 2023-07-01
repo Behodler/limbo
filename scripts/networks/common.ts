@@ -194,6 +194,7 @@ export enum Sections {
   BehodlerTokens, //create pairs
   Lachesis,
   LiquidityReceiverOld,//SeedBehodler and register all pyrotokens
+  MintPyroV2TestTokens,
   RegisterPyroWeth10,
   PyroWeth10Proxy,
   MultiCall,
@@ -256,7 +257,7 @@ export interface ITokenConfig {
   pyroDisplayName: string,
   address: string,
   pyroV2Address: string
-  pyroV3Address:string
+  pyroV3Address: string
 }
 
 export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
@@ -269,6 +270,7 @@ let testnetRecipe = [
   Sections.BehodlerTokens,
   Sections.Lachesis,
   Sections.LiquidityReceiverOld,
+  Sections.MintPyroV2TestTokens,
   // Sections.RegisterPyroWeth10,
   Sections.PyroWeth10Proxy,
   Sections.MultiCall,
@@ -391,7 +393,7 @@ export type criticalPairNames = "FLN_SCX UniV2" | "DAI_SCX UniV2" | "SCX__FLN_SC
 
 export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
 
-export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | "Flan"
+export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | "Flan" | "Weth"
 
 
 export type proposalNames = "AdjustFlanFeeOnTransferProposal" |

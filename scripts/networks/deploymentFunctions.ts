@@ -42,6 +42,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.AddInitialLiquidityToBehodler: return addInitialLiquidityToBehodler
     case Sections.Lachesis: return deployLachesis
     case Sections.LiquidityReceiverOld: return deployOldLiquidityReceiver
+    case Sections.MintPyroV2TestTokens: return mintPyroV2TestTokens
     case Sections.PyroWeth10Proxy: return deployPyroWeth10ProxyOld //remember to use deployOldPyro
     case Sections.MultiCall: return deployMultiCall
 
@@ -923,7 +924,7 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
   const priceOfFlanEYE = flanBalance.div(totalSupply)
   const flanEYETOAddTOBehodler = flanBalanceOnBehodler.div(priceOfFlanEYE)
   params.logger('flan_eye to add to behodler ' + flanEYETOAddTOBehodler.toString())
-  await addTokenToBehodler(flanEYE, flanEYETOAddTOBehodler,false)
+  await addTokenToBehodler(flanEYE, flanEYETOAddTOBehodler, false)
 
   // 16. Create PyroFlan/SCX LP
   const liquidityReceiver = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver")
@@ -1522,6 +1523,32 @@ const fetchTokenFactory = (existing: AddressFileStructure, section: Sections) =>
   return token
 }
 
+const mintPyroV2TestTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const getContract = await getContractFromSection(params.existing)
+  const LR1 = await getContract<Types.LiquidityReceiverV1>(Sections.LiquidityReceiverOld, "LiquidityReceiverV1")
+
+  const fetchToken = async (contract: contractNames) =>
+    await getContract(Sections.BehodlerTokens, contract, "ERC677")
+
+  const pyroFactory = await ethers.getContractFactory("PyroToken_V2")
+  let weth = await getContract<Types.WETH10>(Sections.Weth, "Weth", "WETH10")
+  await weth.deposit({ value: ethers.constants.WeiPerEther.mul(10) })
+
+  const tokenNames: contractNames[] = ["MKR", "PNK", "LINK", "LOOM", "Weth"]
+  for (let i = 0; i < tokenNames.length; i++) {
+    const name = tokenNames[i]
+    const token = i < 4 ? await fetchToken(name) : weth
+    const pyroAddress = await LR1.baseTokenMapping(token.address)
+    const pyroToken = await pyroFactory.attach(pyroAddress) as Types.PyroTokenV2
+    await token.approve(pyroAddress, ethers.constants.MaxUint256)
+    const balanceOfToken = await token.balanceOf(params.deployer.address)
+    await pyroToken.mint(balanceOfToken.div(5 * (i + 1)))
+  }
+
+
+  return {}
+}
+
 const deployOldLiquidityReceiver: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.LiquidityReceiverOld, params.existing)
   const getContract = await getContractFromSection(params.existing)
@@ -1670,7 +1697,12 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   const fetchToken = async (contract: tokenNames, section: Sections) =>
     await getContract<Types.MockToken>(section, contract, "MockToken")
 
+  let weth = await getContract<Types.WETH10>(Sections.Weth, "Weth", "WETH10")
+  await params.broadcast("deposit weth", weth.deposit({ from: params.deployer.address, value: ethers.constants.WeiPerEther.mul(100) }))
+
+
   const dai = await fetchToken("DAI", Sections.BehodlerTokens)
+
   const eye = await fetchToken("EYE", Sections.BehodlerTokens)
   const lnk = await fetchToken("LINK", Sections.BehodlerTokens)
   const loom = await fetchToken("LOOM", Sections.BehodlerTokens)
@@ -1691,10 +1723,15 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   const SCX_ETH = await fetchUniPai("SCX_ETH UniV2")
   const SCX_EYE = await fetchUniPai("SCX_EYE UniV2")
 
-  const balanceOfEyeDai = await EYE_DAI.balanceOf(params.deployer.address)
-  const balanceOfScxWeth = await SCX_ETH.balanceOf(params.deployer.address)
-  const balanceOfScXEye = await SCX_EYE.balanceOf(params.deployer.address)
+  const tenEth = ethers.constants.WeiPerEther.mul(10)
 
+  await eye.mint(tenEth)
+  await dai.mint(tenEth)
+
+  await weth.transfer(SCX_ETH.address, tenEth)
+
+
+  const wethBalance = await weth.balanceOf(params.deployer.address)
   // await params.broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
 
   const liquidity: tokenAmount[] = [
@@ -1714,18 +1751,40 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
     //if token is Dai, we need extra for Flan Genesis
     const mintAmount = item.token.address == dai.address ? amount.mul(2) : amount
     await params.broadcast(`minting token ${item.token.address}`, item.token.mint(mintAmount))
-    await params.broadcast('transferring to behodler', item.token.transfer(behodler.address, amount))
+    await params.broadcast('approving token for behodler', item.token.approve(behodler.address, ethers.constants.MaxUint256))
+    if (i == 0 || i == 7)
+      await params.broadcast('transferring to behodler', item.token.transfer(behodler.address, amount))
+    else
+      await params.broadcast('adding liquidity to behodler', behodler.addLiquidity(item.token.address, amount))
   }
+
+  const scxBalance = await behodler.balanceOf(params.deployer.address)
+
+  await behodler.transfer(SCX_ETH.address, scxBalance.div(10))
+  await behodler.transfer(SCX_EYE.address, scxBalance.div(10))
+  await eye.transfer(EYE_DAI.address, ethers.constants.WeiPerEther)
+  await eye.transfer(SCX_EYE.address, ethers.constants.WeiPerEther.mul(2))
+  await dai.transfer(EYE_DAI.address, tenEth.div(2))
+
+  await EYE_DAI.mint(params.deployer.address)
+  await SCX_ETH.mint(params.deployer.address)
+  await SCX_EYE.mint(params.deployer.address)
+
+  const balanceOfEyeDai = await EYE_DAI.balanceOf(params.deployer.address)
+  const balanceOfScxWeth = await SCX_ETH.balanceOf(params.deployer.address)
+  const balanceOfScXEye = await SCX_EYE.balanceOf(params.deployer.address)
 
   const pairLiquidity = [
     [SCX_ETH, balanceOfScxWeth],
     [SCX_EYE, balanceOfScXEye],
-    [EYE_DAI, balanceOfEyeDai]
+    [EYE_DAI, balanceOfEyeDai],
+    [weth, wethBalance]
   ]
 
   for (let i = 0; i < pairLiquidity.length; i++) {
     const pair = pairLiquidity[i]
     const token = pair[0] as Types.UniswapV2Pair
+
     const amount = pair[1] as BigNumber
     await params.broadcast("transferring liquidity to behodler", token.transfer(behodler.address, amount))
   }
