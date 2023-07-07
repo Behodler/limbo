@@ -764,8 +764,6 @@ const flanGenesis: IDeploymentFunction = async function (params: IDeploymentPara
 
   const getContract = await getContractFromSection(params.existing)
 
-  const uniswapV2Factory = await getContract<Types.UniswapV2Factory>(Sections.UniswapV2Clones, "UniswapV2Factory")
-
   const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
   const fetchBehodlerToken = fetchTokenFactory(params.existing, Sections.BehodlerTokens)
   const dai = await fetchBehodlerToken("DAI") as Types.ERC20
@@ -1532,7 +1530,8 @@ const mintPyroV2TestTokens: IDeploymentFunction = async function (params: IDeplo
 
   const pyroFactory = await ethers.getContractFactory("PyroToken_V2")
   let weth = await getContract<Types.WETH10>(Sections.Weth, "Weth", "WETH10")
-  await weth.deposit({ value: ethers.constants.WeiPerEther.mul(10) })
+  const ethBalance = await params.deployer.getBalance()
+  await weth.deposit({ value: ethBalance.div(100) })
 
   const tokenNames: contractNames[] = ["MKR", "PNK", "LINK", "LOOM", "Weth"]
   for (let i = 0; i < tokenNames.length; i++) {
@@ -1698,7 +1697,8 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
     await getContract<Types.MockToken>(section, contract, "MockToken")
 
   let weth = await getContract<Types.WETH10>(Sections.Weth, "Weth", "WETH10")
-  await params.broadcast("deposit weth", weth.deposit({ from: params.deployer.address, value: ethers.constants.WeiPerEther.mul(100) }))
+  const ethBalance = await params.deployer.getBalance()
+  await params.broadcast("deposit weth", weth.deposit({ from: params.deployer.address, value: ethBalance.div(10) }))
 
 
   const dai = await fetchToken("DAI", Sections.BehodlerTokens)
@@ -1723,15 +1723,16 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   const SCX_ETH = await fetchUniPai("SCX_ETH UniV2")
   const SCX_EYE = await fetchUniPai("SCX_EYE UniV2")
 
-  const tenEth = ethers.constants.WeiPerEther.mul(10)
-
-  await eye.mint(tenEth)
-  await dai.mint(tenEth)
-
-  await weth.transfer(SCX_ETH.address, tenEth)
+  let wethBalance = await weth.balanceOf(params.deployer.address)
 
 
-  const wethBalance = await weth.balanceOf(params.deployer.address)
+  await eye.mint(wethBalance.div(10))
+  await dai.mint(wethBalance.div(10))
+
+  await weth.transfer(SCX_ETH.address, wethBalance.div(10))
+
+
+  wethBalance = await weth.balanceOf(params.deployer.address)
   // await params.broadcast("mint flan into behodler", flan.mint(behodler.address,ethers.constants.WeiPerEther.mul(10_000)),params.pauser)
 
   const liquidity: tokenAmount[] = [
@@ -1764,7 +1765,7 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
   await behodler.transfer(SCX_EYE.address, scxBalance.div(10))
   await eye.transfer(EYE_DAI.address, ethers.constants.WeiPerEther)
   await eye.transfer(SCX_EYE.address, ethers.constants.WeiPerEther.mul(2))
-  await dai.transfer(EYE_DAI.address, tenEth.div(2))
+  await dai.transfer(EYE_DAI.address, wethBalance.div(10))
 
   await EYE_DAI.mint(params.deployer.address)
   await SCX_ETH.mint(params.deployer.address)
@@ -1778,7 +1779,7 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
     [SCX_ETH, balanceOfScxWeth],
     [SCX_EYE, balanceOfScXEye],
     [EYE_DAI, balanceOfEyeDai],
-    [weth, wethBalance]
+    [weth, wethBalance.div(10)]
   ]
 
   for (let i = 0; i < pairLiquidity.length; i++) {

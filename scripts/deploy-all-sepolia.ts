@@ -3,7 +3,7 @@ async function main() {
 
     const logger = (message: string) => console.log(message)
     try {
-        const deployment = await safeDeploy('testnet', 11155111, 12, logger)
+        const deployment = await safeDeploy('testnet', 11155111, 4, logger)
         logger("ADDRESSES:")
         logger(JSON.stringify(deployment, null, 4))
     }
