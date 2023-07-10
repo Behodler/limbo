@@ -41,7 +41,7 @@ export default {
     flat: true,
     spacing: 2,
     pretty: false,
-    format:"json"
+    format: "json"
   },
   networks: {
 
@@ -49,7 +49,7 @@ export default {
       allowUnlimitedContractSize: false,
       chainId: 1337,
       accounts: {
-        mnemonic: "eight fun oak spot hip pencil matter domain bright fiscal nurse easy",
+        mnemonic: mnemonic.phrase,
       },
       settings: {
         optimizer: {
@@ -76,22 +76,22 @@ export default {
           runs: 200,
         },
       },
-     
+
       // maxFeePerGas: "0x17D78400",
       // maxPriorityFeePerGas: "0x17D78400",
     },
-    sepolia:{
-      url:`http://localhost:8545`,
-      chainId:11155111,
-      accounts:{
-        mnemonic:mnemonic.phrase
+    sepolia: {
+      url: `http://localhost:8545`,
+      chainId: 11155111,
+      accounts: {
+        mnemonic: mnemonic.phrase
       },
-      from:mnemonic.primary,
-      gasMultiplier:2,
-      settings:{
-        optimizer:{
-          enabled:true,
-          runs:200
+      from: mnemonic.primary,
+      gasMultiplier: 2,
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
         }
       }
     }

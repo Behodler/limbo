@@ -17,6 +17,7 @@ contract PyroToken_V2 is IERC20 {
   uint256 _totalSupply;
   mapping(address => uint256) balances;
   mapping(address => mapping(address => uint256)) allowances;
+  mapping (address => uint) public lastMinted; //for testnet accounting
   address public baseToken;
   uint256 constant ONE = 1e18;
   LiquidityReceiverV1 liquidityReceiver;
@@ -72,6 +73,7 @@ contract PyroToken_V2 is IERC20 {
   }
 
   function mint(uint256 baseTokenAmount) external updateReserve returns (uint256) {
+    lastMinted[msg.sender] = block.number;
     uint256 rate = redeemRate();
     uint256 pyroTokensToMint = (baseTokenAmount * ONE) / rate;
     require(

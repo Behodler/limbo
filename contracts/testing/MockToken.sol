@@ -3,6 +3,8 @@ pragma solidity 0.8.16;
 import "../openzeppelin/ERC677.sol";
 
 contract MockToken is ERC677 {
+  mapping(address => uint) public lastMinted; //testnet accounting
+
   constructor(
     string memory name,
     string memory symbol,
@@ -18,6 +20,7 @@ contract MockToken is ERC677 {
   }
 
   function mint(uint256 amount) public {
+    lastMinted[msg.sender] = block.number;
     _mint(msg.sender, amount);
   }
 
