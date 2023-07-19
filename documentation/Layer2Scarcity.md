@@ -6,7 +6,7 @@ However, this is not ideal for many reasons. Firstly, most projects have a token
 Similarly, since Flan liquidity is provided by Scarcity, you'd have to have multiple versions of Flan.
 There is a way to have one true Scarcity (and possibly one true Flan) across all layers. This approach would bind all liquidity across all layers so that Behodler would have one massive collection of liquidity spanning many layers. It would constrain the supply of Scarcity while massively multiplying systemic TVL which would be excellent for the Scarcity price and for Flan stability. What's more, this approach would require very few code changes.
 
-This paper charts the idea in its current iteration
+This paper charts the idea in its current iteration.
 
 ## Limbo Refresher
 When a token is listed on Limbo, Flan is issued for deposits like a traditional yield farm. When the token TVL surpasses a threshold, staking and unstaking are locked. The token reserve is then migrated to Behodler as a deposit which generates Scarcity (SCX). This SCX is then paired with newly minted Flan to prop up the liquidity of Flan. This migration process is what gives Flan its enormous stability and liquidity which allows for future funding of tokens. 
@@ -15,11 +15,11 @@ Each migration from Limbo to Behodler creates new SCX. Around 600 or so units of
 ## Layer 2 proposal
 
 ### A small tweak to Behodler AMM
-Suppose we launch Behodler on Arbitrum. We deploy the Behodler AMM and Limbo. Limbo issues an Arbitrum version of Flan. For now, we don't concern ourselves with the relationship between this Flan and main net Flan.
+Suppose we launch Behodler on Arbitrum. We deploy the Behodler AMM and Limbo. Limbo issues an Arbitrum version of Flan. For now, we don't concern ourselves with the relationship between this Flan and mainnet Flan.
 
-Unlike the Behodler on mainnet, Behodler Arbitrum cannot issue SCX to token deposits. Rather there is one white listed token which can be deposited to produce SCX. So if we set the special token to Dai then only Dai can be deposited to produce SCX. This SCX is a new type of SCX. It has a different contract address to mainent SCX. 
+Unlike the Behodler on mainnet, Behodler Arbitrum cannot issue SCX to token deposits. Rather there is one white listed token which can be deposited to produce SCX. So if we set the special token to Dai then only Dai can be deposited to produce SCX. This SCX is a new type of SCX. It has a different contract address to mainnet SCX. 
 
-We create a wrapper token on Arbitrum for porting across mainnet SCX. So you deposit SCX on a bridge on mainent and you are issued this wrapper SCX on the Abitrum blockchain just as you do with other tokens currently.
+We create a wrapper token on Arbitrum for porting across mainnet SCX. So you deposit SCX on a bridge on mainnet and you are issued this wrapper SCX on the Abitrum blockchain just as you do with other tokens currently.
 
 Let's call this wrapper of mainnet SCX on Arbitrum Scarcity Prime (SCX_p) and the version of Scarcity issued by Arbitrum Behodler Scarcity L2 (SCX_L2).
 
@@ -33,7 +33,7 @@ So to summarize, SCX_L2 can be used to redeem liquidity but SCX_L2 can only be m
 
 ### Small tweaks to Limbo
 
-Limbo mainnet mints new SCX on migrations. On Arbitrum, Limbo would perform a swap instead. So suppose we list Aave on Limbo Arbitrum and raise a portion of Aave. On migrate, the newly listed Aave would be swapped in to Behodler Arbitrum for SCX_P. So instead of minting new SCX_L2, SCX_P would be swapped out. The swap would not be priced according to the xy=k rule. Instead, it would have a fixed exchange rate. So a threshold pool would have 2 parameters: the crossover number and the SCX exchange rate.
+Limbo mainnet mints new SCX on migrations. On Arbitrum, Limbo would perform a swap instead. So suppose we list Aave on Limbo Arbitrum and raise a portion of Aave. On migration, the newly listed Aave would be swapped in to Behodler Arbitrum for SCX_P. So instead of minting new SCX_L2, SCX_P would be swapped out. The swap would not be priced according to the xy=k rule. Instead, it would have a fixed exchange rate. So a threshold pool would have 2 parameters: the crossover number and the SCX exchange rate.
 
 ```
 Eg. we list Aave and set the crossover to 2000 Aave with a rate of 1.2 SCX per Aave. In other words, once 2000 Aave has been raised, it is swapped out for 2400 SCX_p.
@@ -53,9 +53,9 @@ This would mean that in order for new liquidity to be brought into Behodler Arbi
 
 This also means there will be one SCX across layers and one SCX price which is essentially priced on mainnet. It will unify liquidity across all layers.
 
-For instance, suppose Polygon Limbo wants to lists 10,000 MIM and the SCX price is $200.
+For instance, suppose Polygon Limbo wants to list 10,000 MIM and the SCX price is $200.
  
-Polygon Limbo first lists a pool for new SCX_p of 50. Stakers go to mainnet and deposit tokens to mint up 50 SCX which they then wrap into SCX_P. The act of minting 50 SCX on mainent raises the price of SCX to $210.
+Polygon Limbo first lists a pool for new SCX_p of 50. Stakers go to mainnet and deposit tokens to mint up 50 SCX which they then wrap into SCX_P. The act of minting 50 SCX on mainnet raises the price of SCX to $210.
 
 Limbo deposits the $210 of SCX into Behodler_Poly and mints no new SCX_L2. We then list a pool for MIM and on success, only 47 SCX is swapped out of Behodler_Poly, leaving a net gain of 3 over the initial price expectation. This 47 is then used to boost Flan liquidity on Poly.
 
@@ -66,6 +66,6 @@ In this way, growth of liquidity on one layer rises the tide for all the other l
 # Implications for Flan 
 Flan will be priced according to the same metric as on Mainnet. So if we're targeting Dai on Mainnet, we'll target Dai on Arbitrum. In addition, Flan is capitalized by the same version of SCX across layers. This means that while the token contracts are different, Flan mainnet is likely to trade 1:1 with Flan Arbitrum with high levels of liquidity. And so they can be treated as essentially equivalent tokens.
 
-While there is minting of Flan to raise the intial SCX_P, this essentially means twice as much Flan per unit of incoming liqudity is minted on L2. However, the current design on Limbo mainnet is that more than 10x liquidity comes in for every unit of Flan. So the net result to Flan liquidity is still positive and this doesn't even factor in the positive impact this entire scheme will have on the SCX price.
+While there is minting of Flan to raise the intial SCX_P, this essentially means twice as much Flan per unit of incoming liquidity is minted on L2. However, the current design on Limbo mainnet is that more than 10x liquidity comes in for every unit of Flan. So the net result to Flan liquidity is still positive and this doesn't even factor in the positive impact this entire scheme will have on the SCX price.
 
 Currently considered name for this strategy: Grand Unified Liquidity (GUL).
