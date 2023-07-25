@@ -1,79 +1,79 @@
 {
   "PreChecks": {},
   "Weth": {
-    "Weth": "0x27Ea89Bb6Aa798ee961D4EF44D5B433d95AD58Aa"
+    "Weth": "0xA9a2aFF06E47546f23c92Fa970E4Df9F3Cad50ea"
   },
   "Behodler": {
-    "AddressBalanceCheck": "0x2a0dbe3F6da4360Fc79d761529E0D02483a4706c",
-    "Behodler": "0x7F85CaEb988223Fac911F39d73930f2f49E330a6"
+    "AddressBalanceCheck": "0x47DC7d51b22650c0586Bf7d84435af707938f3Ea",
+    "Behodler": "0x6c07f810443ebD27cA579e1F18F62C3F45de5dB6"
   },
   "UniswapV2Clones": {
-    "UniswapV2Factory": "0xfE5899065a8685CDa8fdF4C6e1DF4C689C3dCD45",
-    "UniswapV2Router": "0x08eD1d6512B45433597F183E41f4a5dcDAA86eb4",
-    "SushiswapV2Factory": "0xca5003c40d9Af37066Ab83dD2D0083EcC9bE0c49",
-    "SushiswapV2Router": "0x7326569f913dbA22C5038574B2dA114504b6e841"
+    "UniswapV2Factory": "0x5F2aa0539A92481322c98fd9eBDebdCcb3b9347C",
+    "UniswapV2Router": "0x0CE7982B893b8F27A254303F718C0611C2981609",
+    "SushiswapV2Factory": "0x7Ed953389Dc0a9945064e754316BB62eD2f52ae3",
+    "SushiswapV2Router": "0x44996b0bb00792779C348Bdb4DAFa55567837937"
   },
   "BehodlerTokens": {
-    "EYE": "0x424613beC4bd8510f0Fa8053665C8431D52E68E4",
-    "MKR": "0x1b2A581Bb885c59bfe2e98794ecB270f66AA1E7C",
-    "OXT": "0xF4eAC0bc59E6eb7ae4B20806AD32347c9bFE990C",
-    "PNK": "0xa8B98a5c115a1d23E57C4AD037B3277682C26210",
-    "LNK": "0x6232c0d2C46475b2b29879aa0f4B6CE559216b14",
-    "LOOM": "0x2f49515D86da05f9EFEbE178531f49e0A47AEdf5",
-    "DAI": "0x07Bed615b632444E7ED0A9461560725AeB1e1C62",
-    "WEIDAI": "0xd5E7eFB8CA4E3ADCbF8e103be4c3279002Cf80B7",
-    "EYE_DAI": "0x3233CbDA06EeCf8147e6474cBe1B1cdb67041aAA",
-    "SCX_ETH": "0xe8A4184D4dCFA4679b0428fF50FbD22C574c9fFb",
-    "SCX_EYE": "0xBF2De709d3c5Ea02ca1D7aECd52aa7761B6E1D99"
+    "EYE": "0xd325Ed619897e99376a9231E1256F6eA0E3f9C91",
+    "MKR": "0x693ACc93Bd3ddE06802Bf81BA335d365E3025130",
+    "OXT": "0x5F419CCb4785924FfC83F623f641c50678C1A5Ae",
+    "PNK": "0x3c33b983610E2e0DC9E58319C43a1a9a19ebaBC4",
+    "LINK": "0x0D12A56a3474A63aFc92501EC7a3E627D3D72ffF",
+    "LOOM": "0xd9FF43CAcEa52F168cde480F526204b42aDeBA98",
+    "DAI": "0x387A419479310ffDCF705B1de360644156c6271e",
+    "WEIDAI": "0x41A847a777ed4A80437E5B14AcC6DC3eaF779789",
+    "EYE_DAI UniV2": "0x1d2449B70EcA89CA60e1E786dfEf5F59DccDf66a",
+    "SCX_ETH UniV2": "0x05c2e67a0fbd5df716dEd1C33d8600529420C921",
+    "SCX_EYE UniV2": "0x553070d2aEeB7BF8e4e5A7d5481A0f703ef83E73"
   },
   "Lachesis": {
-    "Lachesis": "0xd7db1D7080FD114C65E32Efd52149499686D1690"
+    "Lachesis": "0xCC97F03AE31C62f6d93Ac5A3e549D499D006706f"
   },
   "LiquidityReceiverOld": {
-    "LiquidityReceiverV1": "0x8516A0DABc52e6d7766c5EfE7CDb4d21B916670d"
+    "LiquidityReceiverV1": "0xC1E68cA82115078EeE996F005a087Cc0cf5e5a6f"
   },
   "PyroWeth10Proxy": {
-    "PyroWeth10Proxy": "0x7AA60672e86cDa232A7CEf042a36920e5bCEb227"
+    "PyroWeth10Proxy": "0x7DA103421c873DB2E12FE60A2254803C87f73d1B"
   },
   "MultiCall": {
-    "Multicall": "0xf2ECa4a847D6a455Cfa78DF9D115CfDcC2e3B06a"
+    "Multicall3": "0x386D55bE47C7201514Dc9B23346F7CA400A29A6d"
   },
   "Powers": {
-    "PowersRegistry": "0xfFc7AB7D126B63cF9941417846D8622502845A00"
+    "PowersRegistry": "0x9002c53F9879667f868Ef1396f448bb8C36DE935"
   },
   "Angband": {
-    "Angband": "0x227D49C01B9bFDd4CFAc7920aCe558a1f9f93a34"
+    "Angband": "0x82D3fbA4B8356376d72E2b65dF8691Da238C2500"
   },
   "ConfigureScarcityPower": {
-    "ConfigureScarcityPower": "0x9725339A70C9739682424Cd7688CFd6e7427F2D5"
+    "ConfigureScarcityPower": "0xDa5da9D9760608dD850699edB87d47C79cF0bA32"
   },
   "ConfigureIronCrown": {},
   "RefreshTokensOnBehodler": {},
   "AddInitialLiquidityToBehodler": {},
   "PreCheckMelkor": {},
   "BigConstants": {
-    "BigConstants": "0x5449e3f7d156Ecf609c915AC6b5B71E99C193927"
+    "BigConstants": "0x1D2F2f2CA89A9c610b427E2775A54B2657d41b66"
   },
   "LiquidityReceiverNew": {
-    "LiquidityReceiver": "0xb98300d08A10C234766f717221637A4a2ba79118"
+    "LiquidityReceiver": "0x61E79993532A834B15bC59cBe832793E0BFC391d"
   },
   "BehodlerSeedNew": {
-    "SeedBehodlerPower": "0xf359B0e0dfdCFD938bB42B8eDcA49200Ef5b8667"
+    "SeedBehodlerPower": "0xffBD4e64608361D668a425af1923D3BBe5092Aba"
   },
   "PyroWethProxy": {
-    "PyroWethProxy": "0x6A0171B91CAC815B3b6C91691F44B46112f1FBbA"
+    "PyroWethProxy": "0xb0426553d5cD471874349E7FDdFBf6f730038456"
   },
   "MorgothMapPyroWeth10Proxy": {},
   "DeployerSnufferCap": {
-    "DeployerSnufferCap": "0x392E9d1DB8BcEEBD5818FCBD98B87e1584f0b6B9"
+    "DeployerSnufferCap": "0xb785f8Fe4219ce7881b2Ab77D0B00438682c914B"
   },
   "MorgothMapLiquidityReceiver": {},
   "SnuffPyroWethProxy": {},
   "ProxyHandler": {
-    "ProxyHandler": "0xCDb44DC7B344b80Dc5430d9d342e70612D27033f"
+    "ProxyHandler": "0xC91cA7A76EFB3DFd25A67E55856c1f72c32f4490"
   },
   "V2Migrator": {
-    "V2Migrator": "0x605611Db465B3003Dde987Db4d8011A42259Bb56"
+    "V2Migrator": "0xb6A5B5670aBCAc582D4b3cb634a5122A7d1c8Eee"
   },
   "DisableDeployerSnufferCap": {}
 }

@@ -518,7 +518,7 @@ const tradeOraclePairs: IDeploymentFunction = async function (params: IDeploymen
 
 
   await params.broadcast("approve flan on router", flan.approve(uniswapV2Router.address, ethers.constants.MaxUint256))
-  await params.broadcast("approve scx on routee", scx.approve(uniswapV2Router.address, ethers.constants.MaxUint256))
+  await params.broadcast("approve scx on router", scx.approve(uniswapV2Router.address, ethers.constants.MaxUint256))
 
 
   await params.broadcast("sending flan to fln_scx pair", flan.transfer(fln_scx.address, flanBalance.div(10)))
@@ -1083,7 +1083,7 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
 
   const deployerSnufferCap = await getContract<Types.DeployerSnufferCap>(Sections.DeployerSnufferCap, "DeployerSnufferCap")
 
-  params.logger(`pyroFlan ${pyroFlan.address}, proxyHandler ${proxyHandler.address}`);
+  params.logger(`pyroFlan ${pyroFlan.address}, proxyHandler ${proxyHandler.address}, deployerSnufferCap ${deployerSnufferCap.address}`);
   await params.broadcast("snuffing fees for pyroFlan on ProxyHandler", deployerSnufferCap.snuff(pyroFlan.address, proxyHandler.address, FeeExemption.RECEIVER_EXEMPT))
 
   const baseToken = (await pyroFlan.config()).baseToken
@@ -1531,6 +1531,7 @@ const mintPyroV2TestTokens: IDeploymentFunction = async function (params: IDeplo
   const pyroFactory = await ethers.getContractFactory("PyroToken_V2")
   let weth = await getContract<Types.WETH10>(Sections.Weth, "Weth", "WETH10")
   const ethBalance = await params.deployer.getBalance()
+  params.logger('ETH CONSUMPTION 1.' + ethBalance.div(100).toString())
   await weth.deposit({ value: ethBalance.div(100) })
 
   const tokenNames: contractNames[] = ["MKR", "PNK", "LINK", "LOOM", "Weth"]
@@ -1698,6 +1699,7 @@ const addInitialLiquidityToBehodler: IDeploymentFunction = async function (param
 
   let weth = await getContract<Types.WETH10>(Sections.Weth, "Weth", "WETH10")
   const ethBalance = await params.deployer.getBalance()
+  params.logger('ETH CONSUMPTION 0' + ethBalance.div(10).toString())
   await params.broadcast("deposit weth", weth.deposit({ from: params.deployer.address, value: ethBalance.div(10) }))
 
 

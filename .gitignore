@@ -151,3 +151,5 @@ RESULTS.TXT
 
 .idea
 tmp/
+SEPOLIA_LOGS*
+SEPOLIA_logs*

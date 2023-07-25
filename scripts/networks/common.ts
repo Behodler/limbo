@@ -1,4 +1,4 @@
-import { ethers, network } from "hardhat";
+import { deployments, ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { Contract, ContractFactory, ContractTransaction } from "ethers";
 import * as Web3 from 'web3'
@@ -270,7 +270,7 @@ let testnetRecipe = [
   Sections.BehodlerTokens,
   Sections.Lachesis,
   Sections.LiquidityReceiverOld,
-  Sections.MintPyroV2TestTokens,
+ // Sections.MintPyroV2TestTokens,
   // Sections.RegisterPyroWeth10,
   Sections.PyroWeth10Proxy,
   Sections.MultiCall,
@@ -374,8 +374,7 @@ deploymentRecipes.push({
 
     Sections.SnuffPyroWethProxy,
     Sections.ProxyHandler,
-    Sections.V2Migrator,
-    Sections.DisableDeployerSnufferCap
+    Sections.V2Migrator
   ]
 })
 export const fetchDeploymentRecipe = (name: recipeNames) => {

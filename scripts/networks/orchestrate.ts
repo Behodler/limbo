@@ -10,6 +10,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre from 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import path from 'path'
+import { deploy } from "../../test/helpers";
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
 export interface ContractSet {
@@ -72,7 +73,7 @@ export async function deployToNetwork(
 
   const networkName = nameNetwork(chainId);
   const pauser = await getPauser(networkName, confirmations);
-
+  const initialBalance = await deployer.getBalance()
   let loader = new Loader(networkName, logger, deployer, pauser, confirmations)
 
   const iterations = recipe.length;
@@ -89,10 +90,12 @@ export async function deployToNetwork(
     )
     logger('finished section ' + sectionName(currentSection))
   }
-
+  const finalBalance = await deployer.getBalance()
+  logger('total eth consumed ' + initialBalance.sub(finalBalance).toString())
   logger("Deployments complete. Flattening...")
   const flat = loader.flatten()
-  const tokenConfig = await loader.getTokenConfig(recipe)
+  const recipeToUseForTokenConfig = recipeName === "onlyPyroV3" ? [...fetchDeploymentRecipe("statusquo"), ...recipe] : recipe
+  const tokenConfig = await loader.getTokenConfig(recipeToUseForTokenConfig)
   return {
     protocol: flat,
     tokens: tokenConfig

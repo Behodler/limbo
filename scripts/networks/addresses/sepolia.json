@@ -1,0 +1,164 @@
+{
+  "PreChecks": {},
+  "Weth": {
+    "Weth": "0x577d5AEa0d4BE3BbA602C7b3916202AFf8cc8996"
+  },
+  "Behodler": {
+    "AddressBalanceCheck": "0x4e84CbeD32803475674718B80EA652114A31B9bd",
+    "Behodler": "0x3d694CEDba2a960d56a9d1b185c08b901daED808"
+  },
+  "UniswapV2Clones": {
+    "UniswapV2Factory": "0xe0c542b556D8fE722033e2B1a65DaA3419a83dC0",
+    "UniswapV2Router": "0x887Aa0cAe6A09EfF46563db368b8dEB3708AB06A",
+    "SushiswapV2Factory": "0x1Cbf3ECF0D508Edf2d63909a7Ee356B0cB398741",
+    "SushiswapV2Router": "0x8b014e65bDaE6dFaBF396cFfd1790CEE4A0e3Ff8"
+  },
+  "BehodlerTokens": {
+    "EYE": "0x3e2a4fD96e88cEA0E3c2770A528f97a40fAEB7d7",
+    "MKR": "0xad49b15bEE933D4e4dF4F2Ed3a2fE22A6f57Ec2b",
+    "OXT": "0x981dF208e24c01a4e802abb82Dd046cC6172ab4E",
+    "PNK": "0x660C33e42947B0d5BC613e2e00E65EC5Aa769EeB",
+    "LINK": "0xB375611fF857e5eCC783FC2A587001b04D48FD22",
+    "LOOM": "0x47348580faD2Bb5B911D261AEb0023F8dC59a3c3",
+    "DAI": "0x4219abFab5ECC841706aB653bcd19E30C2E66fEd",
+    "WEIDAI": "0xf614F55877AbbE7609Ed8D2194C061F03588c5C0",
+    "EYE_DAI UniV2": "0xB7c4346368EB0C09Fa71D424451c05ba16716df9",
+    "SCX_ETH UniV2": "0x7c60ACEA2998d44766fe45D9364eB6D55A096a87",
+    "SCX_EYE UniV2": "0x9b3D3bC1fcB72468cb68B5274E410A2AccC40cBF"
+  },
+  "Lachesis": {
+    "Lachesis": "0x02C78b7e2C99e073d6a1f9F13cdaD235244E6485"
+  },
+  "LiquidityReceiverOld": {
+    "LiquidityReceiverV1": "0xE795B25863C9975192E8CaB638a5d59299B24673"
+  },
+  "PyroWeth10Proxy": {
+    "PyroWeth10Proxy": "0x3a58f6c2051cAc90f76E4191f102e5086Eda4E70"
+  },
+  "MultiCall": {
+    "Multicall3": "0xC7B6a6450D4a490E42FCdF7f071A096704055f47"
+  },
+  "Powers": {
+    "PowersRegistry": "0x8c458588c84d441354c9ae8f9b77D7120D8f5865"
+  },
+  "Angband": {
+    "Angband": "0xe1516dC2fE9d35648FC29AF948fD772e852C014f"
+  },
+  "ConfigureScarcityPower": {
+    "ConfigureScarcityPower": "0x4B2c74090570f35f707157CD123B598A85D82e72"
+  },
+  "ConfigureIronCrown": {},
+  "RefreshTokensOnBehodler": {},
+  "AddInitialLiquidityToBehodler": {},
+  "PreCheckMelkor": {},
+  "BigConstants": {
+    "BigConstants": "0x20c1Fe03dDC710d5ceeE10CaCAd39bDBBFAbC821"
+  },
+  "LiquidityReceiverNew": {
+    "LiquidityReceiver": "0x2929574702d6DbA78Ca6962652c0227e7b66C4f3"
+  },
+  "BehodlerSeedNew": {
+    "SeedBehodlerPower": "0xB483CD628169d3Ca283F619573810366A1f3C9B6"
+  },
+  "PyroWethProxy": {
+    "PyroWethProxy": "0xb17400fd26aaBd7cfb2Ab89B787c8145Ec99571f"
+  },
+  "MorgothMapPyroWeth10Proxy": {},
+  "DeployerSnufferCap": {
+    "DeployerSnufferCap": "0x6E2D83FCD607d3152Dcb4b5CAa6a984121a0139C"
+  },
+  "MorgothMapLiquidityReceiver": {},
+  "SnuffPyroWethProxy": {},
+  "ProxyHandler": {
+    "ProxyHandler": "0xaAFBB4d66248E513199D4AB8601295b0e99d8163"
+  },
+  "V2Migrator": {
+    "V2Migrator": "0xEA48f160300F846C707bF588115E0055Fa615A1E"
+  },
+  "LimboDAO": {
+    "LimboDAO": "0x6efd649Cc91c75B01E3deF9c9D20e5BC4FDB6E3C"
+  },
+  "WhiteListProposal": {
+    "ToggleWhitelistProposalProposal": "0x236d1232663c977d5F3B30E16b0bce35972B9062"
+  },
+  "MorgothTokenApprover": {
+    "AddressToString": "0x8DaD03B4F9E3449895eF6a8023854ddd3d4B9cb2",
+    "ProxyDeployer": "0xAd4d6aF78853740899E46343aAF465448C5D5094",
+    "MorgothTokenApprover": "0xe06aC66aA6eC55aD733eea6725a9a70d6e9c4Cfc"
+  },
+  "TokenProxyRegistry": {
+    "TokenProxyRegistry": "0x4e85E127A46a387332E4E42803193D9134e5d777"
+  },
+  "SoulReader": {
+    "SoulReader": "0x777e857B9A7Ef2691FB20A36Fad39467dfb0fE77"
+  },
+  "FlashGovernanceArbiter": {
+    "FlashGovernanceArbiter": "0x01BcD20C989C7C971E7567d0e35494bE1453c98A"
+  },
+  "Flan": {
+    "Flan": "0x45A3C419a7e86aFe2024D62356EA98C38bAa7E8F"
+  },
+  "FlanSetMintConfig": {},
+  "Limbo": {
+    "Limbo": "0x4490Cf93b78207206472994C35c09d7dDb46E9a4",
+    "CrossingLib": "0x70ec362479a4bE6cCDbED193fabb6B632bf6EFC7",
+    "MigrationLib": "0x838A64E6D44261a51D5622F8f8e1e5181771E434",
+    "SoulLib": "0xe9B487F26C80e57Ab49586CC1c2d46B6CD77E4d8"
+  },
+  "MorgothTokenApproverUpdateConfig": {},
+  "RegisterFlanAndPyroOnBehodlerViaCliffFace": {},
+  "FlanGenesis": {
+    "FLN_SCX UniV2": "0x669AA827aF1C5863C7E010A0bCbFa4D1828feb1a",
+    "SCX__FLN_SCX UniV2": "0x4A34f5b365d4b0F1746BCAA9874FA9fCAdF6511C",
+    "DAI_SCX UniV2": "0x163699705D83f99cc8Ce30Fc14B77B0066F8845C"
+  },
+  "UniswapHelper": {
+    "UniswapHelper": "0x77d57792e263A8B458d98a4Ad9fC3Fed71779d00"
+  },
+  "LimboOracle": {
+    "LimboOracle": "0xf1B576129451729e86E9b3d72b742F572ceE36E0"
+  },
+  "TradeOraclePairs": {},
+  "RegisterOraclePairs": {},
+  "Morgoth_LimboAddTokenToBehodler": {
+    "LimboAddTokenToBehodler": "0xe0eE0d3DE78882102E2F8C16423585F2eCEF8D37"
+  },
+  "MultiSoulConfigUpdateProposal": {
+    "UpdateMultipleSoulConfigProposal": "0x96eC324523510b30B4e1f9447621fADDAd4f9e0c"
+  },
+  "ProposalFactory": {
+    "ProposalFactory": "0xd1ad770614A4E5140FC827c3d168D76F813697f2"
+  },
+  "UniswapHelperConfigure": {},
+  "LimboTokens": {
+    "Aave": "0x7f057F1eB601A4Dc4927bB45216CF9b78Bd3048c",
+    "Curve": "0xabF2D4Ac70C177c1D6a9A2277e3951c4D4CdfEA0",
+    "Convex": "0x2B899dE4CBca184D396De1B5337Dc5555E7bf792",
+    "MIM": "0x69fF1F25abB60ae93b7EF71B100d0F52b2A40B84",
+    "Uni": "0x97ea82EBB70f32177Fc9cfD469ecD529caE8bbC4",
+    "Sushi": "0x3E023fC5BE288c7Bf18c85839949CF928FB7964f",
+    "WBTC": "0xfe6e87640DE95e039388eF94535DaE53d2c084EB"
+  },
+  "LimboDAOSeed": {},
+  "LimboConfigureCrossingConfig": {},
+  "MorgothMapApprover": {},
+  "ConfigureTokenApproverPower": {
+    "ConfigureTokenApproverPower": "0x96AF3bD97A0bB4b068339b8148FbFC79181DeA94"
+  },
+  "TPR_setApprover_setPower": {},
+  "LimboDAOProposals": {
+    "AdjustFlanFeeOnTransferProposal": "0x4ad748a32f54f17B54F5Ea059879F3a549be93e1",
+    "ApproveFlanMintingProposal": "0x34E72ce509424cb0bc73fB2AC1535Fa662b06742",
+    "BurnFlashStakeDeposit": "0xE2B49F61eDd636B164eCA0Cf5D3a8533c7C1e273",
+    "ConfigureFlashGovernanceProposal": "0x34A6b735955eE65a4317d7D8F51fFfedcd5c17bE",
+    "SetAssetApprovalProposal": "0x447cE1Ded6fA8c671bc2D67B927Adac7039C93fa",
+    "SetFateSpendersProposal": "0x29179F44F71b122EF3d33606153f7f296c1EA735",
+    "ToggleFlashGovernanceProposal": "0xf2a6edecd0763EC150569b443fC1163Fc3f3ABb5",
+    "UpdateProposalConfigProposal": "0x4fEb98963F6c215dca960E2eAE8fD85d04eE6734"
+  },
+  "FlashgovSetAllToGovernable": {},
+  "EndConfigForAll": {},
+  "MorgothLimboMinionAndPower": {},
+  "MorgothMapLimboDAO": {},
+  "DisableDeployerSnufferCap": {}
+}
