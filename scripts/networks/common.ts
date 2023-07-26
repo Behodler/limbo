@@ -264,6 +264,7 @@ export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
 
 let testnetRecipe = [
   Sections.PreChecks,
+  Sections.PreCheckMelkor,
   Sections.Weth,
   Sections.Behodler,
   Sections.UniswapV2Clones,
