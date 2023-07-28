@@ -5,7 +5,8 @@ import "@nomiclabs/hardhat-waffle";
 import "hardhat-deploy";
 import "./tasks/index";
 import "hardhat-gas-reporter"
-import * as mnemonic from "./private/testmnemonic.json";
+import * as testmnemonic from "./private/testmnemonic.json";
+import * as mnemonic from './private/mnemonic.json'
 import "hardhat-abi-exporter"
 
 task("accounts", "Prints the list of accounts", async (_, hre) => {
@@ -49,7 +50,7 @@ export default {
       allowUnlimitedContractSize: false,
       chainId: 1337,
       accounts: {
-        mnemonic: mnemonic.phrase,
+        mnemonic: testmnemonic.phrase,
       },
       settings: {
         optimizer: {
@@ -66,9 +67,9 @@ export default {
       url: `https://nd-564-762-624.p2pify.com/41adb4b5065ff74a971a8bf5e85947c7`,
       chainId: 3,
       accounts: {
-        mnemonic: mnemonic.phrase,
+        mnemonic: testmnemonic.phrase,
       },
-      from: mnemonic.primary,
+      from: testmnemonic.primary,
       gasMultiplier: 6,
       settings: {
         optimizer: {
@@ -84,10 +85,25 @@ export default {
       url: `http://localhost:8545`,
       chainId: 11155111,
       accounts: {
+        mnemonic: testmnemonic.phrase
+      },
+      from: testmnemonic.primary,
+      gasMultiplier: 2,
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
+        }
+      }
+    },
+    mainnet: {
+      url: `http://localhost:8545`,
+      chainId: 1,
+      accounts: {
         mnemonic: mnemonic.phrase
       },
-      from: mnemonic.primary,
-      gasMultiplier: 2,
+      from: mnemonic.deployer,
+      gasMultiplier: 1.25,
       settings: {
         optimizer: {
           enabled: true,
