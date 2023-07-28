@@ -1,0 +1,49 @@
+{
+    "PreChecks": {},
+    "Weth": {
+      "Weth": "0x4f5704D9D2cbCcAf11e70B34048d41A0d572993F"
+    },
+    "Behodler": {
+      "AddressBalanceCheck": "0x16feda2b82ba55d32ff936b9283a107972270500",
+      "Behodler": "0x1b8568fbb47708e9e9d31ff303254f748805bf21"
+    },
+    "UniswapV2Clones": {
+      "UniswapV2Factory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+      "UniswapV2Router": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+      "SushiswapV2Factory": "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+      "SushiswapV2Router": "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
+    },
+    "BehodlerTokens": {
+      "EYE": "0x155ff1A85F440EE0A382eA949f24CE4E0b751c65",
+      "OXT": "0x4575f41308ec1483f3d399aa9a2826d74da13deb",
+      "PNK": "0x93ed3fbe21207ec2e8f2d3c3de6e058cb73bc04d",
+      "LINK": "0x514910771af9ca656af840dff83e8264ecf986ca",
+      "LOOM": "0x42476F744292107e34519F9c357927074Ea3F75D",
+      "DAI": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "WEIDAI": "0xaFEf0965576070D1608F374cb14049EefaD218Ec",
+      "EYE_DAI UniV2": "0x890ff7533ca0c44f33167fdeeeab1ca7e690634f",
+      "SCX_ETH UniV2": "0x319ead06eb01e808c80c7eb9bd77c5d8d163addb",
+      "SCX_EYE UniV2": "0xf047ee812b21050186f86106f6cabdfec35366c6"
+    },
+    "Lachesis": {
+      "Lachesis": "0x99450D1475cb9DD1f34B991769780641A9A06572"
+    },
+    "LiquidityReceiverOld": {
+      "LiquidityReceiverV1": "0xE80F95Da4DB121989DF7c0451165a6998a4600Fb"
+    },
+    "PyroWeth10Proxy": {
+      "PyroWeth10Proxy": "0x3ea19eda1529febcfedb9e12163bac0be0a9f844"
+    },
+    "MultiCall": {
+      "Multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11"
+    },
+    "Powers": {
+      "PowersRegistry": "0x603CCCDC24cdFBD5F6019FC9f50BD8Fecf55F53f"
+    },
+    "Angband": {
+      "Angband": "0xc2dbeCd9947B7a0f7a380810707E599eF0d2180E"
+    },
+    "RefreshTokensOnBehodler": {},
+    "AddInitialLiquidityToBehodler": {},
+    "MorgothMapPyroWeth10Proxy": {}
+   }
