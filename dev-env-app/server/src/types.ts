@@ -2,7 +2,7 @@ import { SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers'
 import { FastifyInstance } from 'fastify'
 
 //Clean code: microservices should always duplicate type definitions to avoid tight coupling, even if this increases the risk of type errors.
-export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'|'localtestnet'
 
 export interface ITokenConfig {
   displayName: string,

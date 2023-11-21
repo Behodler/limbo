@@ -59,7 +59,7 @@ export default {
         },
       },
       mining: {
-        auto: true,
+        auto: false,
         interval: 2,
       },
     },

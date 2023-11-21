@@ -16,7 +16,7 @@ import { safeDeploy } from '../../../scripts/networks/orchestrate'
 const DEPLOYMENT_CONFIG: BehodlerDevEnvDeploymentConfig = {
   miningIntervalMs: 12000,
   autoMining: true,
-  recipeName: 'testnet',
+  recipeName: 'localtestnet',
   confirmationsNumber: 1,
   addressesJSONFilePath: path.resolve(
     __dirname,

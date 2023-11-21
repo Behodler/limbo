@@ -260,7 +260,76 @@ export interface ITokenConfig {
   pyroV3Address: string
 }
 
-export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo'
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo' | 'localtestnet'
+
+let localTestnetRecipe = [
+  Sections.PreChecks,
+  Sections.Weth,
+  Sections.Behodler,
+  Sections.UniswapV2Clones,
+  Sections.BehodlerTokens,
+  Sections.Lachesis,
+  Sections.LiquidityReceiverOld,
+  // Sections.MintPyroV2TestTokens,
+  // Sections.RegisterPyroWeth10,
+  Sections.PyroWeth10Proxy,
+  Sections.MultiCall,
+  Sections.Powers,
+  Sections.Angband,
+  Sections.BigConstants,
+  Sections.LiquidityReceiverNew,
+  Sections.BehodlerSeedNew,
+  Sections.RefreshTokensOnBehodler,
+  Sections.ConfigureScarcityPower,
+  Sections.ConfigureIronCrown,
+
+  Sections.MorgothMapPyroWeth10Proxy,
+  Sections.PyroWethProxy,
+  Sections.ProxyHandler,
+  Sections.V2Migrator,
+  Sections.LimboDAO,
+  Sections.WhiteListProposal,
+  Sections.MorgothTokenApprover,
+  Sections.TokenProxyRegistry,
+  Sections.SoulReader,
+  Sections.FlashGovernanceArbiter,
+  Sections.Flan,
+  Sections.AddInitialLiquidityToBehodler,
+  Sections.FlanSetMintConfig,
+
+  // Sections.PyroFlanBooster, -> Currently incompatible with CliffFace. CliffFace is more helpful for a young stablish coin whereas booster is more for a deep reference pair. Perhaps it should be unleashed in the next bear market.
+  Sections.Limbo,
+  Sections.DeployerSnufferCap,
+  Sections.MorgothMapLiquidityReceiver,
+  Sections.MorgothTokenApproverUpdateConfig,
+  Sections.RegisterFlanAndPyroOnBehodlerViaCliffFace,
+  Sections.FlanGenesis,
+  Sections.UniswapHelper,
+  Sections.LimboOracle,
+  Sections.TradeOraclePairs,
+  Sections.RegisterOraclePairs,
+  Sections.TradeOraclePairs,
+  Sections.Morgoth_LimboAddTokenToBehodler,
+  Sections.MultiSoulConfigUpdateProposal,
+  Sections.ProposalFactory,
+
+  Sections.SnuffPyroWethProxy,
+  Sections.UniswapHelperConfigure,
+  Sections.LimboTokens,
+  Sections.LimboDAOSeed,
+  Sections.LimboConfigureCrossingConfig,
+
+  Sections.MorgothMapApprover,
+  Sections.ConfigureTokenApproverPower,
+  Sections.TPR_setApprover_setPower,
+  Sections.LimboDAOProposals,
+  Sections.FlashgovSetAllToGovernable,
+  Sections.EndConfigForAll,
+  Sections.MorgothLimboMinionAndPower,
+  Sections.MorgothMapLimboDAO,
+  Sections.DisableDeployerSnufferCap
+]
+
 
 let testnetRecipe = [
   Sections.PreChecks,
@@ -271,7 +340,7 @@ let testnetRecipe = [
   Sections.BehodlerTokens,
   Sections.Lachesis,
   Sections.LiquidityReceiverOld,
- // Sections.MintPyroV2TestTokens,
+  // Sections.MintPyroV2TestTokens,
   // Sections.RegisterPyroWeth10,
   Sections.PyroWeth10Proxy,
   Sections.MultiCall,
@@ -338,6 +407,7 @@ interface RecipeTypes {
 
 let deploymentRecipes: RecipeTypes[] = []
 deploymentRecipes.push({ name: "testnet", recipe: testnetRecipe })
+deploymentRecipes.push({ name: 'localtestnet', recipe: localTestnetRecipe })
 deploymentRecipes.push({
   name: "statusquo", recipe: [
     Sections.PreChecks,
