@@ -500,7 +500,6 @@ const listLimboTokens: IDeploymentFunction = async function (params: IDeployment
       return { name: token.name, limboAddress: current.limbo, baseAddres: token.address }
     })
 
-
   if (badSouls.length > 0) {
     throw "The following tokens are failing to list " + JSON.stringify(badSouls, null, 4)
   }
