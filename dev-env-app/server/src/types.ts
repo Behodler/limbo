@@ -14,7 +14,9 @@ export interface ITokenConfig {
 
 export interface ContractSet {
   protocol:  { [name: string]: string },
-  tokens: ITokenConfig[]
+  tokens: ITokenConfig[],
+  chainId:number,
+  primeAccount:string
 }
 export type BehodlerDevEnv = {
   active: boolean

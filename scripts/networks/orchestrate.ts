@@ -15,7 +15,9 @@ import { deploy } from "../../test/helpers";
 const nullAddress = "0x0000000000000000000000000000000000000000";
 export interface ContractSet {
   protocol: OutputAddress,
-  tokens: ITokenConfig[]
+  tokens: ITokenConfig[],
+  chainId: number,
+  primeAccount: string
 }
 
 export async function safeDeploy(
@@ -98,7 +100,9 @@ export async function deployToNetwork(
   const tokenConfig = await loader.getTokenConfig(recipeToUseForTokenConfig)
   return {
     protocol: flat,
-    tokens: tokenConfig
+    tokens: tokenConfig,
+    chainId,
+    primeAccount: await deployer.address
   };
 }
 

@@ -1,14 +1,15 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers";
 import {
   OutputAddress, deploymentFactory, OutputAddressAdder,
   Sections, AddressFileStructure, contractNames, sectionName,
   stringToBytes32, criticalPairNames, tokenNames,
-  behodlerTokenNames, ITokenConfig
+  behodlerTokenNames, ITokenConfig, limboTokenNames
 } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs"
+import { doesNotReject } from "assert";
 
 
 interface IDeploymentFunction {
@@ -34,6 +35,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
   switch (section) {
     case Sections.PreChecks: return prechecks
     case Sections.PreCheckMelkor: return precheckMelkor
+    case Sections.PrivateNetworkOnly: return privateNetworkOnly
     //Behodler v2
     case Sections.Weth: return deployWeth
     case Sections.Behodler: return deployBehodler
@@ -101,6 +103,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.UniswapHelperConfigure: return configureUniswapHelper
     case Sections.LimboTokens: return deployLimboTokens
     case Sections.LimboDAOSeed: return limboDAOSeed
+    case Sections.LimboDAOQuickSeed: return limboDAOSeed_quick_gov
     case Sections.LimboConfigureCrossingConfig: return limboConfigureCrossingConfig
 
     case Sections.MorgothMapApprover: return morgothMapApprover
@@ -111,7 +114,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.EndConfigForAll: return endConfigForAllGovernables
     case Sections.MorgothLimboMinionAndPower: return morgothMapLimboMinionAndPower
     case Sections.MorgothMapLimboDAO: return mapLimboDAO
-
+    case Sections.ListSomeLimboTokens: return listLimboTokens
     case Sections.DisableDeployerSnufferCap: return disabledDeploymentSnufferCap
     default:
       throw "invalid Section enum selection"
@@ -272,6 +275,240 @@ const setAllGovernable: IDeploymentFunction = async function (params: IDeploymen
   return {}
 }
 
+const listLimboTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
+  const getContract = await getContractFromSection(params.existing)
+
+  const limboTokenNamesArray: limboTokenNames[] = ["Aave", "Curve", "Convex", "MIM", "Uni", "WBTC", "Sushi"];
+  const fetchToken = async (contract: limboTokenNames | "EYE") =>
+    await getContract<Types.ERC20>(Sections.LimboTokens, contract, "ERC677")
+
+  const loadedTokens = await Promise.all(limboTokenNamesArray.map(async (name) => {
+    return { name, token: await fetchToken(name) }
+  }))
+
+  const perpetual = loadedTokens.slice(0, 2)
+  const threshold = loadedTokens.slice(2)
+
+  const morgothTokenApprover = await getMorgothTokenApprover(params.existing)
+  const twenty_five_percent = ethers.constants.WeiPerEther.mul(4000000000)
+    .div(1000000000)
+
+  //generate cliffFace tokens
+  await threshold.map(async (token, i) => {
+    await params.broadcast(`Cliff face for ${limboTokenNamesArray[i + 2]}`, morgothTokenApprover.generateCliffFaceProxy(token.token.address, twenty_five_percent, true))
+  })
+
+  const updateProposal = await getContract<Types.UpdateMultipleSoulConfigProposal>(Sections.MultiSoulConfigUpdateProposal, "UpdateMultipleSoulConfigProposal")
+
+  enum SoulState {
+    unset,
+    staking,
+    waitingToCross,
+    crossedOver,
+    perpetualTerminated
+  }
+  enum SoulType {
+    uninitialized,
+    threshold,
+    perpetual
+  }
+  interface updateProposalProps {
+    baseToken: string,
+    crossingThreshold: string,
+    soulType: SoulType,
+    state: SoulState,
+    index: number,
+    targetAPY: number,
+    daiThreshold: string,
+    initialCrossingBonus: string,
+    crossingBonusDelta: string,
+    burnable: boolean
+  }
+  const trillion = BigNumber.from(10).pow(12)
+  const perpetualProps = perpetual.map((token, i): updateProposalProps => ({
+    baseToken: token.token.address,
+    crossingThreshold: "0",
+    soulType: SoulType.perpetual,
+    state: SoulState.staking,
+    index: 0,
+    targetAPY: 1000 + i * 500,
+    daiThreshold: ethers.constants.WeiPerEther.mul(8000 + i * 2000).toString(),
+    initialCrossingBonus: "0",
+    crossingBonusDelta: "0",
+    burnable: false
+  }
+  ))
+
+  const thresholdProps = threshold.map((token, i): updateProposalProps => ({
+    baseToken: token.token.address,
+    crossingThreshold: ethers.constants.WeiPerEther.mul(500 + i * 200).toString(),
+    soulType: SoulType.threshold,
+    state: SoulState.staking,
+    index: 0,
+    targetAPY: 500 + i * 300,
+    daiThreshold: ethers.constants.WeiPerEther.mul(5000 + i * 2000).toString(),
+    initialCrossingBonus: trillion.div(10).mul(3 * (i + 1)).toString(),
+    crossingBonusDelta: trillion.mul(3 + i).div(2).toString(),
+    burnable: false
+  }
+  ))
+
+  const allUpdateProps = [...perpetualProps, ...thresholdProps]
+  await Promise.all(allUpdateProps.map(async par => (
+    await params.broadcast("Perpetual token parameterize", updateProposal.parameterize(par.baseToken, par.crossingThreshold, par.soulType, par.state, par.index, par.targetAPY, par.daiThreshold, par.initialCrossingBonus, par.crossingBonusDelta, par.burnable))
+  )))
+
+  await params.broadcast("Lock update proposal", updateProposal.lockDown())
+
+  const limboDAO = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
+  const proposalConfig = await limboDAO.proposalConfig()
+  proposalConfig.votingDuration
+  if (proposalConfig.votingDuration.gt(60 * 60 * 2)) {
+    throw "Local testnet voting duration needs to be short."
+  }
+
+  const eye = await getContract<Types.MockToken>(Sections.BehodlerTokens, 'EYE', "MockToken")
+  await params.broadcast("APPROVE EYE ON LIMBODAO", eye.approve(limboDAO.address, ethers.constants.MaxUint256))
+  await params.broadcast("BURN EYE TO GET FATE", limboDAO.burnAsset(eye.address, ethers.constants.WeiPerEther, false))
+
+
+  const proposalFactory = await getContract<Types.ProposalFactory>(Sections.ProposalFactory, "ProposalFactory")
+  //Lodge proposal and assert log is SUCCESS
+
+  const lodgingTxPromise = await params.broadcast("Lodging Token Listing Proposal", proposalFactory.lodgeProposal(updateProposal.address));
+
+  let currentProposal = await limboDAO.currentProposalState()
+  if (currentProposal.proposal !== updateProposal.address) {
+
+    const receipt = await ethers.provider.getTransactionReceipt(lodgingTxPromise.hash);
+    receipt.logs.forEach((log) => {
+      // Check if the log matches the event signature
+      const iface = new ethers.utils.Interface(['event LodgingStatus(address indexed proposal, string status);']);
+      const parsedLog = iface.parseLog(log);
+
+
+      if (parsedLog && parsedLog.name === 'LodgingStatus') {
+        // Access the event arguments using LogDescription
+        const proposal = parsedLog.args[0];
+        const status = parsedLog.args[1];
+
+        // The event you're interested in was logged
+        console.log(`LodgingStatus Event: proposal: ${proposal}, ${status}, and expected proposal: ${updateProposal.address}`);
+      }
+    });
+    throw 'Proposal Listing Failed '
+  }
+
+  const fateBalance = (await limboDAO.fateState(params.deployer.address)).fateBalance
+  if (fateBalance.isZero()) {
+    throw "Fate generation failed"
+  }
+  console.log('fate balance ' + fateBalance.toString())
+
+  // Increase time by 1 hour (3600 seconds)
+
+  await network.provider.send("evm_increaseTime", [proposalConfig.votingDuration.div(2).toNumber()]);
+  const blockNumber = await ethers.provider.getBlockNumber()
+  const timestamp = (await ethers.provider.getBlock(blockNumber - 1)).timestamp
+
+  await network.provider.send("evm_mine"); // this will mine a new block
+
+  await params.broadcast("voting yes on token listing proposal", limboDAO.vote(updateProposal.address, fateBalance.div(2).toString()))
+
+  /*
+
+  1. Get all the tokens
+  2. separate some into perpetual and others into crossover
+  3. populate the update multi correctly.
+    3.1 inspecit the update to see if there's more permisssioning needed
+  4. gather enough fate
+  5. Ensure that the voting period is brief.
+  6. Lodge the proposal
+  7. Vote yes and execute.
+  */
+
+  //BUG: proposal might be failing. I've made changes to LimboDAO contract to debug. Obviously revert
+  //TODO: 
+  await network.provider.send("evm_increaseTime", [proposalConfig.votingDuration.toNumber() * 2]);
+  await network.provider.send("evm_mine"); // this will mine a new block
+
+  // await params.broadcast("execute proposal", limboDAO.executeCurrentProposal())
+  currentProposal = await limboDAO.currentProposalState()
+  if (currentProposal.proposal != updateProposal.address)
+    throw "Current proposal empty"
+
+  const tx = await limboDAO.executeCurrentProposal()
+  const receipt = await ethers.provider.getTransactionReceipt(tx.hash);
+
+  let message = '';
+  const iface = new ethers.utils.Interface(['event proposalExecuted(address indexed proposal, bool status)']);
+  const eventTopic = iface.getEventTopic(iface.getEvent('proposalExecuted'));
+  let executionSuccess: boolean = false
+  receipt.logs.forEach((log) => {
+    if (log.topics[0] === eventTopic) {
+      try {
+        const parsedLog = iface.parseLog(log);
+        // Decode the indexed parameter (proposal) from topics
+        const proposal = ethers.utils.defaultAbiCoder.decode(["address"], log.topics[1])[0];
+        // Extract the non-indexed parameter (status) from parsed log
+        const status: boolean = parsedLog.args[1]; // `status` is the first non-indexed parameter
+        message += `proposalExecuted Event: proposal: ${proposal}, status: ${status}\n`;
+        if (proposal === updateProposal.address && status)
+          executionSuccess = true
+      } catch (error: any) {
+        console.error("Error parsing log:", error.message);
+      }
+    }
+  });
+
+  if (!executionSuccess && message.length > 0)
+    throw 'executeProposal logs: ' + message;
+
+
+  //Get LimboToken mappings
+  const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
+  const limboTokens = await Promise.all(allUpdateProps.map(async (prop) => {
+    return { limbo: (await tokenProxyRegistry.tokenProxy(prop.baseToken)).limboProxy, base: prop.baseToken }
+  }))
+
+  const limbo = await getLimbo(params.existing)
+
+  const allSoulStatesPromises = await Promise.all(limboTokens
+    .map(async (limboToken) => {
+      const address = limboToken.limbo === ethers.constants.AddressZero ? limboToken.base : limboToken.limbo
+
+      const soul = await limbo.souls(address, 0)
+      return { ...limboToken, state: soul.state }
+    }))
+
+  interface tokenState { state: number, limbo: string }
+
+  const tokenStateDictionary = allSoulStatesPromises
+    .reduce((acc, { base, state, limbo }) => {
+      acc[base] = { state, limbo }
+      return acc
+    }, {} as Record<string, tokenState>)
+
+
+  //tokens listed on Limbo whose current state is not staking
+  const badSouls = loadedTokens.map(token => { return { address: token.token.address, name: token.name } })
+    .filter(token => tokenStateDictionary[token.address].state !== 1)
+    .map(token => {
+
+      const current = tokenStateDictionary[token.address]
+      return { name: token.name, limboAddress: current.limbo, baseAddres: token.address }
+    })
+
+
+  if (badSouls.length > 0) {
+    throw "The following tokens are failing to list " + JSON.stringify(badSouls, null, 4)
+  }
+
+  return {}
+}
+
+
 const deployAllLimboDAOProposals: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
   const getContract = await getContractFromSection(params.existing)
@@ -414,6 +651,52 @@ const limboDAOSeed: IDeploymentFunction = async function (params: IDeploymentPar
   const limboDAOFlashGov = await limboDAO.getFlashGoverner()
   params.logger(`actual flashGov ${flashGov.address}. LimboDAO's flashGov ${limboDAOFlashGov}`)
   params.logger('limboDAO seed called')
+  return {}
+}
+
+const limboDAOSeed_quick_gov: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const getContract = await getContractFromSection(params.existing)
+
+  const limboDAO = await getContract<Types.LimboDAO>(Sections.LimboDAO, "LimboDAO")
+
+  const limbo = await getLimbo(params.existing)
+  const flan = await getContract(Sections.Flan, "Flan")
+  const fetchToken = async (contract: contractNames, section: Sections) =>
+    await getContract(section, contract, "ERC677")
+
+  const eye = await fetchToken("EYE", Sections.BehodlerTokens)
+  const proposalFactory = await getContract(Sections.ProposalFactory, "ProposalFactory")
+
+  //Use uni oracle for both uni and sushi. Can update later.
+  const oracle = await getContract(Sections.LimboOracle, "LimboOracle")
+  params.logger('about to retrieve limbodao owner for limboDAO with address ' + limboDAO.address)
+  const ownerOfDao = await limboDAO.owner()
+  params.logger(`about to call limboDAO seed: owner ${ownerOfDao}, deployer ${params.deployer.address}, proposalFactory  ${proposalFactory.address}`)
+  await limboDAO.seed(
+    limbo.address,
+    flan.address,
+    eye.address,
+    proposalFactory.address,
+    oracle.address,
+    oracle.address,
+    [], //to be safe, start with only EYE stakeable
+    []
+  ).catch(err => {
+    params.logger('seed error ' + err)
+  })
+
+  const flashGov = await getContract(Sections.FlashGovernanceArbiter, "FlashGovernanceArbiter") as Types.FlashGovernanceArbiter
+
+  await params.broadcast("set flash gov on limboDAO", limboDAO.setFlashGoverner(flashGov.address))
+  const limboDAOFlashGov = await limboDAO.getFlashGoverner()
+  params.logger(`actual flashGov ${flashGov.address}. LimboDAO's flashGov ${limboDAOFlashGov}`)
+  params.logger('limboDAO seed called')
+
+  const minimal = 60 * 60 + 120//1 hour plus 2 minutes
+  //proposal factory set later, can be null for now.
+  await limboDAO.setProposalConfig(minimal, 10, proposalFactory.address)
+
+  //set voting duration low
   return {}
 }
 
@@ -1281,8 +1564,7 @@ const deployDeployerSnufferCap: IDeploymentFunction = async function (params: ID
   const pyroWethAddress = await liquidityReceiver.getPyroToken(weth.address)
   const liquidityREceiverOwner = (await liquidityReceiver.owner()).toString()
   params.logger("LR owner: " + liquidityREceiverOwner + ", deployer " + params.deployer.address)
-  //TODO: set snuffer cap power
-  //BUG:
+
   await params.broadcast("setting snuffer cap", liquidityReceiver.setSnufferCap(deployerSnufferCap.address))
   await params.broadcast("Set pyroweth proxy fee exemption", deployerSnufferCap.snuff(pyroWethAddress, pyroWethProxy.address, FeeExemption.REDEEM_EXEMPT_AND_SENDER_EXEMPT_AND_RECEIVER_EXEMPT))
 
@@ -1865,6 +2147,14 @@ export const precheckMelkor: IDeploymentFunction = async function (params: IDepl
   const isMelkor = await powers.isUserMinion(params.deployer.address, stringToBytes32("Melkor"))
   if (!isMelkor)
     throw "PyroV3 can only be deployed by Melkor"
+  return {}
+}
+
+export const privateNetworkOnly: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const chainId = await params.deployer.getChainId()
+  if (chainId !== 1337) {
+    throw 'Recipe for localtestnet only to avoid damaging changes to public networks.'
+  }
   return {}
 }
 

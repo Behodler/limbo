@@ -67,7 +67,7 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
         DEPLOYMENT_CONFIG.recipeName,
         chainId,
         DEPLOYMENT_CONFIG.confirmationsNumber,
-        message => fastify.log.info(`deployment: ${message}`),
+        message => fastify.log.info(message)
       )
       fastify.log.info('deployment complete')
 
@@ -95,7 +95,7 @@ export function startDevEnvPlugin({ setBehodlerDevEnv, setStartDevEnv }): Fastif
           fs.rmSync(DEPLOYMENT_CONFIG.addressesJSONFilePath)
           fastify.log.info('file removed, starting dev env')
         }
-        const behodlerDevEnv:BehodlerDevEnv = await startHardhatNodeAndDeployBehodlerContracts()
+        const behodlerDevEnv: BehodlerDevEnv = await startHardhatNodeAndDeployBehodlerContracts()
         setBehodlerDevEnv(behodlerDevEnv)
         fastify.log.info('dev env started')
         const { chainId } = await hre.ethers.provider.getNetwork()

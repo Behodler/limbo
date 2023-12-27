@@ -4,6 +4,7 @@ import restoreSnapshot from './restore-snapshot'
 import getSnapshots from './get-snapshots'
 import getDeploymentAddresses from './get-deployment-addresses'
 import getTokenConfigs from './get-token-configs'
+import getChainid from './get-chainid'
 
 export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
   fastify.register(createSnapshot)
@@ -11,6 +12,7 @@ export function api(fastify: BehodlerDevEnvFastifyInstance, _, done) {
   fastify.register(getSnapshots)
   fastify.register(getDeploymentAddresses)
   fastify.register(getTokenConfigs)
+  fastify.register(getChainid)
 
   done()
 }

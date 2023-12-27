@@ -188,6 +188,7 @@ export function nameNetwork(networkId: number): networks {
 export enum Sections {
   PreChecks,
   PreCheckMelkor,
+  PrivateNetworkOnly,
   Weth,
   Behodler,
   UniswapV2Clones,
@@ -238,8 +239,10 @@ export enum Sections {
   SnuffPyroWethProxy,
   LR_setDeployerSnuffer,
   UniswapHelperConfigure,
-  LimboTokens,//Pick up from here
+  LimboTokens,
+  ListSomeLimboTokens,
   LimboDAOSeed,
+  LimboDAOQuickSeed,
   LimboConfigureCrossingConfig,
   MorgothMapApprover,
   ConfigureTokenApproverPower, // white list on angband
@@ -263,6 +266,7 @@ export interface ITokenConfig {
 export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo' | 'localtestnet'
 
 let localTestnetRecipe = [
+  Sections.PrivateNetworkOnly,
   Sections.PreChecks,
   Sections.Weth,
   Sections.Behodler,
@@ -270,8 +274,7 @@ let localTestnetRecipe = [
   Sections.BehodlerTokens,
   Sections.Lachesis,
   Sections.LiquidityReceiverOld,
-  // Sections.MintPyroV2TestTokens,
-  // Sections.RegisterPyroWeth10,
+  Sections.MintPyroV2TestTokens,
   Sections.PyroWeth10Proxy,
   Sections.MultiCall,
   Sections.Powers,
@@ -288,6 +291,7 @@ let localTestnetRecipe = [
   Sections.ProxyHandler,
   Sections.V2Migrator,
   Sections.LimboDAO,
+  
   Sections.WhiteListProposal,
   Sections.MorgothTokenApprover,
   Sections.TokenProxyRegistry,
@@ -316,7 +320,7 @@ let localTestnetRecipe = [
   Sections.SnuffPyroWethProxy,
   Sections.UniswapHelperConfigure,
   Sections.LimboTokens,
-  Sections.LimboDAOSeed,
+  Sections.LimboDAOQuickSeed,
   Sections.LimboConfigureCrossingConfig,
 
   Sections.MorgothMapApprover,
@@ -327,7 +331,8 @@ let localTestnetRecipe = [
   Sections.EndConfigForAll,
   Sections.MorgothLimboMinionAndPower,
   Sections.MorgothMapLimboDAO,
-  Sections.DisableDeployerSnufferCap
+  Sections.ListSomeLimboTokens,
+  // Sections.DisableDeployerSnufferCap
 ]
 
 
