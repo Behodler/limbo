@@ -415,21 +415,6 @@ const listLimboTokens: IDeploymentFunction = async function (params: IDeployment
   await network.provider.send("evm_mine"); // this will mine a new block
 
   await params.broadcast("voting yes on token listing proposal", limboDAO.vote(updateProposal.address, fateBalance.div(2).toString()))
-
-  /*
-
-  1. Get all the tokens
-  2. separate some into perpetual and others into crossover
-  3. populate the update multi correctly.
-    3.1 inspecit the update to see if there's more permisssioning needed
-  4. gather enough fate
-  5. Ensure that the voting period is brief.
-  6. Lodge the proposal
-  7. Vote yes and execute.
-  */
-
-  //BUG: proposal might be failing. I've made changes to LimboDAO contract to debug. Obviously revert
-  //TODO: 
   await network.provider.send("evm_increaseTime", [proposalConfig.votingDuration.toNumber() * 2]);
   await network.provider.send("evm_mine"); // this will mine a new block
 
