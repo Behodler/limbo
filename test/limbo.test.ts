@@ -833,6 +833,8 @@ describe.only("Limbo", function () {
 
     const pendingFlashDecisionBefore = pendingFlashDecisionBeforeQuery.result;
     expect(pendingFlashDecisionBefore[0]).to.equal("21000000");
+    //note: due to the nature of unlock time, the number will differ according to how long the tests have been running so this is likely to fail 
+    //when not run individually.
     let numberCloseResult = numberClose(pendingFlashDecisionBefore[1], 1754463648)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
     expect(pendingFlashDecisionBefore[2]).to.equal(SET.eye.address);

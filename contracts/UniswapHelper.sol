@@ -74,7 +74,11 @@ contract UniswapHelper is Governable, AMMHelper {
   }
 
   ///@param dai the address of the Dai token
+  ///@dev Only for testing: On mainnet Dai has a fixed address. Obviously alter for deployment to other real chains
   function setDAI(address dai) public {
+    if (block.chainid == 1) {
+      revert NotOnMainnet();
+    }
     VARS.DAI = dai;
   }
 
@@ -139,13 +143,13 @@ contract UniswapHelper is Governable, AMMHelper {
     tilt.totalSupplyOfFLN_SCX = VARS.oracleSet.fln_scx.totalSupply(); // although this can be manipulated, it appears on both sides of the equation(cancels out)
     tilt.DAIPerSCX = VARS.oracleSet.oracle.consult(VARS.behodler, VARS.DAI, SPOT);
 
-    /*if all of the contained liquidity of FLN_SCX were converted to SCX, tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT) would be the quantity.
+    /*if all of the contained liquidity of FLN_SCX were converted to SCX, (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / SPOT would be the quantity.
      Divide by 2 and we get an approximation of the true quantity of SCX in FLN_SCX since half of FLN_SCX is indeed SCX.
      Divide (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) by SPOT and to remove the SPOT amplification of the oracle operation
-     and are left with the order or magnitude of totalSupply.
+     and we are left with the order or magnitude of totalSupply.
      which is 18 decimal places or 1 ether since FLN and SCX are both 18 decimal place tokens
      */
-    tilt.currentSCXInFLN_SCX = (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT * 2); //normalized to in units of 1 ether
+    tilt.currentSCXInFLN_SCX = (tilt.SCXPerFLN_SCX * tilt.totalSupplyOfFLN_SCX) / (SPOT * 2); //normalized to units of 1 ether
     tilt.currentFLNInFLN_SCX = (tilt.currentSCXInFLN_SCX * tilt.FlanPerSCX) / SPOT;
   }
 
