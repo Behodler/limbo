@@ -10,7 +10,7 @@ import "hardhat/console.sol";
 ///@title Cliff Face
 ///@author Justin Goro
 /**@notice This special proxy is designed to protect Behodler from either tokens that hyperinflate
- * or tokens which suddenly crash in value (aka Sh*tcoins). Both pose a risk to the AMM by draining liquidity in a process
+ * or tokens which suddenly crash in value. Both pose a risk to the AMM by draining liquidity in a process
  * traditional AMMs refer to as impermanent loss. The side effect of making use of this proxy is that it automatically
  * insulates Scarcity from impermanent loss without curbing the upside of liquidity growth.
  * The concept is simple. If the quantity minted increases too fast, the marginal redeem rate escalates, pushing up the average redeem rate.
@@ -18,7 +18,7 @@ import "hardhat/console.sol";
  * without passing on the contagion to Behodler. This proxy will allow LimboDAO to relax restrictions on the types of new tokens listed,
  * indirectly increasing the HOLD value for EYE.
  */
-///@dev Current uncommented mint makes the slippage rise in proportion with shitcoin falling below $1.
+///@dev Current uncommented mint makes the slippage rise in proportion with token falling below $1.
 contract CliffFace is BehodlerTokenProxy {
   using SafeERC20 for IERC20;
   using RedeemableMaths for uint256;
