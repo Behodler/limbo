@@ -63,7 +63,7 @@ contract CliffFace is BehodlerTokenProxy {
     }
   }
 
-  //@dev this function runs the quickest for sale into behodler
+  ///@dev this function runs the quickest for sale into behodler
   function addressMatch(address testAddr) public view returns (bool) {
     address[] memory localApprovedTransferers = approvedTransferers;
     for (uint i = 0; i < localApprovedTransferers.length; i++) {
