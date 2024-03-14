@@ -28,7 +28,7 @@ contract AddTokenAndValueToBehodlerPower is PowerInvoker, Empowered {
   function orchestrate() internal override returns (bool) {
     address _lachesis = angband.getAddress(power.domain);
     address behodler = angband.getAddress("BEHODLER");
-    Lachesis_071Like lachesis = Lachesis_071Like(_lachesis);
+    LachesisLike_071 lachesis = LachesisLike_071(_lachesis);
     lachesis.measure(token, true, burnable);
     lachesis.updateBehodler(token);
     angband.executePower(liquidityReceiverPower);

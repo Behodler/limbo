@@ -13,7 +13,17 @@
       },
       {
         "internalType": "address",
-        "name": "configSCXPower",
+        "name": "proxyRegistry",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_lachesis",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "scarcity",
         "type": "address"
       }
     ],
@@ -51,19 +61,6 @@
     "outputs": [
       {
         "internalType": "contract AngbandLike_071",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "configureScarcityPower",
-    "outputs": [
-      {
-        "internalType": "contract ConfigureScarcityPower",
         "name": "",
         "type": "address"
       }
@@ -124,6 +121,11 @@
       {
         "internalType": "address",
         "name": "limbo",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenProxyRegistry",
         "type": "address"
       }
     ],

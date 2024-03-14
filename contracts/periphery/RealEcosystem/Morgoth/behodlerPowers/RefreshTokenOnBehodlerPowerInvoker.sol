@@ -15,7 +15,7 @@ contract RefreshTokenOnBehodler is PowerInvoker, Ownable_071 {
   }
 
   function orchestrate() internal override returns (bool) {
-    Lachesis_071Like lachesis = Lachesis_071Like(angband.getAddress(power.domain));
+    LachesisLike_071 lachesis = LachesisLike_071(angband.getAddress(power.domain));
     for (uint256 i = 0; i < tokensToRefresh.length; i++) {
       lachesis.updateBehodler(tokensToRefresh[i]);
     }

@@ -3,7 +3,7 @@
 
 pragma solidity 0.8.16;
 import "../periphery/Errors.sol";
-// import "hardhat/console.sol";
+
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.

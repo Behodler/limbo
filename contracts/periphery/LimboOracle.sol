@@ -10,14 +10,14 @@ import "./UniswapV2/libraries/UniswapV2OracleLibrary.sol";
 import "./UniswapV2/libraries/UniswapV2Library.sol";
 import "../periphery/Errors.sol";
 
-// import "hardhat/console.sol";
+
 
 /**
  *@title LimboOracle
  * @author Justin Goro
  * @notice There are two reasons to gather reliable prices in Limbo: calculating Fate from relative EYE containing LP prices and pricing Flan during a migration to Behodler.
  * Neither requires up to date accuracy but must simply be resitant to tampering.
- * @dev This contract is based on the UniswapV2 ExampleOracleSimple. Originally, a simpler version of an Oracle was created but a tension emerged between griefing and security that only resolved in a hell of complication.
+ * @dev This contract is based on the UniswapV2 ExampleOracleSimple. Originally, a simpler version of an Oracle was created but a tension emerged between griefing and security that only resolved in a mess of complication.
  */
 contract LimboOracle is Governable {
   using FixedPoint for *;

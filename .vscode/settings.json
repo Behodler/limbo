@@ -1,7 +1,8 @@
 {
-    "solidity.compileUsingRemoteVersion": "v0.8.16+commit.07a7930e",
+    "solidity.compileUsingRemoteVersion": "v0.7.1+commit.f4a555be",
     "cSpell.words": [
         "offchain"
     ],
-    "solidity.defaultCompiler": "remote"
+    "solidity.defaultCompiler": "remote",
+    "solidity.compileUsingLocalVersion": "/home/justin/code/BehodlerGithubOrg/limbo/soljson-v0.7.1+commit.f4a555be.js"
 }

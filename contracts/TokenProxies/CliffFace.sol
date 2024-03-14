@@ -5,7 +5,6 @@ import "../openzeppelin/ERC20Burnable.sol";
 import "../openzeppelin/SafeERC20.sol";
 import "../periphery/Errors.sol";
 import "../libraries/RedeemableMaths.sol";
-import "hardhat/console.sol";
 
 ///@title Cliff Face
 ///@author Justin Goro

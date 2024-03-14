@@ -5,11 +5,10 @@ import {
   OutputAddress, deploymentFactory, OutputAddressAdder,
   Sections, AddressFileStructure, contractNames, sectionName,
   stringToBytes32, criticalPairNames, tokenNames,
-  behodlerTokenNames, ITokenConfig, limboTokenNames
+  behodlerTokenNames, ITokenConfig, limboTokenNames, swapOnUni, cliffFaceNames
 } from "./common";
 import * as Types from "../../typechain";
-import shell from "shelljs"
-import { doesNotReject } from "assert";
+import shell from "shelljs";
 
 
 interface IDeploymentFunction {
@@ -114,8 +113,9 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.EndConfigForAll: return endConfigForAllGovernables
     case Sections.MorgothLimboMinionAndPower: return morgothMapLimboMinionAndPower
     case Sections.MorgothMapLimboDAO: return mapLimboDAO
-    case Sections.ListSomeLimboTokens: return listLimboTokens
+    case Sections.ListSomeLimboTokens: return listSomeLimboTokens
     case Sections.DisableDeployerSnufferCap: return disabledDeploymentSnufferCap
+    case Sections.MigrateCliffFaceToBehodler: return migrateCliffFaceToBehodler
     default:
       throw "invalid Section enum selection"
   }
@@ -125,23 +125,43 @@ interface ethersLib {
   [key: string]: string
 }
 
+const getLimboToken = async (address: string): Promise<Types.LimboProxy> => {
+  const factory = await ethers.getContractFactory("LimboProxy")
+  const contract = factory.attach(address)
+  return contract as Types.LimboProxy
+}
+
+const getPyroToken = async (address: string): Promise<Types.PyroToken> => {
+  const factory = await ethers.getContractFactory("PyroToken")
+  const contract = factory.attach(address)
+  return contract as Types.PyroToken
+}
+
+const getTokenFromAddress = async (address: string): Promise<Types.ERC20> => {
+  const factory = await ethers.getContractFactory("ERC20")
+  const contract = factory.attach(address)
+  return contract as Types.ERC20
+}
+
 export const getContractFromSection = (existing: AddressFileStructure, debugLabel?: string) =>
-  async function <T extends Contract>(section: Sections,
-    contractName: contractNames,
-    factoryName?: string,
-    libraries?: ethersLib) {
+(async function <T extends Contract>(
+  section: Sections,
+  contractName: contractNames,
+  factoryName?: string,
+  libraries?: ethersLib
+) {
 
-    const loadName = factoryName || contractName
-    let factory = await (
-      libraries ? ethers.getContractFactory(loadName, {
-        libraries
-      }) : ethers.getContractFactory(loadName))
+  const loadName = factoryName || contractName
+  let factory = await (
+    libraries ? ethers.getContractFactory(loadName, {
+      libraries
+    }) : ethers.getContractFactory(loadName))
 
-    const address = existing[sectionName(section)][contractName]
-    if (!address || address.startsWith("0x00000000000000000000000000"))
-      throw debugLabel || "" + contractName + " has not been deployed yet"
-    return factory.attach(address) as T
-  }
+  const address = existing[sectionName(section)][contractName]
+  if (!address || address.startsWith("0x00000000000000000000000000"))
+    throw debugLabel || "" + contractName + " has not been deployed yet"
+  return factory.attach(address) as T
+})
 
 export interface IDeploymentParams {
   deployer: SignerWithAddress,
@@ -177,6 +197,27 @@ const configureUniswapHelper: IDeploymentFunction = async function (params: IDep
   const behodler = await getBehodler(params.existing)
   const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
   const limboOracle = await getContract<Types.LimboOracle>(Sections.LimboOracle, "LimboOracle")
+
+
+  //registering existing cliffFace tokens on Behodler requires some prior trade activity.
+  //in order to give the oracles some data. When we deploy to live network, we can presumably
+  //allow flan/scx to trade a bit and invoke a few updates before migrating anything.
+  const chainId = await params.deployer.getChainId()
+  if (chainId === 1337 || chainId === 11155111) {
+    const flanToTrade = ethers.constants.One.mul(3)
+    await flan.mint(params.deployer.address, flanToTrade)
+
+    //add delay
+    await network.provider.send("evm_increaseTime", [43201]);
+    await network.provider.send("evm_mine"); // this will mine a new block
+    const uniswapV2Router = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
+    const swapper = await swapOnUni(uniswapV2Router.address, behodler.address, params.deployer)
+    swapper(flan.address, flanToTrade, true)
+    //add delay
+    await network.provider.send("evm_increaseTime", [43201]);
+    await network.provider.send("evm_mine"); // this will mine a new block
+    await limboOracle.update(behodler.address, flan.address)
+  }
 
   const uniswapHelper = await getContract<Types.UniswapHelper>(Sections.UniswapHelper, "UniswapHelper")
   await uniswapHelper.configure(limbo.address, behodler.address, flan.address, 20, limboOracle.address)
@@ -275,7 +316,7 @@ const setAllGovernable: IDeploymentFunction = async function (params: IDeploymen
   return {}
 }
 
-const listLimboTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+const listSomeLimboTokens: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
   const getContract = await getContractFromSection(params.existing)
 
@@ -295,9 +336,9 @@ const listLimboTokens: IDeploymentFunction = async function (params: IDeployment
     .div(1000000000)
 
   //generate cliffFace tokens
-  await threshold.map(async (token, i) => {
+  await Promise.all(threshold.map(async (token, i) => {
     await params.broadcast(`Cliff face for ${limboTokenNamesArray[i + 2]}`, morgothTokenApprover.generateCliffFaceProxy(token.token.address, twenty_five_percent, true))
-  })
+  }))
 
   const updateProposal = await getContract<Types.UpdateMultipleSoulConfigProposal>(Sections.MultiSoulConfigUpdateProposal, "UpdateMultipleSoulConfigProposal")
 
@@ -355,9 +396,12 @@ const listLimboTokens: IDeploymentFunction = async function (params: IDeployment
   ))
 
   const allUpdateProps = [...perpetualProps, ...thresholdProps]
-  await Promise.all(allUpdateProps.map(async par => (
+  const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
+  await Promise.all(allUpdateProps.map(async (par, i) => {
+    const currentProxies = await tokenProxyRegistry.tokenProxy(par.baseToken)
     await params.broadcast("Perpetual token parameterize", updateProposal.parameterize(par.baseToken, par.crossingThreshold, par.soulType, par.state, par.index, par.targetAPY, par.daiThreshold, par.initialCrossingBonus, par.crossingBonusDelta, par.burnable))
-  )))
+    await params.broadcast("tokenProxy setting", updateProposal.setProxy(currentProxies.limboProxy, currentProxies.behodlerProxy, i))
+  }))
 
   await params.broadcast("Lock update proposal", updateProposal.lockDown())
 
@@ -452,7 +496,7 @@ const listLimboTokens: IDeploymentFunction = async function (params: IDeployment
 
 
   //Get LimboToken mappings
-  const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
+
   const limboTokens = await Promise.all(allUpdateProps.map(async (prop) => {
     return { limbo: (await tokenProxyRegistry.tokenProxy(prop.baseToken)).limboProxy, base: prop.baseToken }
   }))
@@ -492,7 +536,185 @@ const listLimboTokens: IDeploymentFunction = async function (params: IDeployment
   return {}
 }
 
+const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const assert = assertFactory(params.logger)
+  const chainId = await params.deployer.getChainId()
+  if (chainId !== 1337 && chainId !== 11155111) {
+    throw "testnets only"
+  }
 
+  const getContract = await getContractFromSection(params.existing)
+  const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
+
+  const limboTokenNamesArray: limboTokenNames[] = ["Aave", "Curve", "Convex", "MIM", "Uni", "Sushi"];
+  const fetchToken = async (contract: limboTokenNames) =>
+    await getContract<Types.MockToken>(Sections.LimboTokens, contract, "MockToken")
+
+  const loadedTokens = await Promise.all(limboTokenNamesArray.map(async (name) => {
+    return { name, token: await fetchToken(name) }
+  }))
+  const cliffFaceBehodlerTokens = loadedTokens.slice(2)
+  const MTA = await getMorgothTokenApprover(params.existing)
+  const baseProxyGroupings = await Promise.all(cliffFaceBehodlerTokens.map(async cliff => {
+    const proxies = (await tokenProxyRegistry.tokenProxy(cliff.token.address))
+    const cliffFromMTA = (await MTA.baseTokenMapping(cliff.token.address)).cliffFace
+    assert(proxies.behodlerProxy === cliffFromMTA, "Proxy and MTA don't agree on cliff face")
+    return { base: cliff.token.address, behodler: proxies.behodlerProxy, limbo: proxies.limboProxy, name: cliff.name }
+  }))
+
+  const notRegisteredCliffs = baseProxyGroupings.filter(grouping => grouping.behodler === grouping.base)
+  if (notRegisteredCliffs.length !== 0) {
+    throw "cliff face not properly registered " + JSON.stringify(notRegisteredCliffs)
+  }
+  const limbo = await getLimbo(params.existing)
+
+  const thresholdGroupings = await Promise.all(baseProxyGroupings.map(async grouping => {
+    const address = grouping.base !== grouping.limbo ? grouping.limbo : grouping.base
+    const threshold = (await limbo.souls(address, 0)).crossingThreshold
+    params.logger('threshold is ' + threshold.toString())
+    return { base: grouping.base, threshold }
+  }))
+
+  // ascertain threshold requirement for each token
+  const thresholdMapping: { [key: string]: BigNumber } = thresholdGroupings.reduce((acc, grouping) => {
+    acc[grouping.base] = grouping.threshold;
+    return acc;
+  }, {} as Record<string, BigNumber>);
+
+  //For each base token, mint threshold
+
+  const soulReader = await getContract<Types.SoulReader>(Sections.SoulReader, "SoulReader")
+
+  const uniswapFactory = await getContract<Types.UniswapV2Factory>(Sections.UniswapV2Clones, "UniswapV2Factory")
+  const uniGetOrCreate = await getOrCreateUniPairFactory(uniswapFactory, params.logger, params.broadcast)
+  const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
+  const behodler = await getBehodler(params.existing)
+  const referencePair = await uniGetOrCreate(flan, behodler as Types.ERC20)
+
+
+  const liquidityReceiver = await getContract<Types.LiquidityReceiver>(Sections.LiquidityReceiverNew, "LiquidityReceiver")
+
+
+  const registerPyroV3 = await registerPyroForCliffFaceFactory(params)
+  for (let i = 0; i < thresholdGroupings.length; i++) {
+    const baseToken = loadedTokens.find(t => t.token.address === thresholdGroupings[i].base)?.token
+    if (baseToken) {
+      const mintAmount = thresholdMapping[baseToken.address].add(1000000000)
+      try {
+        await baseToken.mint(mintAmount)
+      } catch (error) {
+        const address = baseToken.address
+        const name = loadedTokens.find(t => t.token.address === address)?.name
+        throw `mint doesn't exist for token with address ${address} and name ${name}`
+      }
+
+      const grouping = baseProxyGroupings.filter(grouping => grouping.base === baseToken.address)[0]
+      const hasLimboProxy: boolean = grouping.limbo !== grouping.base
+      const limboTokenAddress = grouping.limbo //because this was registered on MTA, grouping.limbo will always give the correct address. see line 99 onwards of MTA
+
+      assert(hasLimboProxy, "tokens must be limbo proxies")
+      if (hasLimboProxy) {
+        params.logger(`baseAddress ${grouping.base}, limboAddress: ${grouping.limbo}`)
+        const limboToken = await getLimboToken(limboTokenAddress)
+        await baseToken.approve(limboTokenAddress, ethers.constants.MaxUint256)
+        await limboToken.stake(mintAmount)
+      } else {
+        await baseToken.approve(limbo.address, ethers.constants.MaxUint256)
+        params.logger('about to stake ' + mintAmount.toString())
+        await limbo.stake(baseToken.address, mintAmount)
+      }
+
+
+      const state = (await soulReader.getCurrentSoulState(limboTokenAddress, limbo.address)).toNumber()
+      if (state !== 2) {
+        throw 'Soul should be in waitingToCross" state but is ' + state
+      }
+
+      // gather reference pair stats and lachesis status
+      const flanBalanceOfReferencePairBeforeMigrate = await flan.balanceOf(referencePair.address)
+      const scxBalanceOfReferencePairBeforeMigrate = await behodler.balanceOf(referencePair.address)
+
+
+      await network.provider.send("evm_increaseTime", [3601]);
+      await network.provider.send("evm_mine"); // this will mine a new block
+
+      params.logger('Test that reference pair is a uniswap pair.Factory address ' + (await referencePair.factory()))
+      params.logger(`In ref Pair: Flan ${flanBalanceOfReferencePairBeforeMigrate.toString()}, SCX ${scxBalanceOfReferencePairBeforeMigrate.toString()}`)
+      await limbo.migrate(limboTokenAddress, 0)
+      assert(true, "migration successful")
+
+
+      const isBehodlerProxy = grouping.behodler !== grouping.base
+      assert(isBehodlerProxy, "base token has cliff face. grouping  " + JSON.stringify(grouping))
+      const behodlerTokenAddress = isBehodlerProxy ? grouping.behodler : grouping.base
+      const behodlerToken = await getTokenFromAddress(behodlerTokenAddress)
+    const flanBalanceOfReferencePairAfterMigrate = await flan.balanceOf(referencePair.address)
+      const scxBalanceOfReferencePairAfterMigrate = await behodler.balanceOf(referencePair.address)
+
+         const increaseInFlan = flanBalanceOfReferencePairAfterMigrate.sub(flanBalanceOfReferencePairBeforeMigrate)
+      const increaseInSCX = scxBalanceOfReferencePairAfterMigrate.sub(scxBalanceOfReferencePairBeforeMigrate)
+      assert(increaseInFlan.gt(10), "Flan should have been added to reference pair: " + increaseInFlan.div(ethers.constants.WeiPerEther).toString())
+      assert(increaseInSCX.gt(10), "SCX should have been added to reference pair: " + increaseInSCX.div(ethers.constants.WeiPerEther).toString())
+
+      const cliffFaceFactory = await ethers.getContractFactory("CliffFace")
+      const cliffFace = await cliffFaceFactory.attach(behodlerTokenAddress) as Types.CliffFace
+
+
+      const isOnBehodler = await behodler.validTokens(behodlerTokenAddress)
+      const isPyroToken = !(await behodler.tokenBurnable(behodlerTokenAddress))
+
+
+      assert(isOnBehodler && isPyroToken, `Token registration on Behodler failed. Valid ${isOnBehodler} && isPyroToken ${isPyroToken}`)
+
+      await registerPyroV3(cliffFace)
+ 
+      const pyroV3Address = await liquidityReceiver.getPyroToken(behodlerTokenAddress)
+      assert(behodlerTokenAddress !== ethers.constants.AddressZero, "behodlerToken must be non zero " + behodlerTokenAddress)
+      assert(pyroV3Address !== ethers.constants.AddressZero, "PyroV3 address must be non zero " + pyroV3Address)
+
+      const pyroV3 = await getPyroToken(pyroV3Address)
+
+      try {
+        const redeemRate = await pyroV3.redeemRate()
+        assert(redeemRate.eq(ethers.constants.WeiPerEther), "PyroV3 for cliffFace not registered")
+        const invalidBaseAddress = isBehodlerProxy ? grouping.base : grouping.behodler
+        const invalidPyroV3Address = await liquidityReceiver.getPyroToken(invalidBaseAddress)
+        const errorMessage = isBehodlerProxy ? "base token should not have a direct pyroToken" : "pyro should be of base"
+        assert(isBehodlerProxy ? invalidPyroV3Address !== pyroV3.address : invalidPyroV3Address === pyroV3.address, errorMessage)
+      } catch (e) {
+        throw "PyroV3 for cliffFace registration error: " + e
+      }
+    }
+  }
+
+  const morgothTokenApprover = await getMorgothTokenApprover(params.existing)
+  const config = await morgothTokenApprover.config()
+  assert(config.proxyRegistry == tokenProxyRegistry.address, "Registries are the same")
+
+  const cliffFaceTokenNameAddressGroups = await Promise.all(baseProxyGroupings.map(async (group) => {
+
+    const cliffFromMTA = (await morgothTokenApprover.baseTokenMapping(group.base)).cliffFace
+    const cliffFromRegistry = (await tokenProxyRegistry.tokenProxy(group.base)).behodlerProxy
+    assert(cliffFromRegistry === cliffFromMTA, `cliff face addresses in registries should agree. MTA ${cliffFromMTA} - Registry ${cliffFromRegistry} - base ${group.base}`)
+    const cliffToken = await getTokenFromAddress(cliffFromMTA)
+
+    return { name: await cliffToken.name() as cliffFaceNames, token: cliffToken }
+  }))
+
+  const addresses: OutputAddress = cliffFaceTokenNameAddressGroups.reduce((acc, group) => {
+    acc = OutputAddressAdder(acc, group.name, group.token)
+    return acc
+  }, {} as OutputAddress)
+  return addresses
+}
+
+const assertFactory = (log: (message: string) => void) => (condition: boolean, message: string) => {
+  const statusString = condition ? 'passed' : 'failed'
+  const report = `Assertion ${statusString}: ${message}`
+  if (!condition)
+    throw report
+  log(report)
+}
 const deployAllLimboDAOProposals: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   let deploy = deploymentFactory(Sections.LimboDAOProposals, params.existing)
   const getContract = await getContractFromSection(params.existing)
@@ -912,13 +1134,21 @@ const deployLimboAddTokenToBehodlerPower: IDeploymentFunction = async function (
 
   const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
   const limbo = await getLimbo(params.existing)
-  const configScarcityPower = await getContract<Types.ConfigureScarcityPower>(Sections.ConfigureScarcityPower, "ConfigureScarcityPower")
-
-  const powerFactory = await ethers.getContractFactory("LimboAddTokenToBehodler")
-  const power = await deploy<Types.LimboAddTokenToBehodler>("LimboAddTokenToBehodler", powerFactory, angband.address, limbo.address, configScarcityPower.address)
-  await angband.authorizeInvoker(power.address, true)
+  const behodler = await getBehodler(params.existing)
+  const lachesis = await getContract<Types.Lachesis>(Sections.Lachesis, "Lachesis")
 
   const tokenProxyRegistry = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
+
+  const powerFactory = await ethers.getContractFactory("LimboAddTokenToBehodler")
+  const power = await deploy<Types.LimboAddTokenToBehodler>("LimboAddTokenToBehodler", powerFactory,
+    angband.address,
+    limbo.address,
+    tokenProxyRegistry.address,
+    lachesis.address,
+    behodler.address)
+    
+  await angband.authorizeInvoker(power.address, true)
+
   await tokenProxyRegistry.setPower(power.address)
 
   return OutputAddressAdder<Types.LimboAddTokenToBehodler>({}, "LimboAddTokenToBehodler", power)
@@ -951,8 +1181,65 @@ const flanSetConfig: IDeploymentFunction = async function (params: IDeploymentPa
   const getContract = await getContractFromSection(params.existing)
   const flan = await getContract<Types.Flan>(Sections.Flan, "Flan")
 
-  await flan.setMintConfig(ethers.constants.WeiPerEther.mul(500000), 86400)
+  await flan.setMintConfig(ethers.constants.WeiPerEther.mul(5000000), 86400)
   return {}
+}
+
+const registerPyroForCliffFaceFactory = async (params: IDeploymentParams) => {
+  const assert = assertFactory(params.logger)
+  const getContract = await getContractFromSection(params.existing)
+
+  const angband = await getContract<Types.Angband>(Sections.Angband, "Angband")
+  const powersRegistry = await getContract<Types.PowersRegistry>(Sections.Powers, "PowersRegistry")
+  const registerPyroTokenPowerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
+
+  const registerPyroTokenPower = stringToBytes32("REGISTER_PYRO_V3")
+
+  //For setting pyroDetails
+  const addTokenToBehodlerPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
+  //witch king already has authority to alter RegisterPyroTokenV3Power
+  const melkor = stringToBytes32("Melkor")
+  await params.broadcast("pour 'add token to behodler' power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")))
+  await params.broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, melkor))
+  await params.broadcast("pour 'add token to Behodler' power into minion", powersRegistry.pour(addTokenToBehodlerPower, melkor))
+  //
+  return async (cliffFaceToken: Types.CliffFace) => {
+    let deploy = deploymentFactory(Sections.MigrateCliffFaceToBehodler, params.existing)
+
+    const registerPyroTokenPowerInvoker = await deploy<Types.RegisterPyroTokenV3Power>("RegisterPyroTokenV3Power", registerPyroTokenPowerFactory,
+      cliffFaceToken.address,
+      false,
+      angband.address,
+      powersRegistry.address
+    )
+
+    const baseTokenAddress = await cliffFaceToken.baseToken()
+    const baseToken = await getTokenFromAddress(baseTokenAddress)
+    //powersRegistry.userHasPower(power, msg.sender)
+    const hasPower = await powersRegistry.userHasPower(registerPyroTokenPower, params.deployer.address)
+    assert(hasPower, `current user does not have ${registerPyroTokenPower} power`)
+    await params.broadcast("registerPyroPower.setPyroDetails", registerPyroTokenPowerInvoker.setPyroDetails("Pyro" + (await baseToken.name()), "Pyro" + (await baseToken.symbol())))
+
+
+    const proxyHandler = await getContract<Types.ProxyHandler>(Sections.ProxyHandler, "ProxyHandler")
+    await cliffFaceToken.setApprovedTransferers([proxyHandler.address])
+
+    //validations failing
+    const behodler = await getBehodler(params.existing)
+    const validOnBehodler = await behodler.validTokens(cliffFaceToken.address)
+    const burnableOnBehodler = await behodler.tokenBurnable(cliffFaceToken.address)
+    assert(validOnBehodler && !burnableOnBehodler, `cliff face must be valid and not burnable on Behodler ${(await cliffFaceToken.name())} - valid: ${validOnBehodler}, burnable ${burnableOnBehodler}`)
+
+    const lachesis = await getContract<Types.Lachesis>(Sections.Lachesis, "Lachesis")
+    const lachesisCut = await lachesis.cut(cliffFaceToken.address)
+    assert(lachesisCut[0] && !lachesisCut[1], `cliff face must be valid and not burnable on lachesis ${(await cliffFaceToken.name())} - valid ${lachesisCut[0]}, burnable ${lachesisCut[1]}`)
+
+    await params.broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroTokenPowerInvoker.address, true))
+    assert(true, "registerPyro authorized")
+    await angband.executePower(registerPyroTokenPowerInvoker.address)
+    assert(true, "register pyro executed on angband")
+  };
+
 }
 
 const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
@@ -971,11 +1258,11 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
   await params.broadcast("create power Register PyroToken", powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false))
 
   const addTokenToBehodlerPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
-  const powerMinion = stringToBytes32("Witchking")
+  const witchKingMinion = stringToBytes32("Witchking")
   await params.broadcast("create power add token to behodler", powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false))
 
   await params.broadcast("pour 'add token to behodler' power to Melkor", powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor")))
-  await params.broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, powerMinion))
+  await params.broadcast("pour 'register pyro' power into minion", powersRegistry.pour(registerPyroTokenPower, witchKingMinion))
   //create permissions etc
   return async function (
     tokenToRegister: Types.ERC20,
@@ -1008,7 +1295,7 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
     params.logger(`tokenToRegister address ${tokenToRegister.address}, balance ${(await tokenToRegister.balanceOf(params.deployer.address)).toString()}`)
     await params.broadcast("transferring token to Behodler power", tokenToRegister.transfer(addTokenAndValuePowerInvoker.address, amountToTransfer))
 
-    await params.broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePowerInvoker.address, powerMinion))
+    await params.broadcast("bond power invoker to minion", powersRegistry.bondUserToMinion(addTokenAndValuePowerInvoker.address, witchKingMinion))
 
     await params.broadcast("Angband authorise invoker addTokenPower", angband.authorizeInvoker(addTokenAndValuePowerInvoker.address, true))
     await params.broadcast("Angband authorise invoker RegisterPyro", angband.authorizeInvoker(registerPyroTokenPowerInvoker.address, true))
@@ -1016,7 +1303,7 @@ const addTokenToBehodlerFactory = async (params: IDeploymentParams) => {
     const behodler = await getBehodler(params.existing)
 
     const scxBalanceOfDeployerBefore = await behodler.balanceOf(params.deployer.address)
-    await params.broadcast("angband execute addReference Pair power", angband.executePower(addTokenAndValuePowerInvoker.address))
+    await params.broadcast("angband execute addToken power", angband.executePower(addTokenAndValuePowerInvoker.address))
     const increaseInSCX = (await behodler.balanceOf(params.deployer.address)).sub(scxBalanceOfDeployerBefore)
 
     params.logger('increase in scx balance from addition ' + increaseInSCX.toString())
@@ -1312,7 +1599,7 @@ const registerFlanOnBehodlerViaCliffFace: IDeploymentFunction = async function (
   await params.broadcast("approve flan on behodler for cliffface", cliffFace.approveBehodlerFor(flan.address))
   const cliffFaceBalanceOnPowerrAfter = await cliffFace.balanceOf(addTokenAndValuePower.address)
 
-  await params.broadcast("addTokenPower.setPyroDetais", registerPyroPower.setPyroDetails("PyroFlan", "PyroFLN"))
+  await params.broadcast("registerPyroPower.setPyroDetais", registerPyroPower.setPyroDetails("PyroFlan", "PyroFLN"))
 
   /*
   Create a power for registering a pyroToken

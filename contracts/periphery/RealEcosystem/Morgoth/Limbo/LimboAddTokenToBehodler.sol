@@ -3,24 +3,36 @@ pragma solidity ^0.7.1;
 import "./IdempotentPowerInvoker.sol";
 import "../facades/BehodlerLike.sol";
 import "../behodlerPowers/ConfigureScarcityPower.sol";
+import "../facades/TokenProxyRegistryLike_071.sol";
+import "../facades/TokenProxyBaseLike_071.sol";
+import "../facades/LachesisLike.sol";
+import "../openzeppelin/IERC20.sol";
 
 contract LimboAddTokenToBehodler is IdempotentPowerInvoker {
   struct Parameters {
     address soul;
     bool burnable;
     address limbo;
+    address tokenProxyRegistry;
   }
 
+  address Scarcity;
+  LachesisLike_071 lachesis;
   Parameters public params;
-  ConfigureScarcityPower public configureScarcityPower;
+  bytes constant baseTokenCall = abi.encodeWithSignature("baseToken()");
 
   constructor(
     address _angband,
     address limbo,
-    address configSCXPower
+    address proxyRegistry,
+    address _lachesis,
+    address scarcity
   ) IdempotentPowerInvoker("ADD_TOKEN_TO_BEHODLER", _angband) {
     params.limbo = limbo;
-    configureScarcityPower = ConfigureScarcityPower(configSCXPower);
+    params.tokenProxyRegistry = proxyRegistry;
+
+    lachesis = LachesisLike_071(_lachesis);
+    Scarcity = scarcity;
   }
 
   function parameterize(address soul, bool burnable) public {
@@ -30,27 +42,30 @@ contract LimboAddTokenToBehodler is IdempotentPowerInvoker {
   }
 
   function orchestrate() internal override returns (bool) {
-    address _lachesis = angband.getAddress(power.domain);
-    address behodler = angband.getAddress("BEHODLER");
-    (uint256 transferFee, uint256 burnFee, address destination) = Behodler_071Like(behodler).config();
-    //temp set pyro fee to zero so that the whole amount goes into Behodler
-    configureScarcityPower.parameterize(transferFee, 0, destination);
-    angband.executePower(address(configureScarcityPower));
+    Parameters memory localParams = params;
+    require(localParams.soul != address(0), "MORGOTH: PowerInvokerTest not parameterized.");
+    TokenProxyRegistryLike_071 proxyRegistry = TokenProxyRegistryLike_071(localParams.tokenProxyRegistry);
 
-    require(params.soul != address(0), "MORGOTH: PowerInvoker not parameterized.");
-    Lachesis_071Like lachesis = Lachesis_071Like(_lachesis);
-    lachesis.measure(params.soul, true, params.burnable);
-    lachesis.updateBehodler(params.soul);
-    uint256 balanceOfToken = IERC20_071(params.soul).balanceOf(address(this));
+    address baseToken = localParams.soul;
+    (bool success, bytes memory data) = baseToken.call(baseTokenCall);
+
+    if (success) {
+      baseToken = abi.decode(data, (address));
+    }
+
+    (, address behodlerProxy) = proxyRegistry.tokenProxy(baseToken);
+    address tokenToRegister = behodlerProxy == address(0) ? baseToken : behodlerProxy;
+    lachesis.measure(tokenToRegister, true, localParams.burnable);
+    lachesis.updateBehodler(tokenToRegister);
+    uint256 balanceOfToken = IERC20_071(localParams.soul).balanceOf(address(this));
     require(balanceOfToken > 0, "MORGOTH: remember to seed contract");
-    IERC20_071(params.soul).approve(behodler, uint256(-1));
-    Behodler_071Like(behodler).addLiquidity(params.soul, balanceOfToken);
-    uint256 scxBal = IERC20_071(behodler).balanceOf(address(this));
-    uint256 balanceOfTokenOnBehodler = IERC20_071(params.soul).balanceOf(behodler);
-    IERC20_071(behodler).transfer(params.limbo, scxBal);
-    params.soul = address(0); // prevent non limbo from executing.
-    configureScarcityPower.parameterize(transferFee, burnFee, destination);
-    angband.executePower(address(configureScarcityPower));
+    IERC20_071(localParams.soul).transfer(address(localParams.tokenProxyRegistry), balanceOfToken);
+    proxyRegistry.TransferFromLimboTokenToBehodlerToken(localParams.soul);
+
+    uint256 scxBal = IERC20_071(Scarcity).balanceOf(address(this));
+    IERC20_071(Scarcity).transfer(localParams.limbo, scxBal);
+    localParams.soul = address(0); // prevent non limbo from executing.
+    params = localParams;
     return true;
   }
 }

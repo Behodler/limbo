@@ -1,8 +1,8 @@
-import { deployments, ethers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { Contract, ContractFactory, ContractTransaction } from "ethers";
-import * as Web3 from 'web3'
-import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { BigNumber, Contract, ContractFactory, ContractTransaction } from "ethers";
+import * as Web3 from 'web3';
+import { mine } from "@nomicfoundation/hardhat-network-helpers";
 
 type address = string;
 
@@ -241,6 +241,7 @@ export enum Sections {
   UniswapHelperConfigure,
   LimboTokens,
   ListSomeLimboTokens,
+  MigrateCliffFaceToBehodler,
   LimboDAOSeed,
   LimboDAOQuickSeed,
   LimboConfigureCrossingConfig,
@@ -291,7 +292,7 @@ let localTestnetRecipe = [
   Sections.ProxyHandler,
   Sections.V2Migrator,
   Sections.LimboDAO,
-  
+
   Sections.WhiteListProposal,
   Sections.MorgothTokenApprover,
   Sections.TokenProxyRegistry,
@@ -332,6 +333,7 @@ let localTestnetRecipe = [
   Sections.MorgothLimboMinionAndPower,
   Sections.MorgothMapLimboDAO,
   Sections.ListSomeLimboTokens,
+  Sections.MigrateCliffFaceToBehodler
   // Sections.DisableDeployerSnufferCap
 ]
 
@@ -467,8 +469,8 @@ export type behodlerTokenNames = "EYE" | "MKR" | "OXT" | "PNK" | "LINK" | "LOOM"
 export type criticalPairNames = "FLN_SCX UniV2" | "DAI_SCX UniV2" | "SCX__FLN_SCX UniV2"
 
 export type limboTokenNames = "Aave" | "Curve" | "Convex" | "MIM" | "Uni" | "WBTC" | "Sushi"
-
-export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | "Flan" | "Weth"
+export type cliffFaceNames = "Aave_CF" | "Curve_CF" | "Convex_CF" | "MIM_CF" | "Uni_CF" | "Sushi_CF"
+export type tokenNames = behodlerTokenNames | limboTokenNames | criticalPairNames | cliffFaceNames | "Flan" | "Weth"
 
 
 export type proposalNames = "AdjustFlanFeeOnTransferProposal" |
@@ -527,3 +529,20 @@ export type contractNames =
   | "MigrationLib"
   | "SoulLib"
   | "RefreshTokenOnBehodler"
+
+export const swapOnUni = async (router, output, owner) => {
+  return async (input, amount: BigNumber, canLog) => {
+    const log = logFactory(canLog);
+    const factoryAddress = await router.factory();
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const uniFactory = await UniswapFactoryFactory.attach(factoryAddress);
+
+    const baseAddress = await uniFactory.getPair(input.address, output.address);
+
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+    //trade input
+    const uniPair = await UniswapPairFactory.attach(baseAddress);
+    await input.transfer(baseAddress, amount);
+    await uniPair.swap("0", amount, owner.address, []);
+  };
+};

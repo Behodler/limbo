@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.1;
 
-abstract contract Lachesis_071Like {
+abstract contract LachesisLike_071 {
     function measure(
         address token,
         bool valid,

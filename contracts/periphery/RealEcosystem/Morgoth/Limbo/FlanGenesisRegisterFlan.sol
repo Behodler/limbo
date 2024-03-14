@@ -21,7 +21,7 @@ contract FlanGenesisRegisterFlan is PowerInvoker {
         UniswapPairLike uniswapPair;
         UniswapPairLike sushiPair;
         Behodler_071Like scarcity;
-        Lachesis_071Like lachesis;
+        LachesisLike_071 lachesis;
     }
 
     Parameters params;
@@ -72,7 +72,7 @@ contract FlanGenesisRegisterFlan is PowerInvoker {
         uint256 daiBalanceOnBehodler = params.dai.balanceOf(
             address(params.scarcity)
         );
-        Lachesis_071Like lachesis = Lachesis_071Like(angband.getAddress(power.domain));
+        LachesisLike_071 lachesis = LachesisLike_071(angband.getAddress(power.domain));
         lachesis.measure(address(params.flan), true, false);
         lachesis.updateBehodler(address(params.flan));
         params.flan.mint(address(this), daiBalanceOnBehodler);

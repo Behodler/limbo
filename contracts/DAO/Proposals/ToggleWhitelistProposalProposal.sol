@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 import "../ProposalFactory.sol";
 import "../../facades/ProposalFactoryLike.sol";
 
-// import "hardhat/console.sol";
+
 
 /**
  * @author Justin Goro

@@ -2,7 +2,7 @@
 pragma solidity 0.8.16;
 
 import "../periphery/Errors.sol" as Errors;
-// import "hardhat/console.sol";
+
 abstract contract Ownable {
   address private _owner;
 

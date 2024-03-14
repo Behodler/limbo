@@ -1,10 +1,11 @@
 import { BigNumber, ContractReceipt } from "ethers";
 import { assertLog, deploy, executionResult, numberClose, queryChain } from "./helpers";
+import { ethers, network } from "hardhat";
+import * as Types from "../typechain";
+import { stringToBytes32 } from "../scripts/networks/common";
 
 const { expect, assert } = require("chai");
-import { ethers, network } from "hardhat";
 const web3 = require("web3");
-import * as Types from "../typechain";
 
 interface TestContracts {
   limbo: Types.Limbo
@@ -1291,6 +1292,9 @@ describe.only("Limbo", function () {
   });
 
   it("t-22. multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
+    //TODO: get POWERS instantiated properly and run this test correctly.
+    //TODO: we have to test that all permutations of proxy relationship migrates.
+
     const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
     const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
     const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
@@ -1298,25 +1302,38 @@ describe.only("Limbo", function () {
         AddressBalanceCheck: addressBalanceCheckLibAddress,
       },
     });
-    const realBehodler = await RealBehodlerFactory.deploy();
+    const realBehodler = await deploy<Types.BehodlerLite>(RealBehodlerFactory);
     await realBehodler.configureScarcity(15, 5, owner.address);
     const LachesisFactory = await ethers.getContractFactory("LachesisLite");
-    const lachesis = await LachesisFactory.deploy();
+    const lachesis = await deploy<Types.LachesisLite>(LachesisFactory);
 
     await realBehodler.setLachesis(lachesis.address);
     await (lachesis as Types.LachesisLite).setBehodler(realBehodler.address);
 
-    const RealAngband = await ethers.getContractFactory("TestAngband");
-    const realAngband = await RealAngband.deploy();
+    const powersRegistryFactory = await ethers.getContractFactory("PowersRegistry")
+    const powersRegistry = await deploy<Types.PowersRegistry>(powersRegistryFactory)
+    await powersRegistry.seed()
 
+    const melkorIsDeployer = await powersRegistry.isUserMinion(owner.address, stringToBytes32("Melkor"))
+    if (!melkorIsDeployer)
+      throw "melkor is not deployer"
+    const RealAngband = await ethers.getContractFactory("Angband");
+    const realAngband = await deploy<Types.Angband>(RealAngband, powersRegistry.address);
+    await realBehodler.transferOwnership(realAngband.address)
+    await lachesis.transferOwnership(realAngband.address)
+
+    await realAngband.setBehodler(realBehodler.address, lachesis.address)
     const proxyRegistryFactory = await ethers.getContractFactory("TokenProxyRegistry");
     const registry: Types.TokenProxyRegistry = await proxyRegistryFactory.deploy(
       SET.limboDAO.address,
       realBehodler.address
     ) as Types.TokenProxyRegistry
 
-    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodlerTest");
-    const realPower = await RealPower.deploy(
+
+    const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
+    //BUG: this deploy is failing
+
+    const realPower = await deploy<Types.LimboAddTokenToBehodler>(RealPower,
       realAngband.address,
       SET.limbo.address,
       registry.address,
@@ -1483,8 +1500,29 @@ describe.only("Limbo", function () {
     await advanceTime(600000);
     const scxInflanSCXBefore = await realBehodler.balanceOf(realflanSCX.address)
     const latestIndex = await SET.limbo.latestIndex(aave.address)
-    result = await executionResult(SET.limbo.migrate(aave.address, latestIndex));
-    expect(result.success).to.equal(true, result.error.toString());
+    const registerPyroTokenPowerFactory = await ethers.getContractFactory("RegisterPyroTokenV3Power")
+
+    const registerPyroTokenPower = stringToBytes32("REGISTER_PYRO_V3")
+
+    //For setting pyroDetails
+    const addTokenToBehodlerPower = stringToBytes32("ADD_TOKEN_TO_BEHODLER")
+    //witch king already has authority to alter RegisterPyroTokenV3Power
+    const melkor = stringToBytes32("Melkor")
+    await powersRegistry.create(addTokenToBehodlerPower, stringToBytes32("LACHESIS"), true, false)
+    await powersRegistry.create(registerPyroTokenPower, stringToBytes32("LIQUIDITY_RECEIVER"), true, false)
+
+
+    await powersRegistry.pour(addTokenToBehodlerPower, stringToBytes32("Melkor"))
+    await powersRegistry.pour(registerPyroTokenPower, melkor)
+
+    const minion = stringToBytes32("Smaug")
+    powersRegistry.pour(addTokenToBehodlerPower, minion)
+    await powersRegistry.bondUserToMinion(SET.limbo.address, minion)
+    await realAngband.authorizeInvoker(realPower.address, true)
+
+
+
+    await SET.limbo.migrate(aave.address, latestIndex)
 
     const blackHoleBalanceAfter = await realflanSCX.balanceOf(blackHoleAddress);
 
@@ -1498,6 +1536,7 @@ describe.only("Limbo", function () {
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
 
     //SECOND MIGRATION
+
 
     const mock1 = await this.TokenFactory.deploy("mock1", "mock1");
 
@@ -1605,6 +1644,7 @@ describe.only("Limbo", function () {
     const ratio2 = flanBalanceAfterThirdMigrate.mul(10000).div(scxBalanceOfPairAfterThirdMigrate);
     numberCloseResult = numberClose(ratio2, 23687384)
     assert.isTrue(numberCloseResult.close, numberCloseResult.message)
+
   });
 
   it("t-23. any whitelisted contract can mint flan", async function () {

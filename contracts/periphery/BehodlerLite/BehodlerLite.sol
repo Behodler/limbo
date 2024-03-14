@@ -2,11 +2,11 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
-// import "hardhat/console.sol";
+
 import "./CommonIERC20.sol";
 import "../../periphery/Errors.sol";
 import * as RB from "../RealEcosystem/Behodler/Behodler.sol";
-import "hardhat/console.sol";
+import "../../openzeppelin/Ownable.sol";
 
 abstract contract BurnableBehodlerLite {
   function burn(uint256 amount) public virtual;
@@ -16,7 +16,7 @@ abstract contract BurnableBehodlerLite {
   function burn(address holder, uint256 amount) public virtual;
 }
 
-contract ScarcityLite is CommonIERC20 {
+contract ScarcityLite is CommonIERC20,Ownable {
   bool public constant REAL = false;
   event Mint(address sender, address recipient, uint256 value);
   event Burn(uint256 value);
@@ -257,7 +257,7 @@ library ABDK_lite {
 
 contract StubLiquidityReceiver {}
 
-contract LachesisLite {
+contract LachesisLite is Ownable {
   struct tokenConfig {
     bool valid;
     bool burnable;

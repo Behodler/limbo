@@ -25,7 +25,7 @@ contract DisableTokenOnBehodler is PowerInvoker {
 
     function orchestrate() internal override returns (bool) {
         address _lachesis = angband.getAddress(power.domain);
-        Lachesis_071Like lachesis = Lachesis_071Like(_lachesis);
+        LachesisLike_071 lachesis = LachesisLike_071(_lachesis);
         lachesis.measure(token, false, false);
         lachesis.updateBehodler(token);
         return true;

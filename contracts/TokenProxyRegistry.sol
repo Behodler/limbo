@@ -5,7 +5,6 @@ import "./TokenProxies/TokenProxyBase.sol";
 import "./TokenProxies/BehodlerTokenProxy.sol";
 import "./openzeppelin/SafeERC20.sol";
 import "./facades/BehodlerLike.sol";
-
 ///@author Justin Goro
 ///@title Token Proxy Registry for exotic token registration on Limbo
 /**@notice
@@ -94,10 +93,10 @@ contract TokenProxyRegistry is Governable {
     return true;
   }
 
-  function migrateProxyTokenToNewProxyWrapper(address existingProxy, address newProxyToken)
-    public
-    onlySuccessfulProposal
-  {
+  function migrateProxyTokenToNewProxyWrapper(
+    address existingProxy,
+    address newProxyToken
+  ) public onlySuccessfulProposal {
     TokenProxyBase(existingProxy).migrateBaseReserveToNewProxy(newProxyToken);
     address baseToken = TokenProxyBase(existingProxy).baseToken();
     TokenConfig memory existingConfig = tokenProxy[baseToken];
