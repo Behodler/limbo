@@ -1,6 +1,6 @@
 # CliffFace readiness
 
-## Refresher on cliff face
+## Refresher on cliffFace
 
 ### Impermanent Loss Death Spiral
 
@@ -15,12 +15,12 @@ Some AMMs like Balancer have more than one token. In this case, a Balancer pair 
 
 ### Extending Balancer to Behodler
 
-Behodler has all its tokens on one so, to speak. It's an n-dimensional AMM. This means that scamX would allow the scammers to drain the whole of Behodler and SCX would become a 1:1 wrapper of scamX.
+Behodler has all its tokens on one, LP so to speak. It's an n-dimensional AMM. This means that scamX would allow the scammers to drain the whole of Behodler and SCX would become a 1:1 wrapper of scamX.
 
 
 ### Solution 1: permissioned Limbo listing
 
-The first solution is to use governance mechanisms to prevent bad tokens from listing. This is the primary purpose of LimboDAO. To block bad token listing and to offer Limbo emergency protections. For instance, anyone can trigger an emergency shutdown of Limbo. All that is required is to lock a big chunk of EYE. The community can then vote if the shutdown was a grief attack and burn the locked EYE. If it was a legitimate shutdown, the locked EYE is released.
+The first solution is to use governance mechanisms to prevent bad tokens from listing. This is the primary purpose of LimboDAO - to block bad token listing and to offer Limbo emergency protections. For instance, anyone can trigger an emergency shutdown of Limbo. All that is required is to lock a big chunk of EYE. The community can then vote if the shutdown was a grief attack and burn the locked EYE. If it was a legitimate shutdown, the locked EYE is released.
 
 #### Problems with Solution 1:
 
@@ -46,7 +46,7 @@ LimboUI needs a bit of refitting for both the new oracle code post audit and for
 
 ### Behodler Swap
 
-Behodler swap needs to accomodate cliff face tokens under the hood so that users aren't aware they're even using a proxy. So for instance, if we list Uni in a cliff face wrapper, the Behodler UI will just show UNI in the token lists.
+Behodler swap needs to accomodate cliffFace tokens under the hood so that users aren't aware they're even using a proxy. So for instance, if we list Uni in a cliffFace wrapper, the Behodler UI will just show UNI in the token lists.
 The only giveaway that it's in a cliffFace proxy is a higher gas cost for swapping.
 
 ### Behodler PyroTokens
