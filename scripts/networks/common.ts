@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, Contract, ContractFactory, ContractTransaction } from "ethers";
+import { Contract, ContractFactory, ContractTransaction } from "ethers";
 import * as Web3 from 'web3';
 import { mine } from "@nomicfoundation/hardhat-network-helpers";
 
@@ -529,20 +529,3 @@ export type contractNames =
   | "MigrationLib"
   | "SoulLib"
   | "RefreshTokenOnBehodler"
-
-export const swapOnUni = async (router, output, owner) => {
-  return async (input, amount: BigNumber, canLog) => {
-    const log = logFactory(canLog);
-    const factoryAddress = await router.factory();
-    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const uniFactory = await UniswapFactoryFactory.attach(factoryAddress);
-
-    const baseAddress = await uniFactory.getPair(input.address, output.address);
-
-    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
-    //trade input
-    const uniPair = await UniswapPairFactory.attach(baseAddress);
-    await input.transfer(baseAddress, amount);
-    await uniPair.swap("0", amount, owner.address, []);
-  };
-};

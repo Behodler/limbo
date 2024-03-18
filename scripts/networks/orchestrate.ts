@@ -1,16 +1,15 @@
 import { writeFileSync, existsSync, readFileSync } from "fs";
 import {
-  OutputAddress, AddressFileStructure, logFactory, getPauser,
+  OutputAddress, AddressFileStructure, getPauser,
   nameNetwork, Sections, sectionName,
   fetchDeploymentRecipe, networks, recipeNames,
   broadcastFactory, ITokenConfig
 } from "./common";
 import { IDeploymentParams, sectionChooser, extractTokenConfig } from "./deploymentFunctions";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import hre from 'hardhat'
-import '@nomiclabs/hardhat-ethers'
-import path from 'path'
-import { deploy } from "../../test/helpers";
+import hre from 'hardhat';
+import '@nomiclabs/hardhat-ethers';
+import path from 'path';
 
 const nullAddress = "0x0000000000000000000000000000000000000000";
 export interface ContractSet {
@@ -45,6 +44,7 @@ export async function safeDeploy(
       writeFileSync(persistPath, JSON.stringify(set.protocol, null, 2))
     return set
   } catch (error) {
+    writeFileSync(file, "unlocked");
     throw error;
   } finally {
     writeFileSync(file, "unlocked");

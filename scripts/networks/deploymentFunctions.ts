@@ -5,7 +5,7 @@ import {
   OutputAddress, deploymentFactory, OutputAddressAdder,
   Sections, AddressFileStructure, contractNames, sectionName,
   stringToBytes32, criticalPairNames, tokenNames,
-  behodlerTokenNames, ITokenConfig, limboTokenNames, swapOnUni, cliffFaceNames
+  behodlerTokenNames, ITokenConfig, limboTokenNames, cliffFaceNames
 } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs";
@@ -211,7 +211,7 @@ const configureUniswapHelper: IDeploymentFunction = async function (params: IDep
     await network.provider.send("evm_increaseTime", [43201]);
     await network.provider.send("evm_mine"); // this will mine a new block
     const uniswapV2Router = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
-    const swapper = await swapOnUni(uniswapV2Router.address, behodler.address, params.deployer)
+    const swapper = await swapOnUni(uniswapV2Router, behodler.address, params.deployer, params.logger)
     swapper(flan.address, flanToTrade, true)
     //add delay
     await network.provider.send("evm_increaseTime", [43201]);
@@ -648,10 +648,10 @@ const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: 
       assert(isBehodlerProxy, "base token has cliff face. grouping  " + JSON.stringify(grouping))
       const behodlerTokenAddress = isBehodlerProxy ? grouping.behodler : grouping.base
       const behodlerToken = await getTokenFromAddress(behodlerTokenAddress)
-    const flanBalanceOfReferencePairAfterMigrate = await flan.balanceOf(referencePair.address)
+      const flanBalanceOfReferencePairAfterMigrate = await flan.balanceOf(referencePair.address)
       const scxBalanceOfReferencePairAfterMigrate = await behodler.balanceOf(referencePair.address)
 
-         const increaseInFlan = flanBalanceOfReferencePairAfterMigrate.sub(flanBalanceOfReferencePairBeforeMigrate)
+      const increaseInFlan = flanBalanceOfReferencePairAfterMigrate.sub(flanBalanceOfReferencePairBeforeMigrate)
       const increaseInSCX = scxBalanceOfReferencePairAfterMigrate.sub(scxBalanceOfReferencePairBeforeMigrate)
       assert(increaseInFlan.gt(10), "Flan should have been added to reference pair: " + increaseInFlan.div(ethers.constants.WeiPerEther).toString())
       assert(increaseInSCX.gt(10), "SCX should have been added to reference pair: " + increaseInSCX.div(ethers.constants.WeiPerEther).toString())
@@ -667,7 +667,7 @@ const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: 
       assert(isOnBehodler && isPyroToken, `Token registration on Behodler failed. Valid ${isOnBehodler} && isPyroToken ${isPyroToken}`)
 
       await registerPyroV3(cliffFace)
- 
+
       const pyroV3Address = await liquidityReceiver.getPyroToken(behodlerTokenAddress)
       assert(behodlerTokenAddress !== ethers.constants.AddressZero, "behodlerToken must be non zero " + behodlerTokenAddress)
       assert(pyroV3Address !== ethers.constants.AddressZero, "PyroV3 address must be non zero " + pyroV3Address)
@@ -1146,7 +1146,7 @@ const deployLimboAddTokenToBehodlerPower: IDeploymentFunction = async function (
     tokenProxyRegistry.address,
     lachesis.address,
     behodler.address)
-    
+
   await angband.authorizeInvoker(power.address, true)
 
   await tokenProxyRegistry.setPower(power.address)
@@ -2519,3 +2519,19 @@ export const extractTokenConfig = async function (params: IDeploymentParams): Pr
   return tokenConfigs
 }
 
+const swapOnUni = async (router: Types.UniswapV2Router02, output, owner, log: (message) => void) => {
+  return async (input, amount: BigNumber, canLog) => {
+
+    const factoryAddress = await router.factory();
+    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
+    const uniFactory = await UniswapFactoryFactory.attach(factoryAddress);
+
+    const baseAddress = await uniFactory.getPair(input.address, output.address);
+
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
+    //trade input
+    const uniPair = await UniswapPairFactory.attach(baseAddress);
+    await input.transfer(baseAddress, amount);
+    await uniPair.swap("0", amount, owner.address, []);
+  };
+};
