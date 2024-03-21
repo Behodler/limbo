@@ -264,7 +264,7 @@ export interface ITokenConfig {
   pyroV3Address: string
 }
 
-export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo' | 'localtestnet'
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo' | 'localtestnet'|'mini-sepolia'
 
 let localTestnetRecipe = [
   Sections.PrivateNetworkOnly,
@@ -337,6 +337,11 @@ let localTestnetRecipe = [
   // Sections.DisableDeployerSnufferCap
 ]
 
+let miniSepolia = [
+  Sections.PreChecks,
+  Sections.PreCheckMelkor,
+  Sections.Weth,
+]
 
 let testnetRecipe = [
   Sections.PreChecks,
@@ -393,6 +398,8 @@ let testnetRecipe = [
   Sections.SnuffPyroWethProxy,
   Sections.UniswapHelperConfigure,
   Sections.LimboTokens,
+  Sections.ListSomeLimboTokens,
+  Sections.MigrateCliffFaceToBehodler,
   Sections.LimboDAOSeed,
   Sections.LimboConfigureCrossingConfig,
 
@@ -435,6 +442,7 @@ deploymentRecipes.push({
     Sections.AddInitialLiquidityToBehodler
   ]
 })
+deploymentRecipes.push({name: "mini-sepolia", recipe: miniSepolia})
 
 deploymentRecipes.push({
   name: "onlyPyroV3", recipe: [
