@@ -26,6 +26,7 @@
   "dependencies": {
     "@fastify/cors": "^8.2.1",
     "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "@uniswap/sdk": "^3.0.3",
     "fastify": "^4.11.0",
     "hardhat": "^2.12.6"
   }

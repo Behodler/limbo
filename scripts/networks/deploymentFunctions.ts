@@ -2,10 +2,21 @@ import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { BigNumber, BigNumberish, Contract, ContractTransaction } from "ethers";
 import {
-  OutputAddress, deploymentFactory, OutputAddressAdder,
-  Sections, AddressFileStructure, contractNames, sectionName,
-  stringToBytes32, criticalPairNames, tokenNames,
-  behodlerTokenNames, ITokenConfig, limboTokenNames, cliffFaceNames
+  OutputAddress,
+  deploymentFactory,
+  OutputAddressAdder,
+  Sections,
+  AddressFileStructure,
+  contractNames,
+  sectionName,
+  stringToBytes32,
+  criticalPairNames,
+  tokenNames,
+  behodlerTokenNames,
+  ITokenConfig,
+  limboTokenNames,
+  cliffFaceNames,
+  swapTokenToToken,
 } from "./common";
 import * as Types from "../../typechain";
 import shell from "shelljs";
@@ -137,7 +148,7 @@ const getPyroToken = async (address: string): Promise<Types.PyroToken> => {
   return contract as Types.PyroToken
 }
 
-const getTokenFromAddress = async (address: string): Promise<Types.ERC20> => {
+export const getTokenFromAddress = async (address: string): Promise<Types.ERC20> => {
   const factory = await ethers.getContractFactory("ERC20")
   const contract = factory.attach(address)
   return contract as Types.ERC20
@@ -204,16 +215,26 @@ const configureUniswapHelper: IDeploymentFunction = async function (params: IDep
   //allow flan/scx to trade a bit and invoke a few updates before migrating anything.
   const chainId = await params.deployer.getChainId()
   if (chainId === 1337 || chainId === 11155111) {
-    const flanToTrade = ethers.constants.One.mul(3)
+    const flanToTrade = (ethers.constants.WeiPerEther.mul(3).div(1000))
     await flan.mint(params.deployer.address, flanToTrade)
+    const uniswapFactory = await getContract<Types.UniswapV2Factory>(Sections.UniswapV2Clones, "UniswapV2Factory")
 
-    //add delay
+    const pairAddress = await uniswapFactory.getPair(flan.address, behodler.address)
+    const scxBalanceOfDeployer = await behodler.balanceOf(params.deployer.address)
+    await behodler.transfer(pairAddress, scxBalanceOfDeployer.div(2))
+    await flan.mint(pairAddress, flanToTrade.mul(1000))
+    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair")
+    const pair = UniswapPairFactory.attach(pairAddress) as Types.UniswapV2Pair
+    await pair.mint(params.deployer.address)
+
+    //   //add delay
     await network.provider.send("evm_increaseTime", [43201]);
     await network.provider.send("evm_mine"); // this will mine a new block
     const uniswapV2Router = await getContract<Types.UniswapV2Router02>(Sections.UniswapV2Clones, "UniswapV2Router", "UniswapV2Router02")
-    const swapper = await swapOnUni(uniswapV2Router, behodler.address, params.deployer, params.logger)
-    swapper(flan.address, flanToTrade, true)
-    //add delay
+    params.logger("Hello there")
+
+    await swapTokenToToken(flan.address, behodler.address, flanToTrade.toString(), uniswapV2Router, params.deployer, params.logger)
+    //   //add delay
     await network.provider.send("evm_increaseTime", [43201]);
     await network.provider.send("evm_mine"); // this will mine a new block
     await limboOracle.update(behodler.address, flan.address)
@@ -1019,8 +1040,14 @@ const tradeOraclePairs: IDeploymentFunction = async function (params: IDeploymen
   const deadline = ethers.constants.MaxUint256
 
   const tradeOnUni = async (inputToken: Contract, outputToken: Contract, inputAmount: BigNumberish): Promise<BigNumber> => {
+    const UniswapV2FactoryFactory = await ethers.getContractFactory("UniswapV2Factory")
+    const uniswapV2Factory = await UniswapV2FactoryFactory.attach(await uniswapV2Router.factory()) as Types.UniswapV2Factory
+    const pairAddress = await uniswapV2Factory.getPair(inputToken.address, outputToken.address)
+    params.logger('JS: pair address' + pairAddress)
+    params.logger(`JS: input token ${inputToken.address}, output token ${outputToken.address}, factory ${uniswapV2Factory.address}`)
     const balanceOfOutputtBefore = await (outputToken as Types.ERC20).balanceOf(params.deployer.address)
-    await params.broadcast("swaping through Uniswap router", uniswapV2Router.swapExactTokensForTokens(inputAmount, 1000, [inputToken.address, outputToken.address], params.deployer.address, deadline))
+    await swapTokenToToken(inputToken.address, outputToken.address, inputAmount.toString(), uniswapV2Router, params.deployer, params.logger)
+    //  await params.broadcast("swaping through Uniswap router", uniswapV2Router.swapExactTokensForTokens(inputAmount, 1000, [inputToken.address, outputToken.address], params.deployer.address, deadline))
     const balanceOfOutputAfter = await (outputToken as Types.ERC20).balanceOf(params.deployer.address)
     return balanceOfOutputAfter.sub(balanceOfOutputtBefore)
   }
@@ -2355,7 +2382,6 @@ export async function deployWeth(
 
   const Weth = await ethers.getContractFactory("WETH10");
   const weth = await deploy<Types.WETH10>("Weth", Weth);
-
   return OutputAddressAdder<Types.WETH10>({}, "Weth", weth);
 }
 
@@ -2518,20 +2544,3 @@ export const extractTokenConfig = async function (params: IDeploymentParams): Pr
   }
   return tokenConfigs
 }
-
-const swapOnUni = async (router: Types.UniswapV2Router02, output, owner, log: (message) => void) => {
-  return async (input, amount: BigNumber, canLog) => {
-
-    const factoryAddress = await router.factory();
-    const UniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const uniFactory = await UniswapFactoryFactory.attach(factoryAddress);
-
-    const baseAddress = await uniFactory.getPair(input.address, output.address);
-
-    const UniswapPairFactory = await ethers.getContractFactory("UniswapV2Pair");
-    //trade input
-    const uniPair = await UniswapPairFactory.attach(baseAddress);
-    await input.transfer(baseAddress, amount);
-    await uniPair.swap("0", amount, owner.address, []);
-  };
-};

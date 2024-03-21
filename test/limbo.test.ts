@@ -1292,9 +1292,6 @@ describe.only("Limbo", function () {
   });
 
   it("t-22. multiple migrations (STABILIZE) to real uniswap tilts price", async function () {
-    //TODO: get POWERS instantiated properly and run this test correctly.
-    //TODO: we have to test that all permutations of proxy relationship migrates.
-
     const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
     const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
     const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {
@@ -1331,8 +1328,6 @@ describe.only("Limbo", function () {
 
 
     const RealPower = await ethers.getContractFactory("LimboAddTokenToBehodler");
-    //BUG: this deploy is failing
-
     const realPower = await deploy<Types.LimboAddTokenToBehodler>(RealPower,
       realAngband.address,
       SET.limbo.address,
@@ -1672,6 +1667,7 @@ describe.only("Limbo", function () {
     await SET.limbo.configureSoul(aave.address, 10000000, 1, 1, 0, 10000000);
 
     //create real behodler
+    //
     const AddressBalanceCheckLib = await ethers.getContractFactory("AddressBalanceCheck");
     const addressBalanceCheckLibAddress = (await AddressBalanceCheckLib.deploy()).address;
     const RealBehodlerFactory = await ethers.getContractFactory("BehodlerLite", {

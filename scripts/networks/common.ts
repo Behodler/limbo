@@ -1,9 +1,9 @@
 import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { Contract, ContractFactory, ContractTransaction } from "ethers";
+import * as Types from "../../typechain";
 import * as Web3 from 'web3';
 import { mine } from "@nomicfoundation/hardhat-network-helpers";
-
 type address = string;
 
 
@@ -333,7 +333,7 @@ let localTestnetRecipe = [
   Sections.MorgothLimboMinionAndPower,
   Sections.MorgothMapLimboDAO,
   Sections.ListSomeLimboTokens,
-  Sections.MigrateCliffFaceToBehodler
+  Sections.MigrateCliffFaceToBehodler,
   // Sections.DisableDeployerSnufferCap
 ]
 
@@ -529,3 +529,18 @@ export type contractNames =
   | "MigrationLib"
   | "SoulLib"
   | "RefreshTokenOnBehodler"
+
+export async function swapTokenToToken(
+  inputTokenAddress: string,
+  outputTokenAddress: string,
+  amountIn: string,
+  uniswapV2Router: Types.UniswapV2Router02,
+  signer: SignerWithAddress,
+  log: (message: string) => void
+): Promise<void> {
+  const amountOutMin = '0'; 
+  const deadline = Math.floor(Date.now()) + 60 * 20; // Transaction deadline
+  const path = [inputTokenAddress, outputTokenAddress]; // Path for the swap
+
+  await uniswapV2Router.swapExactTokensForTokens(amountIn, amountOutMin, path, signer.address, deadline);
+}

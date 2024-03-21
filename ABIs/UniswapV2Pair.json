@@ -97,13 +97,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amount0In",
+        "name": "amountFlanIn",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amount1In",
+        "name": "amountSCXIn",
         "type": "uint256"
       },
       {
@@ -519,12 +519,12 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "amount0Out",
+        "name": "amountFlanOut",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "amount1Out",
+        "name": "amountSCXOut",
         "type": "uint256"
       },
       {
