@@ -553,14 +553,7 @@ const listSomeLimboTokens: IDeploymentFunction = async function (params: IDeploy
   if (badSouls.length > 0) {
     throw "The following tokens are failing to list " + JSON.stringify(badSouls, null, 4)
   }
-  const goodSoulAddresses = limboTokens.filter(lt => badSouls.find(bs => bs.baseAddres === lt.base) === undefined).map(s => s.base)
-  const goodSouls = loadedTokens.filter(t => goodSoulAddresses.find(g => g === t.token.address) !== undefined).map(t => ({ name: t.name, token: t.token }))
-
-  const addresses: OutputAddress = goodSouls.reduce((acc, good) => {
-    acc = OutputAddressAdder(acc, good.name, good.token)
-    return acc
-  }, {} as OutputAddress)
-  return addresses
+  return {}
 }
 
 const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
@@ -718,22 +711,7 @@ const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: 
   const config = await morgothTokenApprover.config()
   assert(config.proxyRegistry == tokenProxyRegistry.address, "Registries are the same")
 
-  const cliffFaceTokenNameAddressGroups = await Promise.all(baseProxyGroupings.map(async (group) => {
-
-    const cliffFromMTA = (await morgothTokenApprover.baseTokenMapping(group.base)).cliffFace
-    const cliffFromRegistry = (await tokenProxyRegistry.tokenProxy(group.base)).behodlerProxy
-    //SANITY CHECK
-    assert(cliffFromRegistry === cliffFromMTA, `cliff face addresses in registries should agree. MTA ${cliffFromMTA} - Registry ${cliffFromRegistry} - base ${group.base}`)
-    const baseToken = await getTokenFromAddress(group.base)
-
-    return { name: await baseToken.name() as cliffFaceNames, token: baseToken }
-  }))
-
-  const addresses: OutputAddress = cliffFaceTokenNameAddressGroups.reduce((acc, group) => {
-    acc = OutputAddressAdder(acc, group.name, group.token)
-    return acc
-  }, {} as OutputAddress)
-  return addresses
+  return {}
 }
 
 const assertFactory = (log: (message: string) => void) => (condition: boolean, message: string) => {
@@ -2516,17 +2494,32 @@ export const extractTokenConfig = async function (params: IDeploymentParams): Pr
 
   const pyroTokenFactory = await ethers.getContractFactory("PyroToken")
   const behodlerTokenSection = params.existing[sectionName(Sections.BehodlerTokens)]
+  const limboTokenSection = params.existing[sectionName(Sections.LimboTokens)]
   let weth: Contract = await getContract(Sections.Weth, "Weth", "WETH10")
+  const behodler = await getBehodler(params.existing)
 
-  const behodlerTokenNames = [...Object.keys(behodlerTokenSection), "Weth"]
-  for (let index = 0; index < behodlerTokenNames.length; index++) {
-    const tokenName = behodlerTokenNames[index] as contractNames
-    const token = tokenName == "Weth" ? weth :
-      await getContract<Types.ERC20>(Sections.BehodlerTokens, tokenName, "ERC20")
+  const proxy = await getContract<Types.TokenProxyRegistry>(Sections.TokenProxyRegistry, "TokenProxyRegistry")
 
-    let displayName: string = tokenName
-    let pyroDisplayName = 'pyro(' + tokenName + ')'
-    if (tokenName.includes('_')) {
+  const behodlerListedLimboTokens = (await Promise.all(Object.keys(limboTokenSection).map(async (l) => {
+    const proxyValue = await proxy.tokenProxy(limboTokenSection[l])
+    const behodlerToken = proxyValue.behodlerProxy
+    return { valid: await behodler.validTokens(behodlerToken), name: l, address: limboTokenSection[l] }
+  })))
+    .filter(group => group.valid)
+    .map(group => ({ name: group.name, address: group.address }))
+
+  const behodlerTokenGroups = Object.keys(behodlerTokenSection)
+    .map(key => ({ name: key, address: behodlerTokenSection[key] }))
+
+
+  const tokenCandidates = [...behodlerListedLimboTokens, ...behodlerTokenGroups, ...[{ name: "Weth", address: weth.address }]]
+  for (let index = 0; index < tokenCandidates.length; index++) {
+    const tokenGroup = tokenCandidates[index]
+    const token = await getTokenFromAddress(tokenGroup.address)
+
+    let displayName: string = await tokenGroup.name
+    let pyroDisplayName = 'pyro(' + tokenGroup.name + ')'
+    if (tokenGroup.name.includes('_')) {
       const slashed = [displayName, pyroDisplayName]
         .map(tokenName => tokenName.split('_')[0] + '/' + tokenName.split('_')[1])
       displayName = slashed[0]
@@ -2537,10 +2530,10 @@ export const extractTokenConfig = async function (params: IDeploymentParams): Pr
     }
     const pyroV2Address = await LR_old.baseTokenMapping(token.address)
     const pyroV3Address = await LR_new.getPyroToken(token.address)
-    const v3Deployed = await pyroTokenFactory.attach(pyroV3Address).deployed().catch(() => { params.logger('v3 deployment not found for ' + tokenName) })
+    const v3Deployed = await pyroTokenFactory.attach(pyroV3Address).deployed().catch(() => { params.logger('v3 deployment not found for ' + tokenGroup.name) })
 
     const tokenConfig = {
-      name: tokenName,
+      name: tokenGroup.name,
       displayName: displayName,
       pyroDisplayName: v3Deployed ? pyroDisplayName : '',
       address: token.address,

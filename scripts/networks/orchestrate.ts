@@ -95,9 +95,10 @@ export async function deployToNetwork(
   const finalBalance = await deployer.getBalance()
   logger('total eth consumed ' + initialBalance.sub(finalBalance).toString())
   logger("Deployments complete. Flattening...")
-  const flat = loader.flatten()
   const recipeToUseForTokenConfig = recipeName === "onlyPyroV3" ? [...fetchDeploymentRecipe("statusquo"), ...recipe] : recipe
   const tokenConfig = await loader.getTokenConfig(recipeToUseForTokenConfig)
+  const flat = loader.flatten(tokenConfig.map(c => c.address))
+
   return {
     protocol: flat,
     tokens: tokenConfig,
@@ -129,7 +130,7 @@ class Loader {
     this.confirmations = confirmations
   }
 
-  flatten(): OutputAddress {
+  flatten(excludedAddresses: string[]): OutputAddress {
     let flat: OutputAddress = {}
     let duplicate = (newKey: string, existing: OutputAddress): boolean => {
       let keys = Object.keys(existing)
@@ -141,9 +142,12 @@ class Loader {
       let contractKeys = Object.keys(this.existing[sectionKey])
       for (let j = 0; j < contractKeys.length; j++) {
         const contractKey = contractKeys[j]
+        const address = this.existing[sectionKey][contractKey]
+        if (excludedAddresses.find(a => a === address) !== undefined)
+          continue;
         if (duplicate(contractKey, flat))
           throw `duplicate key found in flatten. New Key: ${contractKey}`
-        flat[contractKey] = this.existing[sectionKey][contractKey]
+        flat[contractKey] = address
       }
     }
     return flat;
@@ -152,10 +156,9 @@ class Loader {
   async getTokenConfig(recipe: Sections[]): Promise<ITokenConfig[]> {
 
     const existingKeys = Object.keys(this.existing)
-    const pyroCableSections: Sections[] = [Sections.LiquidityReceiverOld, Sections.LiquidityReceiverNew, Sections.BehodlerTokens]
+    const pyroCapableSections: Sections[] = [Sections.LiquidityReceiverOld, Sections.LiquidityReceiverNew, Sections.BehodlerTokens, Sections.LimboTokens]
 
-    const isPyroCapable = pyroCableSections.every(s => recipe.includes(s))
-    console.log('isPyroCapable: ' + isPyroCapable)
+    const isPyroCapable = pyroCapableSections.every(s => recipe.includes(s))
     //Only produce a meaninful output if we actually have pyroTokens in our deployment recipe
     if (!isPyroCapable)
       return [] as ITokenConfig[]
