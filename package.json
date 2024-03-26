@@ -8,7 +8,7 @@
     "test": "npx hardhat test test/limbo.dao.*.test.ts && npx hardhat test test/limbo.test.ts && npx hardhat test test/proxy/*.test.ts",
     "coverage": "HIDE_DEPLOY_LOG=true OPTIMIZER_DISABLED=true hardhat coverage",
     "test:wargames": "npx hardhat test test/wargames/*",
-    "build:freshABI": " touch private/results.txt &&  rm -rf artifacts/* cache/* typechain/* typechain-types/ && yarn build &&  chmod -R 777 artifacts/ &&  chmod -R 777 cache/ &&  chmod -R 777 typechain/ ",
+    "build:freshABI": "rm -rf artifacts/* cache/* typechain/* typechain-types/ && yarn build &&  chmod -R 777 artifacts/ &&  chmod -R 777 cache/ &&  chmod -R 777 typechain/ ",
     "test:freshABI": "yarn build:freshABI && yarn test",
     "build:debug": " rm -rf build/ && truffle build && yarn typechain",
     "build": "npx hardhat compile",

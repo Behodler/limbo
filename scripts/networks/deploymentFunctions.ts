@@ -553,8 +553,14 @@ const listSomeLimboTokens: IDeploymentFunction = async function (params: IDeploy
   if (badSouls.length > 0) {
     throw "The following tokens are failing to list " + JSON.stringify(badSouls, null, 4)
   }
+  const goodSoulAddresses = limboTokens.filter(lt => badSouls.find(bs => bs.baseAddres === lt.base) === undefined).map(s => s.base)
+  const goodSouls = loadedTokens.filter(t => goodSoulAddresses.find(g => g === t.token.address) !== undefined).map(t => ({ name: t.name, token: t.token }))
 
-  return {}
+  const addresses: OutputAddress = goodSouls.reduce((acc, good) => {
+    acc = OutputAddressAdder(acc, good.name, good.token)
+    return acc
+  }, {} as OutputAddress)
+  return addresses
 }
 
 const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
@@ -716,10 +722,11 @@ const migrateCliffFaceToBehodler: IDeploymentFunction = async function (params: 
 
     const cliffFromMTA = (await morgothTokenApprover.baseTokenMapping(group.base)).cliffFace
     const cliffFromRegistry = (await tokenProxyRegistry.tokenProxy(group.base)).behodlerProxy
+    //SANITY CHECK
     assert(cliffFromRegistry === cliffFromMTA, `cliff face addresses in registries should agree. MTA ${cliffFromMTA} - Registry ${cliffFromRegistry} - base ${group.base}`)
-    const cliffToken = await getTokenFromAddress(cliffFromMTA)
+    const baseToken = await getTokenFromAddress(group.base)
 
-    return { name: await cliffToken.name() as cliffFaceNames, token: cliffToken }
+    return { name: await baseToken.name() as cliffFaceNames, token: baseToken }
   }))
 
   const addresses: OutputAddress = cliffFaceTokenNameAddressGroups.reduce((acc, group) => {
