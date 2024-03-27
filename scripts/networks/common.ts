@@ -189,6 +189,7 @@ export enum Sections {
   PreChecks,
   PreCheckMelkor,
   PrivateNetworkOnly,
+  SepoliaOnly,
   Weth,
   Behodler,
   UniswapV2Clones,
@@ -264,7 +265,7 @@ export interface ITokenConfig {
   pyroV3Address: string
 }
 
-export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo' | 'localtestnet'|'mini-sepolia'
+export type recipeNames = 'testnet' | 'statusquo' | 'onlyPyroV3' | 'onlyLimbo' | 'localtestnet' | 'mini-sepolia'
 
 let localTestnetRecipe = [
   Sections.PrivateNetworkOnly,
@@ -338,8 +339,7 @@ let localTestnetRecipe = [
 ]
 
 let miniSepolia = [
-  Sections.PreChecks,
-  Sections.PreCheckMelkor,
+  Sections.SepoliaOnly,
   Sections.Weth,
 ]
 
@@ -442,7 +442,7 @@ deploymentRecipes.push({
     Sections.AddInitialLiquidityToBehodler
   ]
 })
-deploymentRecipes.push({name: "mini-sepolia", recipe: miniSepolia})
+deploymentRecipes.push({ name: "mini-sepolia", recipe: miniSepolia })
 
 deploymentRecipes.push({
   name: "onlyPyroV3", recipe: [
@@ -546,7 +546,7 @@ export async function swapTokenToToken(
   signer: SignerWithAddress,
   log: (message: string) => void
 ): Promise<void> {
-  const amountOutMin = '0'; 
+  const amountOutMin = '0';
   const deadline = Math.floor(Date.now()) + 60 * 20; // Transaction deadline
   const path = [inputTokenAddress, outputTokenAddress]; // Path for the swap
 

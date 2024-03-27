@@ -46,6 +46,7 @@ export function sectionChooser(section: Sections): IDeploymentFunction {
     case Sections.PreChecks: return prechecks
     case Sections.PreCheckMelkor: return precheckMelkor
     case Sections.PrivateNetworkOnly: return privateNetworkOnly
+    case Sections.SepoliaOnly: return sepoliaOnly
     //Behodler v2
     case Sections.Weth: return deployWeth
     case Sections.Behodler: return deployBehodler
@@ -2440,13 +2441,24 @@ export const privateNetworkOnly: IDeploymentFunction = async function (params: I
   return {}
 }
 
+export const sepoliaOnly: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
+  const chainId = await params.deployer.getChainId()
+  if (chainId !== 11155111) {
+    throw 'Recipe for Sepolia only to avoid damaging changes to public networks.'
+  }
+  return {}
+}
+
+
+
 export const prechecks: IDeploymentFunction = async function (params: IDeploymentParams): Promise<OutputAddress> {
   const getContract = await getContractFromSection(params.existing)
-
+  const assert = assertFactory(params.logger)
   params.logger("Precheck: testing if Deployer has enough Dai.")
   //Flan genesis requires deployer have a big Dai balance
   let sufficientDai = true
   let sufficientEYE = true
+  const chainId = await params.deployer.getChainId()
   try {
     const dai = await getContract(Sections.BehodlerTokens, "DAI", "ERC20") as Types.ERC20
     const daiBalance = await dai.balanceOf(params.deployer.address)
@@ -2455,10 +2467,12 @@ export const prechecks: IDeploymentFunction = async function (params: IDeploymen
     const eyeBalance = await eye.balanceOf(params.deployer.address)
     sufficientEYE = eyeBalance.gt(daiBalance)
   } catch {
+
+    assert(chainId !== 1, "Mainnet deployer needs Dai")
     //testnet
   }
   let successfulMint = false;
-  if (!sufficientDai) {
+  if (!sufficientDai && chainId!==1 ) {
 
     try {
       const dai = await getContract<Types.MockToken>(Sections.BehodlerTokens, "DAI", "MockToken")
@@ -2466,7 +2480,10 @@ export const prechecks: IDeploymentFunction = async function (params: IDeploymen
       const eye = await getContract<Types.MockToken>(Sections.BehodlerTokens, "EYE", "MockToken")
       await eye.mint(ethers.constants.WeiPerEther.mul(50000))
       successfulMint = true
-    } catch { }
+    } catch
+    {
+
+    }
     if (!successfulMint)
       throw "Error: Seed deployer with lots of Dai"
   }

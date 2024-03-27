@@ -28,6 +28,7 @@
     "deploy:local2": " touch scripts/testnet/addresses/hardhat.json &&  rm scripts/testnet/addresses/hardhat.json && npx hardhat run scripts/testnet/orchestrate.ts",
     "deploy:sepolia": "npx hardhat run --network sepolia scripts/deploy-all-sepolia.ts >SEPOLIA_LOGS_limbo_upgrade.txt",
     "deploy:sepolia-progressive": "npx hardhat run --network sepolia scripts/deploy-status-quo-sepolia.ts > SEPOLIA_LOGS_status_quo.txt &&  npx hardhat run --network sepolia scripts/deploy-pyrotokensV3-sepolia.ts > SEPOLIA_LOGS_pyro.txt &&  npx hardhat run --network sepolia scripts/deploy-all-sepolia.ts > SEPOLIA_logs_upgrade",
+    "deploy:sepolia-test-run": "npx hardhat run --network sepolia scripts/deploy-mini-sepolia.ts > SEPOLIA_LOGS_mini",
     "ssh-agent": "eval \"$(ssh-agent -s)\" && ssh-add ../../GITHUB"
   },
   "repository": {
