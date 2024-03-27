@@ -76,7 +76,7 @@ export async function deployToNetwork(
   const networkName = nameNetwork(chainId);
   const pauser = await getPauser(networkName, confirmations);
   const initialBalance = await deployer.getBalance()
-  let loader = new Loader(networkName, logger, deployer, pauser, confirmations)
+  let loader = new Loader(networkName, logger, deployer, pauser, confirmations, recipeName)
 
   const iterations = recipe.length;
   logger('Sections: ' + iterations)
@@ -115,12 +115,15 @@ class Loader {
   pauser: Function
   fileName: string = ""
   confirmations: number
+  recipeName: recipeNames
 
   constructor(network: networks,
     logger: (message: string) => void,
     deployer: SignerWithAddress,
     pauser: Function,
-    confirmations: number) {
+    confirmations: number,
+    recipeName: recipeNames) {
+    this.recipeName = recipeName
     this.network = network;
     this.existing = {} as AddressFileStructure;
     this.logger = logger;
@@ -128,6 +131,7 @@ class Loader {
     this.pauser = pauser;
     this.populateExistingFromFile();
     this.confirmations = confirmations
+
   }
 
   flatten(excludedAddresses: string[]): OutputAddress {
@@ -205,12 +209,13 @@ class Loader {
       this.logger,
       this.deployer,
       this.pauser,
-      this.confirmations)
+      this.confirmations,
+      this.recipeName)
   }
 
   private async populateExistingFromFile() {
     this.logger('in populate')
-    this.fileName = path.resolve(__dirname, `./addresses/${this.network}.json`);
+    this.fileName = path.resolve(__dirname, `./addresses/${this.network}.${this.recipeName}.json`);
     const foundFile = existsSync(this.fileName);
     if (foundFile) {
       const blob = readFileSync(this.fileName);

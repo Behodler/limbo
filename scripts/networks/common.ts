@@ -340,6 +340,7 @@ let localTestnetRecipe = [
 
 let miniSepolia = [
   Sections.SepoliaOnly,
+  Sections.PreChecks,
   Sections.Weth,
 ]
 
